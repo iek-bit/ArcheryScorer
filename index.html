@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0a0f1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>ArrowMark</title>
-<link rel="manifest" href="data:application/json,{%22name%22:%22ArrowMark%22,%22short_name%22:%22ArrowMark%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22}">
+<title>Achery Scorer</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22Achery%20Scorer%22,%22short_name%22:%22Achery%20Scorer%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22}">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -519,6 +519,71 @@
   }
   .settings-row-chevron .ui-icon { font-size: 16px; }
 
+  .theme-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .theme-preset {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg3);
+    color: var(--text);
+    padding: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform .1s, border-color .15s;
+  }
+  .theme-preset.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,197,71,.18) inset; }
+  .theme-preset:active { transform: scale(.98); }
+  .theme-preset-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .theme-swatches {
+    display: flex;
+    gap: 6px;
+  }
+  .theme-swatches span {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.16);
+    display: inline-block;
+  }
+  .theme-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .theme-control label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .theme-picker {
+    width: 100%;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg3);
+    cursor: pointer;
+    padding: 6px;
+  }
+
   /* score flash */
   .score-flash {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
@@ -706,11 +771,32 @@ function icon(name, extraClass = '') {
   </div>
 
   <div class="settings-section">
+    <div class="settings-label">THEME</div>
+    <div class="theme-card">
+      <div class="theme-grid" id="themePresetGrid"></div>
+      <div class="theme-controls">
+        <div class="theme-control">
+          <label for="primaryColorInput">Primary Color</label>
+          <input id="primaryColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('accent', this.value)">
+        </div>
+        <div class="theme-control">
+          <label for="secondaryColorInput">Secondary Color</label>
+          <input id="secondaryColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('accent2', this.value)">
+        </div>
+        <div class="theme-control">
+          <label for="textColorInput">Text Color</label>
+          <input id="textColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('text', this.value)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
     <div class="settings-label">ABOUT</div>
     <div class="settings-row" style="cursor:default">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
       <div class="settings-row-text">
-        <div class="settings-row-title">ArrowMark</div>
+        <div class="settings-row-title">Achery Scorer</div>
         <div class="settings-row-sub">Archery scoring & diagnostics PWA</div>
       </div>
     </div>
@@ -831,6 +917,72 @@ let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocati
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
 db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
+const THEME_KEY = 'achery_scorer_theme_v1';
+const THEME_PRESETS = {
+  dark: {
+    name: 'Dark',
+    bg: '#0a0f1a',
+    bg2: '#111827',
+    bg3: '#1e2a3a',
+    accent: '#e8c547',
+    accent2: '#f0a04b',
+    text: '#e8eaf0',
+    muted: '#6b7a99',
+    border: '#2a3a50',
+    gold: '#e8c547',
+    silver: '#9daab8'
+  },
+  white: {
+    name: 'White',
+    bg: '#f7f7f2',
+    bg2: '#ffffff',
+    bg3: '#edf0e8',
+    accent: '#1f2937',
+    accent2: '#64748b',
+    text: '#0f172a',
+    muted: '#5f6c80',
+    border: '#d0d5dd',
+    gold: '#1f2937',
+    silver: '#98a2b3'
+  },
+  forest: {
+    name: 'Dark Green / White',
+    bg: '#102019',
+    bg2: '#163126',
+    bg3: '#214536',
+    accent: '#f6f7f2',
+    accent2: '#9ed3b0',
+    text: '#fbfdf8',
+    muted: '#a2bcaf',
+    border: '#335c49',
+    gold: '#f6f7f2',
+    silver: '#b5c7bd'
+  },
+  moss: {
+    name: 'Green / Black',
+    bg: '#0f1511',
+    bg2: '#18211b',
+    bg3: '#243229',
+    accent: '#79c08f',
+    accent2: '#aed7a4',
+    text: '#f2f7f2',
+    muted: '#9cb0a5',
+    border: '#33463b',
+    gold: '#79c08f',
+    silver: '#a4b7ad'
+  }
+};
+const THEME_SWATCH_KEYS = ['bg2', 'bg3', 'accent', 'accent2'];
+let themeState = (() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
+    return parsed && typeof parsed === 'object'
+      ? parsed
+      : {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, text: THEME_PRESETS.dark.text};
+  } catch {
+    return {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, text: THEME_PRESETS.dark.text};
+  }
+})();
 
 // ═══════════════════════════════════════════════
 //  SESSION STATE
@@ -843,6 +995,83 @@ let locationInputDirty = false;
 
 function isMedianAndroidAvailable() {
   return !!window.median?.android?.geoLocation;
+}
+
+function persistTheme() {
+  localStorage.setItem(THEME_KEY, JSON.stringify(themeState));
+}
+
+function getActiveTheme() {
+  const preset = THEME_PRESETS[themeState.preset] || THEME_PRESETS.dark;
+  return {
+    ...preset,
+    accent: themeState.accent || preset.accent,
+    accent2: themeState.accent2 || preset.accent2,
+    text: themeState.text || preset.text,
+    gold: themeState.accent || preset.gold
+  };
+}
+
+function renderThemePresets() {
+  const grid = document.getElementById('themePresetGrid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(THEME_PRESETS).map(([key, theme]) => {
+    const active = themeState.preset === key ? ' active' : '';
+    const swatches = THEME_SWATCH_KEYS.map(colorKey => `<span style="background:${theme[colorKey]}"></span>`).join('');
+    return `<button class="theme-preset${active}" onclick="applyPresetTheme('${key}')">
+      <div class="theme-preset-name">${theme.name}</div>
+      <div class="theme-swatches">${swatches}</div>
+    </button>`;
+  }).join('');
+}
+
+function syncThemeInputs() {
+  const theme = getActiveTheme();
+  const primary = document.getElementById('primaryColorInput');
+  const secondary = document.getElementById('secondaryColorInput');
+  const text = document.getElementById('textColorInput');
+  if (primary) primary.value = theme.accent;
+  if (secondary) secondary.value = theme.accent2;
+  if (text) text.value = theme.text;
+}
+
+function refreshThemeSensitiveUI() {
+  if (session) renderScorePage();
+  else drawTarget([]);
+  if (document.getElementById('page-home').classList.contains('active')) renderHome();
+  if (document.getElementById('page-diag').classList.contains('active')) renderDiag();
+}
+
+function applyTheme() {
+  const theme = getActiveTheme();
+  const root = document.documentElement;
+  Object.entries(theme).forEach(([key, value]) => {
+    if (key === 'name') return;
+    root.style.setProperty(`--${key}`, value);
+  });
+  renderThemePresets();
+  syncThemeInputs();
+  refreshThemeSensitiveUI();
+}
+
+function applyPresetTheme(name) {
+  const preset = THEME_PRESETS[name];
+  if (!preset) return;
+  themeState = {
+    preset: name,
+    accent: preset.accent,
+    accent2: preset.accent2,
+    text: preset.text
+  };
+  persistTheme();
+  applyTheme();
+}
+
+function updateCustomTheme(key, value) {
+  if (!['accent', 'accent2', 'text'].includes(key)) return;
+  themeState[key] = value;
+  persistTheme();
+  applyTheme();
 }
 
 function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
@@ -1626,7 +1855,7 @@ function downloadSave() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `arrowmark-save-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `achery-scorer-save-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1648,7 +1877,7 @@ function uploadSave(e) {
       renderHome();
       alert(`Loaded ${db.sessions.length} session(s) successfully.`);
     } catch {
-      alert('Could not read save file. Make sure it is a valid ArrowMark backup.');
+      alert('Could not read save file. Make sure it is a valid Achery Scorer backup.');
     }
   };
   reader.readAsText(file);
@@ -1888,6 +2117,7 @@ function drawZoneBars(arrows) {
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
+applyTheme();
 refreshSavedLocationOptions();
 renderHome();
 drawTarget([]);
