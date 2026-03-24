@@ -1209,6 +1209,11 @@ let activeThemeColorKey = 'accent';
 
 function normalizeRound(round = {}) {
   const mode = round.mode || (round.animal ? '3d' : 'bullseye');
+  const normalizeArrowScore = score => {
+    const base = typeof score === 'number' ? score : 0;
+    if (mode === '3d' && base > 0 && base < 7) return 7;
+    return base;
+  };
   return {
     mode,
     distance: mode === 'bullseye' ? (round.distance === 15 ? 15 : 10) : null,
@@ -1216,7 +1221,7 @@ function normalizeRound(round = {}) {
     arrows: Array.isArray(round.arrows) ? round.arrows.map(arrow => ({
       nx: typeof arrow?.nx === 'number' ? arrow.nx : 0,
       ny: typeof arrow?.ny === 'number' ? arrow.ny : 0,
-      score: typeof arrow?.score === 'number' ? arrow.score : 0
+      score: normalizeArrowScore(arrow?.score)
     })) : [],
     locked: !!round.locked
   };
@@ -1794,32 +1799,49 @@ function confirmThreeDTournamentSetup() {
 // ═══════════════════════════════════════════════
 //  TARGET DRAWING
 // ═══════════════════════════════════════════════
-const RINGS = [
-  {score:10, color:'#f7e900'}, // gold inner
-  {score:9,  color:'#f7e900'},
-  {score:8,  color:'#e84040'},
-  {score:7,  color:'#e84040'},
-  {score:6,  color:'#3b82f6'},
-  {score:5,  color:'#3b82f6'},
-  {score:4,  color:'#1a1a1a'},
-  {score:3,  color:'#1a1a1a'},
-  {score:2,  color:'#ffffff'},
-  {score:1,  color:'#ffffff'},
+const BULLSEYE_RINGS = [
+  {score:10, color:'#f7e900', end:0.1},
+  {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3},
+  {score:7,  color:'#e84040', end:0.4},
+  {score:6,  color:'#3b82f6', end:0.5},
+  {score:5,  color:'#3b82f6', end:0.6},
+  {score:4,  color:'#1a1a1a', end:0.7},
+  {score:3,  color:'#1a1a1a', end:0.8},
+  {score:2,  color:'#ffffff', end:0.9},
+  {score:1,  color:'#ffffff', end:1.0},
 ];
+
+const THREE_D_RINGS = [
+  {score:10, color:'#f7e900', end:0.1},
+  {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3},
+  {score:7,  color:'#e84040', end:1.0},
+];
+
+function getRingsForMode(mode = 'bullseye') {
+  return mode === '3d' ? THREE_D_RINGS : BULLSEYE_RINGS;
+}
 
 const canvas = document.getElementById('targetCanvas');
 const ctx = canvas.getContext('2d');
 const W = 600, H = 600, CX = W/2, CY = H/2, R = W/2 - 10;
 
-function drawTarget(arrows=[]) {
-  drawTargetOnCtx(ctx, W, arrows);
+function drawTarget(arrows=[], mode='bullseye') {
+  drawTargetOnCtx(ctx, W, arrows, mode);
 }
 
-function getScoreAt(nx, ny) {
+function getScoreAt(mode, nx, ny) {
   const d = Math.sqrt(nx*nx + ny*ny);
   if (d >= 1) return 0;
-  const ring = Math.floor(d * RINGS.length);
-  return RINGS[Math.min(ring, RINGS.length-1)].score;
+  const rings = getRingsForMode(mode);
+  const matched = rings.find(ring => d < ring.end);
+  return matched ? matched.score : 0;
+}
+
+function normalizeRoundScore(mode, score) {
+  if (mode === '3d' && score > 0 && score < 7) return 7;
+  return score;
 }
 
 canvas.addEventListener('click', handleTargetClick);
@@ -1840,7 +1862,7 @@ function handleTargetClick(e) {
   const py = (e.clientY - rect.top) * scaleY;
   const nx = (px - CX) / R;
   const ny = (py - CY) / R;
-  const score = getScoreAt(nx, ny);
+  const score = normalizeRoundScore(cr.mode, getScoreAt(cr.mode, nx, ny));
   cr.arrows.push({nx, ny, score});
   flashScore(score);
   renderScorePage();
@@ -1967,7 +1989,7 @@ function renderScorePage() {
     list.appendChild(row);
   });
 
-  drawTarget(cr.arrows);
+  drawTarget(cr.arrows, cr.mode);
 }
 
 function arrowColor(s) {
@@ -2326,7 +2348,7 @@ function openRoundDetail(sessionIdx, roundIdx) {
   document.getElementById('detailTitle').textContent =
     `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
 
-  drawTargetOnCtx(dctx, 600, r.arrows);
+  drawTargetOnCtx(dctx, 600, r.arrows, r.mode);
 
   const row = document.getElementById('detailArrows');
   row.innerHTML = r.arrows.map(a => {
@@ -2339,13 +2361,14 @@ function openRoundDetail(sessionIdx, roundIdx) {
   document.getElementById('detailOverlay').classList.add('open');
 }
 
-function drawTargetOnCtx(c, size, arrows=[]) {
+function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
   const CX2=size/2, CY2=size/2, R2=size/2-10;
+  const rings = getRingsForMode(mode);
   c.clearRect(0,0,size,size);
-  for(let i=RINGS.length-1;i>=0;i--){
-    const r=R2*(i+1)/RINGS.length;
+  for(let i=rings.length-1;i>=0;i--){
+    const r=R2*rings[i].end;
     c.beginPath(); c.arc(CX2,CY2,r,0,Math.PI*2);
-    c.fillStyle=RINGS[i].color; c.fill();
+    c.fillStyle=rings[i].color; c.fill();
     c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
   }
   c.strokeStyle='rgba(0,0,0,0.15)'; c.lineWidth=1; c.setLineDash([4,4]);
@@ -2355,16 +2378,16 @@ function drawTargetOnCtx(c, size, arrows=[]) {
   const LC={'#f7e900':'#1a1000','#e84040':'#ffffff','#3b82f6':'#ffffff','#1a1a1a':'#cccccc','#ffffff':'#333333','#cccccc':'#555555'};
   c.textAlign='center';
   c.textBaseline='middle';
-  for(let i=0;i<RINGS.length;i++){
-    const innerR=R2*i/RINGS.length;
-    const outerR=R2*(i+1)/RINGS.length;
+  for(let i=0;i<rings.length;i++){
+    const innerR=i===0 ? 0 : R2 * rings[i-1].end;
+    const outerR=R2 * rings[i].end;
     const ringWidth=outerR-innerR;
     const labelR=innerR + ringWidth * 0.5;
     const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
-    c.fillStyle=LC[RINGS[i].color]||'#fff';
+    c.fillStyle=LC[rings[i].color]||'#fff';
     c.font=`bold ${fontSize}px "DM Mono",monospace`;
     if (i === 0) {
-      c.fillText(RINGS[i].score, CX2, CY2);
+      c.fillText(rings[i].score, CX2, CY2);
       continue;
     }
     const positions = [
@@ -2376,7 +2399,7 @@ function drawTargetOnCtx(c, size, arrows=[]) {
     positions.forEach(angle => {
       const x = CX2 + Math.cos(angle) * labelR;
       const y = CY2 + Math.sin(angle) * labelR;
-      c.fillText(RINGS[i].score, x, y);
+      c.fillText(rings[i].score, x, y);
     });
   }
   arrows.forEach((a,idx)=>{
@@ -2544,10 +2567,10 @@ function drawHeatmap(arrows) {
   };
 
   // target background
-  for(let i=RINGS.length-1;i>=0;i--){
-    const r=R2*(i+1)/RINGS.length;
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
     hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
-    hx.fillStyle = mixHeatColor(RINGS[i].color, '#0b1220', 0.5);
+    hx.fillStyle = mixHeatColor(BULLSEYE_RINGS[i].color, '#0b1220', 0.5);
     hx.fill();
     hx.strokeStyle='rgba(255,255,255,0.18)';
     hx.lineWidth=1;
@@ -2624,8 +2647,8 @@ function drawHeatmap(arrows) {
   hx.restore();
 
   // redraw ring outlines above the heatmap for readability
-  for(let i=RINGS.length-1;i>=0;i--){
-    const r=R2*(i+1)/RINGS.length;
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
     hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
     hx.strokeStyle='rgba(255,255,255,0.26)';
     hx.lineWidth=1;
