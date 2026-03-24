@@ -1024,6 +1024,10 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="session-card practice" onclick="launchSession('practice')">
         <h2>Practice</h2>
       </div>
+      <div class="session-card" onclick="launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
+        <div class="card-badge">Not saved</div>
+        <h2 style="color:var(--muted)">Quick Score</h2>
+      </div>
     </div>
   </div>
 
@@ -1065,6 +1069,16 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="recent-header" style="margin-top:8px">COMPLETED ROUNDS</div>
     <div class="round-scores-list" id="completedRounds"></div>
+  </div>
+</div>
+
+<div class="round-complete-overlay" id="quickScoreSummaryOverlay">
+  <div class="round-complete-card" style="max-height:80dvh;overflow-y:auto;">
+    <h3>Quick Score Complete</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:4px">This session was not saved.</p>
+    <div id="quickScoreTotalDisplay" style="font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--accent);line-height:1;margin:8px 0 12px;text-align:center"></div>
+    <div id="quickScoreRoundList" style="width:100%;margin-bottom:12px"></div>
+    <button class="end-btn" onclick="exitEphemeralSession()">EXIT</button>
   </div>
 </div>
 
@@ -2068,6 +2082,10 @@ function launchSession(type) {
   startSession(type);
 }
 
+function launchEphemeralSession() {
+  startSession('practice', { ephemeral: true });
+}
+
 function openCoachActivation() {
   if (coachUnlocked) {
     goPage('coach', document.getElementById('nav-coach'));
@@ -2192,14 +2210,15 @@ window.median_geolocation_ready = function medianGeolocationReady() {
   if (pendingLocationSessionId) requestSessionLocation(pendingLocationSessionId);
 };
 
-function startSession(type) {
+function startSession(type, options = {}) {
   const normalizedType = normalizeSessionType(type);
   session = {
     id: Date.now(),
     type: normalizedType,
     date: new Date().toISOString(),
     location: null,
-    archerName: getDeviceArcherName(),
+    archerName: options.ephemeral ? '' : getDeviceArcherName(),
+    ephemeral: options.ephemeral || false,
     rounds: [],
     currentRound: createRound('bullseye', 10)
   };
@@ -2509,10 +2528,22 @@ function updateEndOverlay() {
   const dangerBtn = document.getElementById('endOverlayDangerBtn');
   const cancelBtn = document.getElementById('endOverlayCancelBtn');
 
+  if (session?.ephemeral) {
+    title.textContent = 'End Quick Score?';
+    message.textContent = 'Your score will be shown but not saved.';
+    primaryBtn.style.display = '';
+    primaryBtn.textContent = 'SEE RESULTS';
+    primaryBtn.onclick = endSession;
+    dangerBtn.style.display = 'none';
+    cancelBtn.textContent = 'CONTINUE SCORING';
+    return;
+  }
+
   if (isTournamentEarlyExit()) {
     title.textContent = 'Leave Tournament?';
     message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
     primaryBtn.style.display = 'none';
+    dangerBtn.style.display = '';
     dangerBtn.textContent = 'DISCARD SESSION';
     dangerBtn.onclick = openDiscardSessionConfirm;
     cancelBtn.textContent = 'CONTINUE SCORING';
@@ -2522,6 +2553,9 @@ function updateEndOverlay() {
   title.textContent = 'End Session?';
   message.textContent = 'Choose whether to save your progress or discard this session entirely.';
   primaryBtn.style.display = '';
+  primaryBtn.textContent = 'SAVE & EXIT';
+  primaryBtn.onclick = endSession;
+  dangerBtn.style.display = '';
   dangerBtn.textContent = 'DISCARD SESSION';
   dangerBtn.onclick = openDiscardSessionConfirm;
   cancelBtn.textContent = 'CONTINUE SESSION';
@@ -2553,6 +2587,17 @@ function openDiscardSessionConfirm() {
 function endSession() {
   closeOverlay('endOverlay');
   if(!session) { goPage('score', document.getElementById('nav-score')); return; }
+
+  if (session.ephemeral) {
+    // push current round if it has arrows
+    const cr = session.currentRound;
+    if (cr.arrows.length > 0) {
+      session.rounds.push({...cr, arrows:[...cr.arrows]});
+    }
+    showQuickScoreSummary();
+    return;
+  }
+
   const finished = buildFinishedSession();
   session = null;
   resetActiveSessionUI();
@@ -2563,6 +2608,48 @@ function endSession() {
   }
   finishingSession = finished;
   openFinishOverlay();
+}
+
+function showQuickScoreSummary() {
+  const allRounds = session.rounds;
+  const grandTotal = allRounds.reduce((t, r) => t + r.arrows.reduce((s, a) => s + a.score, 0), 0);
+
+  document.getElementById('quickScoreTotalDisplay').textContent = grandTotal;
+
+  const listEl = document.getElementById('quickScoreRoundList');
+  listEl.innerHTML = allRounds.map((r, i) => {
+    const rs = r.arrows.reduce((s, a) => s + a.score, 0);
+    const pips = r.arrows.map(a => {
+      const bg = quickScorePipColor(a.score);
+      const light = a.score >= 3 && a.score <= 4 || a.score >= 1 && a.score <= 2;
+      return `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${bg};font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${light?'#bbb':'#000'}">${a.score===0?'M':a.score}</span>`;
+    }).join('');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:52px;flex-shrink:0">R${i+1} · ${r.distance}m</span>
+      <div style="display:flex;gap:4px;flex:1;flex-wrap:wrap">${pips}</div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);width:32px;text-align:right">${rs}</span>
+    </div>`;
+  }).join('');
+
+  closeOverlay('roundCompleteOverlay');
+  document.getElementById('quickScoreSummaryOverlay').classList.add('open');
+}
+
+function quickScorePipColor(score) {
+  if (score >= 9) return '#f7e900';
+  if (score >= 7) return '#e84040';
+  if (score >= 5) return '#3b82f6';
+  if (score >= 3) return '#333333';
+  if (score >= 1) return '#dddddd';
+  return '#555555';
+}
+
+function exitEphemeralSession() {
+  session = null;
+  document.getElementById('quickScoreSummaryOverlay').classList.remove('open');
+  resetActiveSessionUI();
+  renderHome();
+  goPage('score', document.getElementById('nav-score'));
 }
 
 function discardSession() {
@@ -3396,6 +3483,15 @@ updateCoachModeUI();
 renderHome();
 renderCoach();
 drawTarget([]);
+
+function wipeEphemeralOnExit() {
+  if (session?.ephemeral) {
+    session = null;
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  }
+}
+window.addEventListener('beforeunload', wipeEphemeralOnExit);
+window.addEventListener('pagehide', wipeEphemeralOnExit);
 </script>
 </body>
 </html>
