@@ -1217,12 +1217,11 @@ function drawTargetOnCtx(c, size, arrows=[]) {
       c.fillText(RINGS[i].score, CX2, CY2);
       continue;
     }
-    const angleOffset = Math.PI / 12;
     const positions = [
-      -Math.PI / 2 + angleOffset,
-      angleOffset,
-      Math.PI / 2 + angleOffset,
-      Math.PI + angleOffset,
+      -Math.PI / 2,
+      0,
+      Math.PI / 2,
+      Math.PI,
     ];
     positions.forEach(angle => {
       const x = CX2 + Math.cos(angle) * labelR;
