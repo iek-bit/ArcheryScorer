@@ -1478,6 +1478,15 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<div class="overlay centered" id="disableCoachOverlay">
+  <div class="modal">
+    <h3>Disable Coach Mode?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will remove coach access from this device. You can re-enable it with the coach password at any time.</p>
+    <button class="modal-btn danger" onclick="confirmDisableCoach()">DISABLE COACH MODE</button>
+    <button class="modal-btn" onclick="closeOverlay('disableCoachOverlay')">CANCEL</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 //  DATA LAYER
@@ -2099,7 +2108,7 @@ function launchEphemeralSession() {
 
 function openCoachActivation() {
   if (coachUnlocked) {
-    goPage('coach', document.getElementById('nav-coach'));
+    document.getElementById('disableCoachOverlay').classList.add('open');
     return;
   }
   const input = document.getElementById('coachPasswordInput');
@@ -2108,6 +2117,17 @@ function openCoachActivation() {
   hint.textContent = 'Enter the coach password to enable coach mode on this device.';
   document.getElementById('coachPasswordOverlay').classList.add('open');
   setTimeout(() => input.focus(), 60);
+}
+
+function confirmDisableCoach() {
+  coachUnlocked = false;
+  localStorage.removeItem(COACH_UNLOCK_KEY);
+  closeOverlay('disableCoachOverlay');
+  updateCoachModeUI();
+  // if currently on coach page, navigate away
+  if (document.getElementById('page-coach')?.classList.contains('active')) {
+    goPage('score', document.getElementById('nav-score'));
+  }
 }
 
 function openFinishOverlay() {
