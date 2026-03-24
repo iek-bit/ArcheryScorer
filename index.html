@@ -574,14 +574,67 @@
     letter-spacing: 1px;
     margin-bottom: 6px;
   }
-  .theme-picker {
+  .theme-trigger {
     width: 100%;
-    height: 44px;
+    min-height: 48px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;
     background: var(--bg3);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     cursor: pointer;
-    padding: 6px;
+    padding: 10px 12px;
+  }
+  .theme-trigger:active { transform: scale(.98); }
+  .theme-trigger-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: var(--option-color);
+    display: inline-block;
+  }
+  .theme-popup {
+    background: var(--bg2);
+    border-radius: 22px;
+    width: min(420px, calc(100vw - 32px));
+    padding: 20px;
+    border: 1px solid var(--border);
+    transform: scale(.95);
+    transition: transform .2s;
+  }
+  .detail-overlay.open .theme-popup { transform: scale(1); }
+  .theme-popup h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .theme-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .theme-option {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: var(--option-color);
+    cursor: pointer;
+    transition: transform .1s, border-color .15s, box-shadow .15s;
+  }
+  .theme-option.active {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.08);
+  }
+  .theme-option:active { transform: scale(.95); }
+  .theme-option.light {
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
   }
 
   /* score flash */
@@ -776,16 +829,16 @@ function icon(name, extraClass = '') {
       <div class="theme-grid" id="themePresetGrid"></div>
       <div class="theme-controls">
         <div class="theme-control">
-          <label for="primaryColorInput">Primary Color</label>
-          <input id="primaryColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('accent', this.value)">
+          <label>Primary Color</label>
+          <button class="theme-trigger" id="primaryColorTrigger" onclick="openThemeColorPicker('accent')"></button>
         </div>
         <div class="theme-control">
-          <label for="secondaryColorInput">Secondary Color</label>
-          <input id="secondaryColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('accent2', this.value)">
+          <label>Secondary Color</label>
+          <button class="theme-trigger" id="secondaryColorTrigger" onclick="openThemeColorPicker('accent2')"></button>
         </div>
         <div class="theme-control">
-          <label for="textColorInput">Text Color</label>
-          <input id="textColorInput" class="theme-picker" type="color" onchange="updateCustomTheme('text', this.value)">
+          <label>Text Color</label>
+          <button class="theme-trigger" id="textColorTrigger" onclick="openThemeColorPicker('text')"></button>
         </div>
       </div>
     </div>
@@ -810,6 +863,18 @@ function icon(name, extraClass = '') {
     <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will permanently delete every session and round. This cannot be undone.</p>
     <button class="modal-btn danger" onclick="resetData()">DELETE EVERYTHING</button>
     <button class="modal-btn" onclick="closeOverlay('resetOverlay')">CANCEL</button>
+  </div>
+</div>
+
+<div class="detail-overlay" id="themeColorOverlay">
+  <div class="theme-popup">
+    <div class="detail-modal-header" style="margin-bottom:16px">
+      <h3 id="themeColorOverlayTitle">Pick Color</h3>
+      <button class="detail-close" onclick="closeOverlay('themeColorOverlay')" aria-label="Close color picker">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="theme-options" id="themeColorOverlayOptions"></div>
   </div>
 </div>
 <div class="detail-overlay" id="detailOverlay">
@@ -973,6 +1038,11 @@ const THEME_PRESETS = {
   }
 };
 const THEME_SWATCH_KEYS = ['bg2', 'bg3', 'accent', 'accent2'];
+const THEME_COLOR_OPTIONS = {
+  accent: ['#e8c547', '#f97316', '#ef4444', '#79c08f', '#14b8a6', '#3b82f6', '#8b5cf6', '#f43f5e'],
+  accent2: ['#f0a04b', '#fb7185', '#f59e0b', '#aed7a4', '#67e8f9', '#60a5fa', '#c084fc', '#f9a8d4'],
+  text: ['#ffffff', '#f8fafc', '#ecf3ec', '#e8eaf0', '#d1fae5', '#111827', '#0f172a', '#000000']
+};
 let themeState = (() => {
   try {
     const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
@@ -983,6 +1053,7 @@ let themeState = (() => {
     return {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, text: THEME_PRESETS.dark.text};
   }
 })();
+let activeThemeColorKey = 'accent';
 
 // ═══════════════════════════════════════════════
 //  SESSION STATE
@@ -1025,14 +1096,44 @@ function renderThemePresets() {
   }).join('');
 }
 
-function syncThemeInputs() {
+function getThemeColorLabel(key) {
+  return key === 'accent' ? 'Primary Color' : key === 'accent2' ? 'Secondary Color' : 'Text Color';
+}
+
+function renderThemeTrigger(key, triggerId) {
   const theme = getActiveTheme();
-  const primary = document.getElementById('primaryColorInput');
-  const secondary = document.getElementById('secondaryColorInput');
-  const text = document.getElementById('textColorInput');
-  if (primary) primary.value = theme.accent;
-  if (secondary) secondary.value = theme.accent2;
-  if (text) text.value = theme.text;
+  const trigger = document.getElementById(triggerId);
+  if (!trigger) return;
+  const current = theme[key];
+  const light = ['#ffffff', '#f8fafc', '#ecf3ec'].includes(current.toLowerCase()) ? ' light' : '';
+  trigger.innerHTML = `<span class="theme-trigger-swatch${light}" style="--option-color:${current}"></span><span>${getThemeColorLabel(key)}</span>`;
+}
+
+function renderThemeOptions() {
+  renderThemeTrigger('accent', 'primaryColorTrigger');
+  renderThemeTrigger('accent2', 'secondaryColorTrigger');
+  renderThemeTrigger('text', 'textColorTrigger');
+  const container = document.getElementById('themeColorOverlayOptions');
+  const title = document.getElementById('themeColorOverlayTitle');
+  if (!container || !title) return;
+  const theme = getActiveTheme();
+  title.textContent = getThemeColorLabel(activeThemeColorKey);
+  container.innerHTML = THEME_COLOR_OPTIONS[activeThemeColorKey].map(color => {
+    const active = theme[activeThemeColorKey].toLowerCase() === color.toLowerCase() ? ' active' : '';
+    const light = ['#ffffff', '#f8fafc', '#ecf3ec'].includes(color.toLowerCase()) ? ' light' : '';
+    return `<button class="theme-option${active}${light}" style="--option-color:${color}" onclick="selectThemeColor('${activeThemeColorKey}','${color}')" aria-label="${activeThemeColorKey} ${color}"></button>`;
+  }).join('');
+}
+
+function openThemeColorPicker(key) {
+  activeThemeColorKey = key;
+  renderThemeOptions();
+  document.getElementById('themeColorOverlay').classList.add('open');
+}
+
+function selectThemeColor(key, color) {
+  updateCustomTheme(key, color);
+  closeOverlay('themeColorOverlay');
 }
 
 function refreshThemeSensitiveUI() {
@@ -1050,7 +1151,7 @@ function applyTheme() {
     root.style.setProperty(`--${key}`, value);
   });
   renderThemePresets();
-  syncThemeInputs();
+  renderThemeOptions();
   refreshThemeSensitiveUI();
 }
 
