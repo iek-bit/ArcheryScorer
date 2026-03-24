@@ -397,6 +397,54 @@
     font-family: 'DM Mono', monospace;
   }
 
+  .filter-bar {
+    display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 0;
+  }
+  .filter-bar .filter-row {
+    flex: 1; padding: 0; flex-wrap: wrap;
+  }
+  .sort-btn {
+    flex-shrink: 0;
+    padding: 9px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: none;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all .2s;
+    display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .sort-btn.active { border-color: var(--accent); color: var(--accent); }
+  .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  .sort-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 210; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .sort-overlay.open { opacity: 1; pointer-events: all; }
+  .sort-sheet {
+    background: var(--bg2); border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 480px;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(30px); transition: transform .25s;
+  }
+  .sort-overlay.open .sort-sheet { transform: translateY(0); }
+  .sort-sheet h4 {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .sort-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 14px; border-radius: 12px; margin-bottom: 6px;
+    border: 1px solid var(--border); background: none;
+    width: 100%; cursor: pointer; transition: border-color .15s, background .15s;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    text-align: left;
+  }
+  .sort-option:active { background: var(--bg3); }
+  .sort-option.active { border-color: var(--accent); background: rgba(232,197,71,.07); }
+  .sort-option .so-check { color: var(--accent); font-size: 16px; opacity: 0; }
+  .sort-option.active .so-check { opacity: 1; }
+
   .setup-option-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1095,7 +1143,13 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="diag-header">
     <h2>HISTORY</h2>
   </div>
-  <div class="filter-row" id="homeFilterRow" style="padding:16px 16px 8px;"></div>
+  <div class="filter-bar">
+    <div class="filter-row" id="homeFilterRow"></div>
+    <button class="sort-btn" id="homeSortBtn" onclick="openSortOverlay('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      Sort
+    </button>
+  </div>
   <div class="filter-help" id="homeFilterHelp">Tap filters to narrow history. Tap again to remove.</div>
   <div id="recentList"></div>
 </div>
@@ -1145,7 +1199,13 @@ const PRACTICE_TARGET_OPTIONS = [
       oninput="setCoachSearch(this.value)"
     >
   </div>
-  <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+  <div class="filter-bar" style="padding-top:8px;">
+    <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+    <button class="sort-btn" id="coachSortBtn" onclick="openSortOverlay('coach')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      Sort
+    </button>
+  </div>
   <div class="filter-help" id="coachFilterHelp">Search by archer, then use filters to narrow their sessions.</div>
   <div id="coachList"></div>
 </div>
@@ -1366,6 +1426,19 @@ const PRACTICE_TARGET_OPTIONS = [
     <span>Settings</span>
   </button>
 </nav>
+
+<!-- Sort overlay -->
+<div class="sort-overlay" id="sortOverlay" onclick="closeSortOverlay(event)">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Sort Sessions</h4>
+    <button class="sort-option" data-sort="newest" onclick="setSort('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="oldest" onclick="setSort('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-high" onclick="setSort('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-low" onclick="setSort('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-best" onclick="setSort('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-worst" onclick="setSort('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
+  </div>
+</div>
 
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
@@ -2720,6 +2793,81 @@ const homeFilters = new Set();
 const diagFilters = new Set();
 const coachFilters = new Set();
 
+// ── Sort state ──
+let homeSort = 'newest';
+let coachSort = 'newest';
+let activeSortContext = 'home'; // which page opened the overlay
+
+const SORT_DEFS = [
+  { key: 'newest',        label: 'Newest → Oldest' },
+  { key: 'oldest',        label: 'Oldest → Newest' },
+  { key: 'score-high',    label: 'Highest Score First' },
+  { key: 'score-low',     label: 'Lowest Score First' },
+  { key: 'grouping-best', label: 'Best Grouping First' },
+  { key: 'grouping-worst',label: 'Worst Grouping First' },
+];
+
+function openSortOverlay(context) {
+  activeSortContext = context;
+  const current = context === 'home' ? homeSort : coachSort;
+  document.querySelectorAll('.sort-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === current);
+  });
+  document.getElementById('sortOverlay').classList.add('open');
+}
+
+function closeSortOverlay(e) {
+  document.getElementById('sortOverlay').classList.remove('open');
+}
+
+function setSort(key) {
+  if (activeSortContext === 'home') {
+    homeSort = key;
+    const btn = document.getElementById('homeSortBtn');
+    btn.classList.toggle('active', key !== 'newest');
+  } else {
+    coachSort = key;
+    const btn = document.getElementById('coachSortBtn');
+    btn.classList.toggle('active', key !== 'newest');
+  }
+  closeSortOverlay();
+  if (activeSortContext === 'home') renderHome();
+  else renderCoach();
+}
+
+function computeGroupingScore(sessionObj) {
+  // average spread of arrow positions per round (lower = tighter grouping)
+  const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
+  if (!rounds.length) return Infinity;
+  const roundSpreads = rounds.map(r => {
+    const xs = r.arrows.map(a => a.nx);
+    const ys = r.arrows.map(a => a.ny);
+    const cx = xs.reduce((s,v) => s+v, 0) / xs.length;
+    const cy = ys.reduce((s,v) => s+v, 0) / ys.length;
+    return r.arrows.reduce((s,a) => s + Math.sqrt((a.nx-cx)**2+(a.ny-cy)**2), 0) / r.arrows.length;
+  });
+  return roundSpreads.reduce((s,v) => s+v, 0) / roundSpreads.length;
+}
+
+function applySortToSessions(sessions, sortKey) {
+  const arr = [...sessions];
+  switch (sortKey) {
+    case 'oldest':
+      return arr.reverse();
+    case 'score-high':
+      return arr.sort((a,b) => getSessionTotal(b) - getSessionTotal(a));
+    case 'score-low':
+      return arr.sort((a,b) => getSessionTotal(a) - getSessionTotal(b));
+    case 'grouping-best':
+      return arr.sort((a,b) => computeGroupingScore(a) - computeGroupingScore(b));
+    case 'grouping-worst':
+      return arr.sort((a,b) => computeGroupingScore(b) - computeGroupingScore(a));
+    case 'newest':
+    default:
+      return arr; // already newest-first from the .reverse() in renderHome
+  }
+}
+
 function getFilterDefinition(key) {
   return FILTER_DEFS.find(def => def.key === key);
 }
@@ -2856,7 +3004,8 @@ function sessionMatchesFilter(sessionObj, filters) {
 
 function renderHome() {
   const list = document.getElementById('recentList');
-  const filtered = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  const filtered = applySortToSessions(newestFirst, homeSort);
   if (!db.sessions.length) {
     list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
     return;
@@ -2912,15 +3061,23 @@ function renderCoach() {
   const input = document.getElementById('coachSearchInput');
   if (!list || !input) return;
 
-  const namedSessions = db.sessions
-    .map((sessionObj, idx) => ({sessionObj, idx}))
+  const namedSessions = [...db.sessions]
+    .reverse()
+    .map((sessionObj, revIdx) => ({sessionObj, idx: db.sessions.length - 1 - revIdx}))
     .filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
 
-  const filtered = namedSessions.filter(({sessionObj}) => {
+  const filteredUnsorted = namedSessions.filter(({sessionObj}) => {
     const name = normalizePersonName(sessionObj.archerName).toLowerCase();
     if (coachSearch && !name.includes(coachSearch)) return false;
     return sessionMatchesFilter(sessionObj, coachFilters);
   });
+
+  const sortedItems = applySortToSessions(
+    filteredUnsorted.map(item => item.sessionObj),
+    coachSort
+  ).map(sessionObj => filteredUnsorted.find(item => item.sessionObj === sessionObj));
+
+  const filtered = sortedItems;
 
   if (!namedSessions.length) {
     list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`;
