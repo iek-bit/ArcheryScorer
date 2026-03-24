@@ -836,7 +836,6 @@ const RINGS = [
   {score:3,  color:'#1a1a1a'},
   {score:2,  color:'#ffffff'},
   {score:1,  color:'#ffffff'},
-  {score:0,  color:'#cccccc'}, // miss
 ];
 
 const canvas = document.getElementById('targetCanvas');
@@ -1204,11 +1203,20 @@ function drawTargetOnCtx(c, size, arrows=[]) {
   c.beginPath(); c.moveTo(4,CY2); c.lineTo(size-4,CY2); c.stroke();
   c.setLineDash([]);
   const LC={'#f7e900':'#1a1000','#e84040':'#ffffff','#3b82f6':'#ffffff','#1a1a1a':'#cccccc','#ffffff':'#333333','#cccccc':'#555555'};
-  c.font=`bold 22px "DM Mono",monospace`; c.textAlign='center'; c.textBaseline='middle';
-  for(let i=0;i<RINGS.length-1;i++){
-    const r=R2*(i+1)/RINGS.length;
+  c.textAlign='center';
+  c.textBaseline='middle';
+  for(let i=0;i<RINGS.length;i++){
+    const innerR=R2*i/RINGS.length;
+    const outerR=R2*(i+1)/RINGS.length;
+    const ringWidth=outerR-innerR;
+    const labelR=innerR + ringWidth * 0.5;
+    const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
     c.fillStyle=LC[RINGS[i].color]||'#fff';
-    c.fillText(RINGS[i].score, CX2+(r-(R2/RINGS.length)/2)*0.85, CY2);
+    c.font=`bold ${fontSize}px "DM Mono",monospace`;
+    c.fillText(RINGS[i].score, CX2, CY2-labelR);
+    c.fillText(RINGS[i].score, CX2 + labelR, CY2);
+    c.fillText(RINGS[i].score, CX2, CY2 + labelR);
+    c.fillText(RINGS[i].score, CX2 - labelR, CY2);
   }
   arrows.forEach((a,idx)=>{
     const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
