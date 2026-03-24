@@ -273,6 +273,15 @@
     padding: 8px 16px;
     flex-wrap: wrap;
   }
+  .score-actions {
+    display: flex;
+    justify-content: center;
+    padding: 4px 16px 0;
+  }
+  .score-actions .end-btn {
+    margin: 0;
+    max-width: 320px;
+  }
   .arrow-dot {
     width: 44px; height: 44px; border-radius: 50%;
     border: 2px solid var(--border);
@@ -299,6 +308,45 @@
     background: var(--bg3); color: var(--text);
     border: 1px solid var(--border);
     margin-top: 4px;
+  }
+  .round-complete-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 260;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .round-complete-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .round-complete-card {
+    width: min(360px, 100%);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px;
+    text-align: center;
+    transform: scale(.95);
+    transition: transform .2s;
+  }
+  .round-complete-overlay.open .round-complete-card { transform: scale(1); }
+  .round-complete-card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .round-complete-card p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 16px;
   }
 
   .round-scores-list {
@@ -729,12 +777,23 @@ function icon(name, extraClass = '') {
     </div>
 
     <div class="arrows-row" id="arrowDots"></div>
+    <div class="score-actions">
+      <button class="end-btn secondary" id="undoArrowBtn" onclick="undoLastArrow()">UNDO LAST ARROW</button>
+    </div>
 
-    <button class="end-btn" id="nextRoundBtn" onclick="nextRound()" disabled>NEXT ROUND →</button>
     <button class="end-btn secondary" onclick="openEndSession()">END SESSION</button>
 
     <div class="recent-header" style="margin-top:8px">COMPLETED ROUNDS</div>
     <div class="round-scores-list" id="completedRounds"></div>
+  </div>
+</div>
+
+<div class="round-complete-overlay" id="roundCompleteOverlay">
+  <div class="round-complete-card">
+    <h3 id="roundCompleteTitle">Round Complete</h3>
+    <p id="roundCompleteMessage">Choose your next action.</p>
+    <button class="end-btn" id="roundCompletePrimaryBtn" onclick="nextRound()">NEXT ROUND →</button>
+    <button class="end-btn secondary" onclick="undoLastArrow()">UNDO LAST ARROW</button>
   </div>
 </div>
 
@@ -1607,6 +1666,15 @@ function handleTargetClick(e) {
   }
 }
 
+function undoLastArrow() {
+  if (!session) return;
+  const cr = session.currentRound;
+  if (!cr.arrows.length || cr.locked) return;
+  cr.arrows.pop();
+  closeOverlay('roundCompleteOverlay');
+  renderScorePage();
+}
+
 function flashScore(s) {
   const el = document.getElementById('scoreFlash');
   el.textContent = s === 0 ? 'M' : s;
@@ -1671,16 +1739,27 @@ function renderScorePage() {
     dots.appendChild(d);
   }
 
-  // next round button
-  const nextBtn = document.getElementById('nextRoundBtn');
   const done = cr.arrows.length === 5;
-  nextBtn.disabled = !done || cr.locked;
+  const undoBtn = document.getElementById('undoArrowBtn');
+  undoBtn.disabled = !cr.arrows.length || cr.locked;
+
+  const overlay = document.getElementById('roundCompleteOverlay');
+  const overlayTitle = document.getElementById('roundCompleteTitle');
+  const overlayMessage = document.getElementById('roundCompleteMessage');
+  const overlayPrimaryBtn = document.getElementById('roundCompletePrimaryBtn');
   if (cr.locked && session.type === 'tournament' && rn === 6) {
-    nextBtn.textContent = 'FINALIZING TOURNAMENT...';
-  } else if(session.type === 'tournament' && rn === 6 && done) {
-    nextBtn.textContent = 'FINISH TOURNAMENT ✓';
+    overlayTitle.textContent = 'Tournament Complete';
+    overlayMessage.textContent = 'Finalizing your tournament session...';
+    overlayPrimaryBtn.style.display = 'none';
+    overlay.classList.add('open');
+  } else if (done) {
+    overlayTitle.textContent = 'Round Complete';
+    overlayMessage.textContent = 'Choose your next action.';
+    overlayPrimaryBtn.style.display = '';
+    overlayPrimaryBtn.textContent = session.type === 'tournament' && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
+    overlay.classList.add('open');
   } else {
-    nextBtn.textContent = 'NEXT ROUND →';
+    overlay.classList.remove('open');
   }
 
   // completed rounds
@@ -1719,6 +1798,7 @@ function nextRound() {
   if(!session) return;
   const cr = session.currentRound;
   if(cr.locked || cr.arrows.length < 5) return;
+  closeOverlay('roundCompleteOverlay');
   session.rounds.push({...cr, arrows:[...cr.arrows]});
 
   // tournament: 6 rounds then auto-end
