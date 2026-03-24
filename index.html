@@ -1252,7 +1252,7 @@ function renderHome() {
   const list = document.getElementById('recentList');
   const filtered = [...db.sessions].reverse().filter(sessionMatchesFilter);
   if (!db.sessions.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('bow')}</div>No sessions yet.<br>Start your first session above!</div>`;
+    list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
     return;
   }
   if (!filtered.length) {
