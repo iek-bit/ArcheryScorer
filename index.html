@@ -17,6 +17,7 @@
     --bg3: #1e2a3a;
     --accent: #e8c547;
     --accent2: #f0a04b;
+    --accent3: #f7d978;
     --red: #e05252;
     --green: #52c278;
     --text: #e8eaf0;
@@ -562,8 +563,9 @@
   }
   .theme-controls {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
+    align-items: start;
   }
   .theme-control label {
     display: block;
@@ -837,6 +839,10 @@ function icon(name, extraClass = '') {
           <button class="theme-trigger" id="secondaryColorTrigger" onclick="openThemeColorPicker('accent2')"></button>
         </div>
         <div class="theme-control">
+          <label>Tertiary Color</label>
+          <button class="theme-trigger" id="tertiaryColorTrigger" onclick="openThemeColorPicker('accent3')"></button>
+        </div>
+        <div class="theme-control">
           <label>Text Color</label>
           <button class="theme-trigger" id="textColorTrigger" onclick="openThemeColorPicker('text')"></button>
         </div>
@@ -991,6 +997,7 @@ const THEME_PRESETS = {
     bg3: '#1e2a3a',
     accent: '#e8c547',
     accent2: '#f0a04b',
+    accent3: '#f7d978',
     text: '#e8eaf0',
     muted: '#6b7a99',
     border: '#2a3a50',
@@ -1004,6 +1011,7 @@ const THEME_PRESETS = {
     bg3: '#edf0e8',
     accent: '#1f2937',
     accent2: '#64748b',
+    accent3: '#94a3b8',
     text: '#0f172a',
     muted: '#5f6c80',
     border: '#d0d5dd',
@@ -1017,6 +1025,7 @@ const THEME_PRESETS = {
     bg3: '#214536',
     accent: '#f6f7f2',
     accent2: '#9ed3b0',
+    accent3: '#d8e7dc',
     text: '#fbfdf8',
     muted: '#a2bcaf',
     border: '#335c49',
@@ -1030,6 +1039,7 @@ const THEME_PRESETS = {
     bg3: '#243229',
     accent: '#79c08f',
     accent2: '#aed7a4',
+    accent3: '#5f8f6c',
     text: '#f2f7f2',
     muted: '#9cb0a5',
     border: '#33463b',
@@ -1037,10 +1047,11 @@ const THEME_PRESETS = {
     silver: '#a4b7ad'
   }
 };
-const THEME_SWATCH_KEYS = ['bg2', 'bg3', 'accent', 'accent2'];
+const THEME_SWATCH_KEYS = ['bg2', 'bg3', 'accent', 'accent2', 'accent3'];
 const THEME_COLOR_OPTIONS = {
   accent: ['#e8c547', '#f97316', '#ef4444', '#79c08f', '#14b8a6', '#3b82f6', '#8b5cf6', '#f43f5e'],
   accent2: ['#f0a04b', '#fb7185', '#f59e0b', '#aed7a4', '#67e8f9', '#60a5fa', '#c084fc', '#f9a8d4'],
+  accent3: ['#f7d978', '#fdba74', '#fca5a5', '#d8e7dc', '#99f6e4', '#93c5fd', '#d8b4fe', '#5f8f6c'],
   text: ['#ffffff', '#f8fafc', '#ecf3ec', '#e8eaf0', '#d1fae5', '#111827', '#0f172a', '#000000']
 };
 let themeState = (() => {
@@ -1048,9 +1059,9 @@ let themeState = (() => {
     const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
     return parsed && typeof parsed === 'object'
       ? parsed
-      : {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, text: THEME_PRESETS.dark.text};
+      : {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
   } catch {
-    return {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, text: THEME_PRESETS.dark.text};
+    return {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
   }
 })();
 let activeThemeColorKey = 'accent';
@@ -1078,6 +1089,7 @@ function getActiveTheme() {
     ...preset,
     accent: themeState.accent || preset.accent,
     accent2: themeState.accent2 || preset.accent2,
+    accent3: themeState.accent3 || preset.accent3,
     text: themeState.text || preset.text,
     gold: themeState.accent || preset.gold
   };
@@ -1097,7 +1109,10 @@ function renderThemePresets() {
 }
 
 function getThemeColorLabel(key) {
-  return key === 'accent' ? 'Primary Color' : key === 'accent2' ? 'Secondary Color' : 'Text Color';
+  if (key === 'accent') return 'Primary Color';
+  if (key === 'accent2') return 'Secondary Color';
+  if (key === 'accent3') return 'Tertiary Color';
+  return 'Text Color';
 }
 
 function renderThemeTrigger(key, triggerId) {
@@ -1112,6 +1127,7 @@ function renderThemeTrigger(key, triggerId) {
 function renderThemeOptions() {
   renderThemeTrigger('accent', 'primaryColorTrigger');
   renderThemeTrigger('accent2', 'secondaryColorTrigger');
+  renderThemeTrigger('accent3', 'tertiaryColorTrigger');
   renderThemeTrigger('text', 'textColorTrigger');
   const container = document.getElementById('themeColorOverlayOptions');
   const title = document.getElementById('themeColorOverlayTitle');
@@ -1162,6 +1178,7 @@ function applyPresetTheme(name) {
     preset: name,
     accent: preset.accent,
     accent2: preset.accent2,
+    accent3: preset.accent3,
     text: preset.text
   };
   persistTheme();
@@ -1169,7 +1186,7 @@ function applyPresetTheme(name) {
 }
 
 function updateCustomTheme(key, value) {
-  if (!['accent', 'accent2', 'text'].includes(key)) return;
+  if (!['accent', 'accent2', 'accent3', 'text'].includes(key)) return;
   themeState[key] = value;
   persistTheme();
   applyTheme();
