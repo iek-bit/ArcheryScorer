@@ -2216,14 +2216,37 @@ function drawHeatmap(arrows) {
   const hx = hc.getContext('2d');
   const W2 = 520, CX2 = W2/2, R2 = W2/2-10;
   hx.clearRect(0,0,W2,W2);
+  const mixHeatColor = (hex, overlayHex, amount) => {
+    const base = hex.replace('#', '');
+    const overlay = overlayHex.replace('#', '');
+    const br = parseInt(base.slice(0, 2), 16);
+    const bg = parseInt(base.slice(2, 4), 16);
+    const bb = parseInt(base.slice(4, 6), 16);
+    const or = parseInt(overlay.slice(0, 2), 16);
+    const og = parseInt(overlay.slice(2, 4), 16);
+    const ob = parseInt(overlay.slice(4, 6), 16);
+    const blend = channel => Math.round(channel[0] + (channel[1] - channel[0]) * amount);
+    return `rgb(${blend([br, or])}, ${blend([bg, og])}, ${blend([bb, ob])})`;
+  };
 
   // target background
   for(let i=RINGS.length-1;i>=0;i--){
     const r=R2*(i+1)/RINGS.length;
     hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
-    hx.fillStyle=RINGS[i].color; hx.fill();
-    hx.strokeStyle='rgba(0,0,0,0.15)'; hx.lineWidth=1; hx.stroke();
+    hx.fillStyle = mixHeatColor(RINGS[i].color, '#0b1220', 0.5);
+    hx.fill();
+    hx.strokeStyle='rgba(255,255,255,0.18)';
+    hx.lineWidth=1;
+    hx.stroke();
   }
+
+  hx.save();
+  hx.beginPath();
+  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
+  hx.clip();
+  hx.fillStyle = 'rgba(7, 11, 18, 0.16)';
+  hx.fillRect(0, 0, W2, W2);
+  hx.restore();
 
   if(!arrows.length) return;
 
@@ -2235,11 +2258,11 @@ function drawHeatmap(arrows) {
   // accumulate density
   arrows.forEach(a=>{
     const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
-    const grad=heatCtx.createRadialGradient(px,py,0,px,py,42);
-    grad.addColorStop(0,'rgba(255,255,255,0.32)');
-    grad.addColorStop(0.55,'rgba(255,255,255,0.16)');
+    const grad=heatCtx.createRadialGradient(px,py,0,px,py,38);
+    grad.addColorStop(0,'rgba(255,255,255,0.52)');
+    grad.addColorStop(0.48,'rgba(255,255,255,0.24)');
     grad.addColorStop(1,'rgba(255,255,255,0)');
-    heatCtx.beginPath(); heatCtx.arc(px,py,42,0,Math.PI*2);
+    heatCtx.beginPath(); heatCtx.arc(px,py,38,0,Math.PI*2);
     heatCtx.fillStyle=grad; heatCtx.fill();
   });
 
@@ -2255,23 +2278,23 @@ function drawHeatmap(arrows) {
     const alpha = heatData.data[i+3];
     if (!alpha) continue;
     const t = Math.min(1, alpha / maxAlpha);
-    const eased = Math.pow(t, 0.85);
+    const eased = Math.pow(t, 0.62);
     let r, g, b;
-    if (eased < 0.5) {
-      const p = eased / 0.5;
+    if (eased < 0.45) {
+      const p = eased / 0.45;
       r = Math.round(255);
-      g = Math.round(214 - 74 * p);
-      b = Math.round(102 - 70 * p);
+      g = Math.round(188 - 84 * p);
+      b = Math.round(72 - 40 * p);
     } else {
-      const p = (eased - 0.5) / 0.5;
-      r = Math.round(255 - 31 * p);
-      g = Math.round(140 - 108 * p);
-      b = Math.round(32 - 2 * p);
+      const p = (eased - 0.45) / 0.55;
+      r = Math.round(255 - 35 * p);
+      g = Math.round(104 - 82 * p);
+      b = Math.round(32 - 6 * p);
     }
     colored.data[i] = r;
     colored.data[i+1] = g;
     colored.data[i+2] = b;
-    colored.data[i+3] = Math.round(Math.min(235, 30 + eased * 205));
+    colored.data[i+3] = Math.round(Math.min(250, 55 + eased * 195));
   }
 
   const colorCanvas = document.createElement('canvas');
@@ -2290,7 +2313,9 @@ function drawHeatmap(arrows) {
   for(let i=RINGS.length-1;i>=0;i--){
     const r=R2*(i+1)/RINGS.length;
     hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
-    hx.strokeStyle='rgba(0,0,0,0.22)'; hx.lineWidth=1; hx.stroke();
+    hx.strokeStyle='rgba(255,255,255,0.26)';
+    hx.lineWidth=1;
+    hx.stroke();
   }
 }
 
