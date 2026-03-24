@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ArrowMark</title>
+<link rel="manifest" href="data:application/json,{%22name%22:%22ArrowMark%22,%22short_name%22:%22ArrowMark%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22}">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0f1a;
+    --bg2: #111827;
+    --bg3: #1e2a3a;
+    --accent: #e8c547;
+    --accent2: #f0a04b;
+    --red: #e05252;
+    --green: #52c278;
+    --text: #e8eaf0;
+    --muted: #6b7a99;
+    --border: #2a3a50;
+    --gold: #e8c547;
+    --silver: #9daab8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  nav button {
+    flex: 1; padding: 12px 0 8px;
+    background: none; border: none; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer; transition: color .2s;
+  }
+  nav button.active { color: var(--accent); }
+  nav button svg { width: 22px; height: 22px; }
+
+  .ui-icon {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.03);
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, color .15s, transform .1s, background .15s;
+  }
+  .icon-btn .ui-icon { font-size: 18px; }
+  .icon-btn:active {
+    transform: scale(.97);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .icon-btn.danger {
+    color: var(--red);
+    background: rgba(224,82,82,.08);
+  }
+  .icon-btn.danger:active { border-color: var(--red); }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 0 0 calc(70px + env(safe-area-inset-bottom)); min-height: 100dvh; }
+  .page.active { display: block; }
+
+  /* ── HOME ── */
+  .home-hero {
+    background: linear-gradient(160deg, #0d1826 0%, #1a2540 100%);
+    padding: 60px 24px 40px;
+    position: relative; overflow: hidden;
+  }
+  .home-hero::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border: 40px solid rgba(232,197,71,.07);
+    border-radius: 50%;
+  }
+  .home-hero::after {
+    content: '';
+    position: absolute; top: 20px; right: 20px;
+    width: 100px; height: 100px;
+    border: 20px solid rgba(232,197,71,.1);
+    border-radius: 50%;
+  }
+  .home-hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px; letter-spacing: 3px;
+    color: var(--accent); line-height: 1;
+  }
+  .home-hero p { color: var(--muted); margin-top: 8px; font-size: 14px; }
+
+  .session-cards { padding: 24px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .session-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 22px;
+    cursor: pointer;
+    transition: border-color .2s, transform .15s;
+    position: relative; overflow: hidden;
+    min-height: 72px; display: flex; align-items: center;
+  }
+  .session-card:active { transform: scale(.98); }
+  .session-card.tournament { border-color: rgba(232,197,71,.3); }
+  .session-card.practice { border-color: rgba(82,194,120,.3); }
+  .session-card h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 2px;
+  }
+  .session-card.tournament h2 { color: var(--gold); }
+  .session-card.practice h2 { color: var(--green); }
+  .session-card p { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
+  .card-badge {
+    position: absolute; top: 16px; right: 16px;
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    padding: 4px 10px; border-radius: 20px;
+    background: rgba(255,255,255,.06); color: var(--muted);
+  }
+
+  .recent-header {
+    padding: 8px 20px 12px;
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+  }
+  .recent-item {
+    margin: 0 16px 10px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: border-color .15s, transform .1s;
+  }
+  .recent-item:active { transform: scale(.98); border-color: var(--accent); }
+  .recent-item .ri-left span:first-child { font-size: 13px; font-weight: 500; }
+  .recent-item .ri-left span:last-child { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .recent-item .ri-score {
+    font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+    color: var(--accent);
+  }
+  .ri-chevron {
+    color: var(--muted);
+    margin-left: 6px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ri-chevron .ui-icon { font-size: 14px; }
+  .session-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .type-icon {
+    font-size: 14px;
+    opacity: .95;
+  }
+
+  /* Session overlay round rows */
+  .sor-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background .15s; border-radius: 8px;
+    margin: 0 -4px; padding-left: 4px; padding-right: 4px;
+  }
+  .sor-row:last-child { border-bottom: none; }
+  .sor-row:active { background: var(--bg3); }
+  .sor-label { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); width: 56px; flex-shrink: 0; }
+  .sor-pips { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+  .sor-pip {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600;
+    color: #000;
+  }
+  .sor-pip.lt { color: #bbb; }
+  .sor-score { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); width: 32px; text-align: right; flex-shrink:0; }
+  .sor-del {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sor-del .ui-icon { font-size: 16px; }
+  .sor-del:active { color: var(--red); }
+
+  /* ── SCORING ── */
+  .scoring-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 14px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    display: flex; align-items: center; gap: 12px;
+  }
+  .scoring-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; flex: 1; }
+  .scoring-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  .round-info {
+    background: var(--bg3);
+    margin: 10px 12px;
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .round-info .ri-label { font-size: 12px; color: var(--muted); }
+  .round-info .ri-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .distance-toggle {
+    display: flex; gap: 8px;
+  }
+  .dist-btn {
+    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: none; color: var(--muted); font-family: 'DM Mono', monospace;
+    font-size: 12px; cursor: pointer; transition: all .2s;
+  }
+  .dist-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .dist-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Target */
+  .target-wrap {
+    display: flex; justify-content: center;
+    padding: 4px 4px 0;
+    position: relative;
+  }
+  #targetCanvas {
+    border-radius: 50%;
+    touch-action: none;
+    max-width: min(500px, 100vw);
+    width: 100%;
+    cursor: crosshair;
+    display: block;
+  }
+
+  .arrows-row {
+    display: flex; justify-content: center; gap: 8px;
+    padding: 8px 16px;
+    flex-wrap: wrap;
+  }
+  .arrow-dot {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+    color: var(--muted); background: var(--bg2);
+    transition: all .2s;
+  }
+  .arrow-dot.scored { color: #000; border-color: transparent; }
+  .arrow-dot.current { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,197,71,.2); }
+
+  .end-btn {
+    margin: 8px 12px;
+    width: calc(100% - 24px);
+    padding: 15px;
+    border: none; border-radius: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 2px;
+    cursor: pointer; transition: all .2s;
+    background: var(--accent); color: #000;
+  }
+  .end-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .end-btn.secondary {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+    margin-top: 4px;
+  }
+
+  .round-scores-list {
+    padding: 0 16px;
+  }
+  .round-score-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .round-score-row:last-child { border: none; }
+  .round-score-row .rsr-label { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .round-score-row .rsr-score { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .round-score-row .rsr-arrows { font-size: 11px; color: var(--muted); }
+
+  /* ── DIAGNOSTICS ── */
+  .diag-header {
+    padding: 16px 20px 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  .diag-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--accent); }
+
+  .filter-row {
+    display: flex; gap: 8px; padding: 16px 16px 8px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 7px 16px; border-radius: 20px;
+    border: 1px solid var(--border); background: none;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all .2s;
+  }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; padding: 12px 16px;
+  }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+  }
+  .stat-card .sc-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .sc-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--accent); line-height: 1.1; margin-top: 4px; }
+  .stat-card .sc-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .diag-section { padding: 8px 16px; }
+  .diag-section h3 {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  #heatmapCanvas {
+    border-radius: 50%; display: block; margin: 0 auto;
+    max-width: 260px; width: 100%;
+  }
+
+  .score-timeline {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  #timelineCanvas { display: block; width: 100%; }
+
+  .zone-bars { display: flex; flex-direction: column; gap: 6px; }
+  .zone-bar-row { display: flex; align-items: center; gap: 10px; }
+  .zone-bar-row .zb-label { font-family: 'DM Mono', monospace; font-size: 12px; width: 60px; text-align: right; color: var(--muted); }
+  .zone-bar-track { flex: 1; height: 10px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
+  .zone-bar-fill { height: 100%; border-radius: 5px; transition: width .5s ease; }
+  .zone-bar-row .zb-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 30px; }
+
+  /* ── MODALS & OVERLAYS ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 200; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2); border-radius: 24px 24px 0 0;
+    width: 100%; max-height: 80dvh; overflow-y: auto;
+    padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+    transform: translateY(40px); transition: transform .3s;
+  }
+  .overlay.open .modal { transform: translateY(0); }
+  .modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; margin-bottom: 16px; }
+  .modal-btn {
+    width: 100%; padding: 16px; border-radius: 14px; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px;
+    cursor: pointer; margin-bottom: 10px;
+    background: var(--bg3); color: var(--text); transition: all .2s;
+  }
+  .modal-btn.primary { background: var(--accent); color: #000; }
+  .modal-btn.danger { background: var(--red); color: #fff; }
+
+  .empty-state {
+    text-align: center; padding: 60px 24px;
+    color: var(--muted); font-size: 14px;
+  }
+  .empty-state .es-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+    opacity: .55;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Round detail overlay */
+  .detail-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 250; opacity: 0; pointer-events: none; transition: opacity .2s;
+    padding: 20px;
+  }
+  .detail-overlay.open { opacity: 1; pointer-events: all; }
+  .detail-modal {
+    background: var(--bg2); border-radius: 20px;
+    width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto;
+    padding: 20px;
+    transform: scale(.95); transition: transform .2s;
+  }
+  .detail-overlay.open .detail-modal { transform: scale(1); }
+  .detail-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .detail-modal-header h3 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px;
+  }
+  .detail-modal-header h3 .ui-icon {
+    font-size: .8em;
+    vertical-align: -2px;
+    margin-right: 8px;
+  }
+  .detail-close {
+    background: var(--bg3); border: none; color: var(--text);
+    width: 36px; height: 36px; border-radius: 12px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .detail-close .ui-icon { font-size: 18px; }
+  #detailCanvas { border-radius: 50%; display: block; margin: 0 auto; max-width: 300px; width: 100%; }
+  .detail-arrow-row {
+    display: flex; justify-content: center; gap: 8px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .detail-pip {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  }
+  .detail-pip.dark-text { color: #ccc; }
+
+  /* ── SETTINGS ── */
+  .settings-section {
+    margin: 16px 16px 0;
+  }
+  .settings-label {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 0 4px 8px;
+  }
+  .settings-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; margin-bottom: 16px;
+  }
+  .settings-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; cursor: pointer;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 10px;
+    transition: border-color .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .settings-row:active { transform: scale(.98); border-color: var(--accent); }
+  .settings-row.danger:active { border-color: var(--red); }
+  .settings-row-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.04);
+    color: var(--accent);
+  }
+  .settings-row.danger .settings-row-icon {
+    color: var(--red);
+    background: rgba(224,82,82,.1);
+  }
+  .settings-row-icon .ui-icon { font-size: 18px; }
+  .settings-row-text { flex: 1; }
+  .settings-row-title { font-size: 14px; font-weight: 500; }
+  .settings-row-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .settings-row-chevron {
+    color: var(--muted);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+  }
+  .settings-row-chevron .ui-icon { font-size: 16px; }
+
+  /* score flash */
+  .score-flash {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
+    font-family: 'Bebas Neue', sans-serif; font-size: 120px;
+    color: var(--accent); pointer-events: none; z-index: 300;
+    text-shadow: 0 0 40px rgba(232,197,71,.5);
+    transition: transform .15s, opacity .3s;
+  }
+  .score-flash.show { transform: translate(-50%,-50%) scale(1); }
+  .score-flash.hide { opacity: 0; }
+</style>
+</head>
+<body>
+
+<script>
+const ICONS = {
+  target: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="2"></circle></svg>',
+  history: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>',
+  pulse: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>',
+  settings: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>',
+  stop: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>',
+  close: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
+  download: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg>',
+  upload: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg>',
+  trash: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>',
+  bow: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg>',
+  trophy: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg>',
+  arrowUpRight: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>',
+  search: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>'
+};
+
+function icon(name, extraClass = '') {
+  const markup = ICONS[name] || '';
+  return extraClass ? markup.replace('class="ui-icon"', `class="ui-icon ${extraClass}"`) : markup;
+}
+</script>
+
+<!-- PAGES -->
+<div id="page-score" class="page active">
+
+  <!-- idle: session picker -->
+  <div id="scorePicker">
+    <div class="session-cards" style="padding-top:60px;">
+      <div class="session-card tournament" onclick="startSession('tournament')">
+        <div class="card-badge">3×10m + 3×15m</div>
+        <h2>Tournament</h2>
+      </div>
+      <div class="session-card practice" onclick="startSession('practice')">
+        <div class="card-badge">Free distance</div>
+        <h2>Practice</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- active: scoring UI -->
+  <div id="scoreActive" style="display:none">
+    <div class="scoring-header">
+      <div style="flex:1">
+        <h2 id="scoreTitle">Round 1</h2>
+        <div class="scoring-meta" id="scoreMeta"></div>
+      </div>
+      <button class="icon-btn" onclick="openEndSession()" title="Stop session" aria-label="Stop session">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>
+      </button>
+    </div>
+
+    <div class="round-info">
+      <div>
+        <div class="ri-label">ROUND SCORE</div>
+        <div class="ri-val" id="roundScoreDisplay">—</div>
+      </div>
+      <div>
+        <div class="ri-label">DISTANCE</div>
+        <div class="distance-toggle">
+          <button class="dist-btn active" id="btn10" onclick="setDistance(10)">10m</button>
+          <button class="dist-btn" id="btn15" onclick="setDistance(15)">15m</button>
+        </div>
+      </div>
+      <div>
+        <div class="ri-label">SESSION</div>
+        <div class="ri-val" id="sessionTotalDisplay">0</div>
+      </div>
+    </div>
+
+    <div class="target-wrap">
+      <canvas id="targetCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="arrows-row" id="arrowDots"></div>
+
+    <button class="end-btn" id="nextRoundBtn" onclick="nextRound()" disabled>NEXT ROUND →</button>
+    <button class="end-btn secondary" onclick="openEndSession()">END SESSION</button>
+
+    <div class="recent-header" style="margin-top:8px">COMPLETED ROUNDS</div>
+    <div class="round-scores-list" id="completedRounds"></div>
+  </div>
+</div>
+
+<div id="page-home" class="page">
+  <div class="diag-header">
+    <h2>HISTORY</h2>
+  </div>
+  <div class="filter-row" style="padding:16px 16px 8px;">
+    <button class="filter-btn active" onclick="setHomeFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setHomeFilter('tournament',this)">Tournament</button>
+    <button class="filter-btn" onclick="setHomeFilter('practice',this)">Practice</button>
+    <button class="filter-btn" onclick="setHomeFilter('10m',this)">10m</button>
+    <button class="filter-btn" onclick="setHomeFilter('15m',this)">15m</button>
+  </div>
+  <div id="recentList"></div>
+</div>
+
+<div id="page-diag" class="page">
+  <div class="diag-header">
+    <h2>DIAGNOSTICS</h2>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('tournament',this)">Tournament</button>
+    <button class="filter-btn" onclick="setFilter('practice',this)">Practice</button>
+    <button class="filter-btn" onclick="setFilter('10m',this)">10m</button>
+    <button class="filter-btn" onclick="setFilter('15m',this)">15m</button>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val" id="dAvg">—</div></div>
+    <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val" id="dArrows">—</div></div>
+    <div class="stat-card"><div class="sc-label">Best Round</div><div class="sc-val" id="dBest">—</div></div>
+    <div class="stat-card"><div class="sc-label">Sessions</div><div class="sc-val" id="dSessions">—</div></div>
+  </div>
+
+  <div class="diag-section">
+    <h3>Arrow Grouping Heatmap</h3>
+    <canvas id="heatmapCanvas" width="520" height="520"></canvas>
+  </div>
+
+  <div class="diag-section" style="margin-top:16px">
+    <h3>Score Over Time (per round)</h3>
+    <div class="score-timeline">
+      <canvas id="timelineCanvas" width="800" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="diag-section" style="margin-top:16px; margin-bottom: 20px">
+    <h3>Score Zone Distribution</h3>
+    <div class="zone-bars" id="zoneBars"></div>
+  </div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="diag-header">
+    <h2>SETTINGS</h2>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">DATA</div>
+
+    <div class="settings-row" onclick="downloadSave()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Download Save File</div>
+        <div class="settings-row-sub">Export all sessions as a .json backup</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+
+    <div class="settings-row" onclick="document.getElementById('uploadInput').click()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Upload Save File</div>
+        <div class="settings-row-sub">Restore sessions from a .json backup</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+    <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="uploadSave(event)">
+
+    <div class="settings-row danger" onclick="confirmReset()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title" style="color:var(--red)">Reset All Data</div>
+        <div class="settings-row-sub">Permanently delete all sessions</div>
+      </div>
+      <div class="settings-row-chevron" style="color:var(--red)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">ABOUT</div>
+    <div class="settings-row" style="cursor:default">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">ArrowMark</div>
+        <div class="settings-row-sub">Archery scoring & diagnostics PWA</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reset confirm overlay -->
+<div class="overlay" id="resetOverlay">
+  <div class="modal">
+    <h3>Reset All Data?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will permanently delete every session and round. This cannot be undone.</p>
+    <button class="modal-btn danger" onclick="resetData()">DELETE EVERYTHING</button>
+    <button class="modal-btn" onclick="closeOverlay('resetOverlay')">CANCEL</button>
+  </div>
+</div>
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <h3 id="detailTitle">Round Detail</h3>
+      <button class="detail-close" onclick="closeOverlay('detailOverlay')" aria-label="Close round detail">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <canvas id="detailCanvas" width="600" height="600"></canvas>
+    <div class="detail-arrow-row" id="detailArrows"></div>
+    <div style="margin-top:14px;text-align:center">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">TOTAL SCORE</span>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--accent);line-height:1" id="detailScore"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Session detail overlay (rounds list) -->
+<div class="detail-overlay" id="sessionOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <div>
+        <h3 id="sessionOverlayTitle">Session</h3>
+        <div id="sessionOverlayMeta" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="icon-btn danger" onclick="deleteCurrentSession()" title="Delete session" aria-label="Delete session">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
+        </button>
+        <button class="detail-close" onclick="closeOverlay('sessionOverlay')" aria-label="Close session detail">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div id="sessionOverlayRounds"></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
+      <span id="sessionOverlayTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <button class="active" onclick="goPage('score',this)" id="nav-score">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
+    Score
+  </button>
+  <button onclick="goPage('home',this)" id="nav-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>
+    History
+  </button>
+  <button onclick="goPage('diag',this)" id="nav-diag">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>
+    Stats
+  </button>
+  <button onclick="goPage('settings',this)" id="nav-settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- Score flash -->
+<div class="score-flash" id="scoreFlash"></div>
+
+<!-- End session overlay -->
+<div class="overlay" id="endOverlay">
+  <div class="modal">
+    <h3>End Session?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Choose whether to save your progress or discard this session entirely.</p>
+    <button class="modal-btn primary" onclick="endSession()">SAVE & EXIT</button>
+    <button class="modal-btn danger" onclick="discardSession()">DISCARD SESSION</button>
+    <button class="modal-btn" onclick="closeOverlay('endOverlay')">CONTINUE SESSION</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════
+const DB_KEY = 'arrowmark_v2';
+let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[]}');
+const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
+
+// ═══════════════════════════════════════════════
+//  SESSION STATE
+// ═══════════════════════════════════════════════
+let session = null; // current in-progress session
+
+function startSession(type) {
+  session = {
+    id: Date.now(),
+    type,
+    date: new Date().toISOString(),
+    rounds: [],
+    currentRound: {
+      distance: 10,
+      arrows: [],
+      locked: false
+    }
+  };
+  document.getElementById('scorePicker').style.display = 'none';
+  document.getElementById('scoreActive').style.display = 'block';
+  goPage('score', document.getElementById('nav-score'));
+  renderScorePage();
+}
+
+function sessionRoundNumber() {
+  return session.rounds.length + 1;
+}
+
+function getTournamentDistance() {
+  const n = session.rounds.length + 1;
+  return n <= 3 ? 10 : 15;
+}
+
+// ═══════════════════════════════════════════════
+//  TARGET DRAWING
+// ═══════════════════════════════════════════════
+const RINGS = [
+  {score:10, color:'#f7e900'}, // gold inner
+  {score:9,  color:'#f7e900'},
+  {score:8,  color:'#e84040'},
+  {score:7,  color:'#e84040'},
+  {score:6,  color:'#3b82f6'},
+  {score:5,  color:'#3b82f6'},
+  {score:4,  color:'#1a1a1a'},
+  {score:3,  color:'#1a1a1a'},
+  {score:2,  color:'#ffffff'},
+  {score:1,  color:'#ffffff'},
+  {score:0,  color:'#cccccc'}, // miss
+];
+
+const canvas = document.getElementById('targetCanvas');
+const ctx = canvas.getContext('2d');
+const W = 600, H = 600, CX = W/2, CY = H/2, R = W/2 - 10;
+
+function drawTarget(arrows=[]) {
+  drawTargetOnCtx(ctx, W, arrows);
+}
+
+function getScoreAt(nx, ny) {
+  const d = Math.sqrt(nx*nx + ny*ny);
+  if (d >= 1) return 0;
+  const ring = Math.floor(d * RINGS.length);
+  return RINGS[Math.min(ring, RINGS.length-1)].score;
+}
+
+canvas.addEventListener('click', handleTargetClick);
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  handleTargetClick(t);
+});
+
+function handleTargetClick(e) {
+  if (!session) return;
+  const cr = session.currentRound;
+  if (cr.arrows.length >= 5) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+  const nx = (px - CX) / R;
+  const ny = (py - CY) / R;
+  const score = getScoreAt(nx, ny);
+  cr.arrows.push({nx, ny, score});
+  flashScore(score);
+  renderScorePage();
+}
+
+function flashScore(s) {
+  const el = document.getElementById('scoreFlash');
+  el.textContent = s === 0 ? 'M' : s;
+  el.style.color = s >= 9 ? '#f7e900' : s >= 7 ? '#e8c547' : s >= 5 ? '#3b82f6' : s >= 3 ? '#888' : '#e05252';
+  el.classList.remove('hide');
+  el.classList.add('show');
+  setTimeout(() => { el.classList.add('hide'); }, 600);
+  setTimeout(() => { el.classList.remove('show','hide'); }, 900);
+}
+
+// ═══════════════════════════════════════════════
+//  SCORE PAGE RENDER
+// ═══════════════════════════════════════════════
+function renderScorePage() {
+  if(!session) return;
+  const cr = session.currentRound;
+  const rn = sessionRoundNumber();
+
+  // title
+  document.getElementById('scoreTitle').textContent =
+    session.type === 'tournament'
+      ? `Round ${rn} / 6`
+      : `Round ${rn}`;
+  document.getElementById('scoreMeta').textContent =
+    session.type === 'tournament' ? 'TOURNAMENT' : 'PRACTICE';
+
+  // distance buttons
+  const isTournament = session.type === 'tournament';
+  if(isTournament) {
+    cr.distance = getTournamentDistance();
+  }
+  document.getElementById('btn10').classList.toggle('active', cr.distance === 10);
+  document.getElementById('btn15').classList.toggle('active', cr.distance === 15);
+  document.getElementById('btn10').disabled = isTournament;
+  document.getElementById('btn15').disabled = isTournament;
+
+  // round score
+  const roundScore = cr.arrows.reduce((s,a)=>s+a.score,0);
+  document.getElementById('roundScoreDisplay').textContent = cr.arrows.length ? roundScore : '—';
+
+  // session total
+  const total = session.rounds.reduce((s,r)=>s+r.arrows.reduce((ss,a)=>ss+a.score,0),0) + roundScore;
+  document.getElementById('sessionTotalDisplay').textContent = total;
+
+  // arrow dots
+  const dots = document.getElementById('arrowDots');
+  dots.innerHTML = '';
+  for(let i=0;i<5;i++){
+    const d = document.createElement('div');
+    d.className = 'arrow-dot';
+    if(i < cr.arrows.length) {
+      const a = cr.arrows[i];
+      d.classList.add('scored');
+      d.style.background = arrowColor(a.score);
+      d.textContent = a.score === 0 ? 'M' : a.score;
+    } else if(i === cr.arrows.length) {
+      d.classList.add('current');
+      d.textContent = '·';
+    } else {
+      d.textContent = '·';
+    }
+    dots.appendChild(d);
+  }
+
+  // next round button
+  const nextBtn = document.getElementById('nextRoundBtn');
+  const done = cr.arrows.length === 5;
+  nextBtn.disabled = !done;
+  if(session.type === 'tournament' && rn === 6 && done) {
+    nextBtn.textContent = 'FINISH TOURNAMENT ✓';
+  } else {
+    nextBtn.textContent = 'NEXT ROUND →';
+  }
+
+  // completed rounds
+  const list = document.getElementById('completedRounds');
+  list.innerHTML = '';
+  session.rounds.forEach((r,i)=>{
+    const s = r.arrows.reduce((x,a)=>x+a.score,0);
+    const row = document.createElement('div');
+    row.className = 'round-score-row';
+    row.innerHTML = `
+      <div class="rsr-label">Round ${i+1} · ${r.distance}m</div>
+      <div class="rsr-arrows">${r.arrows.map(a=>a.score===0?'M':a.score).join(' · ')}</div>
+      <div class="rsr-score">${s}</div>`;
+    list.appendChild(row);
+  });
+
+  drawTarget(cr.arrows);
+}
+
+function arrowColor(s) {
+  if(s>=9) return '#f7e900';
+  if(s>=7) return '#e84040';
+  if(s>=5) return '#3b82f6';
+  if(s>=3) return '#333';
+  if(s>=1) return '#aaa';
+  return '#666';
+}
+
+function setDistance(d) {
+  if(!session || session.type==='tournament') return;
+  session.currentRound.distance = d;
+  renderScorePage();
+}
+
+function nextRound() {
+  if(!session) return;
+  const cr = session.currentRound;
+  if(cr.arrows.length < 5) return;
+  session.rounds.push({...cr, arrows:[...cr.arrows]});
+
+  // tournament: 6 rounds then auto-end
+  if(session.type==='tournament' && session.rounds.length===6) {
+    endSession(); return;
+  }
+
+  const nextDist = session.type==='tournament' ? getTournamentDistance() : cr.distance;
+  session.currentRound = {distance: nextDist, arrows: [], locked: false};
+  renderScorePage();
+  // scroll to top of score page
+  window.scrollTo(0,0);
+}
+
+// ═══════════════════════════════════════════════
+//  SESSION END
+// ═══════════════════════════════════════════════
+function openEndSession() { document.getElementById('endOverlay').classList.add('open'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function endSession() {
+  closeOverlay('endOverlay');
+  if(!session) { goPage('score', document.getElementById('nav-score')); return; }
+
+  const cr = session.currentRound;
+  if(cr.arrows.length > 0) {
+    session.rounds.push({...cr, arrows:[...cr.arrows]});
+  }
+  if(session.rounds.length > 0) {
+    db.sessions.push(session);
+    save();
+  }
+  session = null;
+  document.getElementById('scorePicker').style.display = 'block';
+  document.getElementById('scoreActive').style.display = 'none';
+  renderHome();
+  goPage('score', document.getElementById('nav-score'));
+}
+
+function discardSession() {
+  if (!session) {
+    closeOverlay('endOverlay');
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
+  if (!confirm('Discard this session and lose any unsaved rounds?')) return;
+  closeOverlay('endOverlay');
+  session = null;
+  document.getElementById('scorePicker').style.display = 'block';
+  document.getElementById('scoreActive').style.display = 'none';
+  renderHome();
+  goPage('score', document.getElementById('nav-score'));
+}
+
+// ═══════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════
+let homeFilter = 'all';
+
+function setHomeFilter(f, btn) {
+  homeFilter = f;
+  document.querySelectorAll('.filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHome();
+}
+
+function sessionMatchesFilter(s) {
+  if (homeFilter === 'all') return true;
+  if (homeFilter === 'tournament') return s.type === 'tournament';
+  if (homeFilter === 'practice') return s.type === 'practice';
+  if (homeFilter === '10m') return s.rounds.some(r => r.distance === 10);
+  if (homeFilter === '15m') return s.rounds.some(r => r.distance === 15);
+  return true;
+}
+
+function renderHome() {
+  const list = document.getElementById('recentList');
+  const filtered = [...db.sessions].reverse().filter(sessionMatchesFilter);
+  if (!db.sessions.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('bow')}</div>No sessions yet.<br>Start your first session above!</div>`;
+    return;
+  }
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No sessions match this filter.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map((s, fi) => {
+    const realIdx = db.sessions.indexOf(s);
+    const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
+    const d = new Date(s.date);
+    const label = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const typeLabel = s.type === 'tournament'
+      ? `<span class="session-type">${icon('trophy', 'type-icon')}Tournament</span>`
+      : `<span class="session-type">${icon('target', 'type-icon')}Practice</span>`;
+    const distLabel = [...new Set(s.rounds.map(r=>r.distance+'m'))].join(' & ');
+    return `<div class="recent-item" onclick="openSessionOverlay(${realIdx})">
+      <div class="ri-left">
+        <span>${typeLabel}</span>
+        <span>${label} · ${s.rounds.length} rounds · ${distLabel}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="ri-score">${total}</div>
+        <span class="ri-chevron">${icon('arrowUpRight')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  SESSION OVERLAY
+// ═══════════════════════════════════════════════
+let activeSessionIdx = null;
+
+function pipColor(score) {
+  if(score>=9) return '#f7e900';
+  if(score>=7) return '#e84040';
+  if(score>=5) return '#3b82f6';
+  if(score>=3) return '#333333';
+  if(score>=1) return '#dddddd';
+  return '#555555';
+}
+function pipLightText(score) { return score>=3&&score<=4 || score>=1&&score<=2; }
+
+function openSessionOverlay(idx) {
+  activeSessionIdx = idx;
+  const s = db.sessions[idx];
+  const d = new Date(s.date);
+  const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('sessionOverlayTitle').innerHTML =
+    s.type==='tournament'
+      ? `${icon('trophy', 'type-icon')} Tournament`
+      : `${icon('target', 'type-icon')} Practice`;
+  document.getElementById('sessionOverlayMeta').textContent = dateStr;
+
+  const total = s.rounds.reduce((x,r)=>x+r.arrows.reduce((y,a)=>y+a.score,0),0);
+  document.getElementById('sessionOverlayTotal').textContent = total;
+
+  const container = document.getElementById('sessionOverlayRounds');
+  container.innerHTML = s.rounds.map((r,ri) => {
+    const rs = r.arrows.reduce((x,a)=>x+a.score,0);
+    const pips = r.arrows.map(a => {
+      const bg = pipColor(a.score);
+      const lt = pipLightText(a.score);
+      return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
+    }).join('');
+    return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
+      <div class="sor-label">R${ri+1} · ${r.distance}m</div>
+      <div class="sor-pips">${pips}</div>
+      <div class="sor-score">${rs}</div>
+      <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sessionOverlay').classList.add('open');
+}
+
+function deleteCurrentSession() {
+  if (!confirm('Delete this entire session?')) return;
+  db.sessions.splice(activeSessionIdx, 1);
+  save();
+  closeOverlay('sessionOverlay');
+  renderHome();
+}
+
+function deleteRound(sessionIdx, roundIdx) {
+  if (!confirm('Delete this round?')) return;
+  db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
+  if (db.sessions[sessionIdx].rounds.length === 0) {
+    db.sessions.splice(sessionIdx, 1);
+    closeOverlay('sessionOverlay');
+  } else {
+    openSessionOverlay(sessionIdx); // refresh overlay
+  }
+  save();
+  renderHome();
+}
+
+// ═══════════════════════════════════════════════
+//  ROUND DETAIL
+// ═══════════════════════════════════════════════
+const detailCanvas = document.getElementById('detailCanvas');
+const dctx = detailCanvas.getContext('2d');
+
+function openRoundDetail(sessionIdx, roundIdx) {
+  const r = db.sessions[sessionIdx].rounds[roundIdx];
+  const s = db.sessions[sessionIdx];
+  document.getElementById('detailTitle').textContent =
+    `Round ${roundIdx+1} · ${r.distance}m`;
+
+  drawTargetOnCtx(dctx, 600, r.arrows);
+
+  const row = document.getElementById('detailArrows');
+  row.innerHTML = r.arrows.map(a => {
+    const bg = pipColor(a.score);
+    const lt = pipLightText(a.score);
+    return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
+  }).join('');
+
+  document.getElementById('detailScore').textContent = r.arrows.reduce((x,a)=>x+a.score,0);
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function drawTargetOnCtx(c, size, arrows=[]) {
+  const CX2=size/2, CY2=size/2, R2=size/2-10;
+  c.clearRect(0,0,size,size);
+  for(let i=RINGS.length-1;i>=0;i--){
+    const r=R2*(i+1)/RINGS.length;
+    c.beginPath(); c.arc(CX2,CY2,r,0,Math.PI*2);
+    c.fillStyle=RINGS[i].color; c.fill();
+    c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
+  }
+  c.strokeStyle='rgba(0,0,0,0.15)'; c.lineWidth=1; c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(CX2,4); c.lineTo(CX2,size-4); c.stroke();
+  c.beginPath(); c.moveTo(4,CY2); c.lineTo(size-4,CY2); c.stroke();
+  c.setLineDash([]);
+  const LC={'#f7e900':'#1a1000','#e84040':'#ffffff','#3b82f6':'#ffffff','#1a1a1a':'#cccccc','#ffffff':'#333333','#cccccc':'#555555'};
+  c.font=`bold 22px "DM Mono",monospace`; c.textAlign='center'; c.textBaseline='middle';
+  for(let i=0;i<RINGS.length-1;i++){
+    const r=R2*(i+1)/RINGS.length;
+    c.fillStyle=LC[RINGS[i].color]||'#fff';
+    c.fillText(RINGS[i].score, CX2+(r-(R2/RINGS.length)/2)*0.85, CY2);
+  }
+  arrows.forEach((a,idx)=>{
+    const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
+    c.beginPath(); c.arc(px+2,py+2,12,0,Math.PI*2); c.fillStyle='rgba(0,0,0,0.4)'; c.fill();
+    c.beginPath(); c.arc(px,py,12,0,Math.PI*2);
+    c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
+    c.fillStyle='#000'; c.font='bold 12px "DM Mono",monospace';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(idx+1, px, py);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function goPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+
+  if(name==='score') {
+    if(session) {
+      document.getElementById('scorePicker').style.display = 'none';
+      document.getElementById('scoreActive').style.display = 'block';
+      renderScorePage();
+    } else {
+      document.getElementById('scorePicker').style.display = 'block';
+      document.getElementById('scoreActive').style.display = 'none';
+      drawTarget([]);
+    }
+  }
+  if(name==='diag') renderDiag();
+  if(name==='home') renderHome();
+  window.scrollTo(0,0);
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════
+function downloadSave() {
+  const json = JSON.stringify(db, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `arrowmark-save-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function uploadSave(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
+      db = parsed;
+      save();
+      renderHome();
+      alert(`Loaded ${db.sessions.length} session(s) successfully.`);
+    } catch {
+      alert('Could not read save file. Make sure it is a valid ArrowMark backup.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function confirmReset() {
+  document.getElementById('resetOverlay').classList.add('open');
+}
+
+function resetData() {
+  db = { sessions: [] };
+  save();
+  closeOverlay('resetOverlay');
+  renderHome();
+  alert('All data has been reset.');
+}
+
+// ═══════════════════════════════════════════════
+//  DIAGNOSTICS
+// ═══════════════════════════════════════════════
+let diagFilter = 'all';
+
+function setFilter(f, btn) {
+  diagFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDiag();
+}
+
+function getFilteredRounds() {
+  let rounds = [];
+  db.sessions.forEach(s => {
+    s.rounds.forEach(r => {
+      rounds.push({...r, sessionType: s.type});
+    });
+  });
+  // include in-progress session
+  if(session) {
+    session.rounds.forEach(r => rounds.push({...r, sessionType: session.type}));
+    if(session.currentRound.arrows.length) rounds.push({...session.currentRound, sessionType: session.type});
+  }
+  if(diagFilter==='tournament') return rounds.filter(r=>r.sessionType==='tournament');
+  if(diagFilter==='practice') return rounds.filter(r=>r.sessionType==='practice');
+  if(diagFilter==='10m') return rounds.filter(r=>r.distance===10);
+  if(diagFilter==='15m') return rounds.filter(r=>r.distance===15);
+  return rounds;
+}
+
+function renderDiag() {
+  const rounds = getFilteredRounds();
+  const allArrows = rounds.flatMap(r=>r.arrows);
+
+  // stats
+  document.getElementById('dArrows').textContent = allArrows.length || '—';
+  document.getElementById('dSessions').textContent = db.sessions.length || '—';
+  if(rounds.length) {
+    const scores = rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
+    const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+    document.getElementById('dAvg').textContent = avg.toFixed(1);
+    document.getElementById('dBest').textContent = Math.max(...scores);
+  } else {
+    document.getElementById('dAvg').textContent = '—';
+    document.getElementById('dBest').textContent = '—';
+  }
+
+  drawHeatmap(allArrows);
+  drawTimeline(rounds);
+  drawZoneBars(allArrows);
+}
+
+// Heatmap
+function drawHeatmap(arrows) {
+  const hc = document.getElementById('heatmapCanvas');
+  const hx = hc.getContext('2d');
+  const W2 = 520, CX2 = W2/2, R2 = W2/2-10;
+  hx.clearRect(0,0,W2,W2);
+
+  // target background
+  for(let i=RINGS.length-1;i>=0;i--){
+    const r=R2*(i+1)/RINGS.length;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
+    hx.fillStyle=RINGS[i].color; hx.fill();
+    hx.strokeStyle='rgba(0,0,0,0.15)'; hx.lineWidth=1; hx.stroke();
+  }
+
+  if(!arrows.length) return;
+
+  // draw heat blobs
+  arrows.forEach(a=>{
+    const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
+    const grad=hx.createRadialGradient(px,py,0,px,py,30);
+    grad.addColorStop(0,'rgba(232,80,50,0.5)');
+    grad.addColorStop(1,'rgba(232,80,50,0)');
+    hx.beginPath(); hx.arc(px,py,30,0,Math.PI*2);
+    hx.fillStyle=grad; hx.fill();
+  });
+
+  // arrow dots
+  arrows.forEach(a=>{
+    const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
+    hx.beginPath(); hx.arc(px,py,5,0,Math.PI*2);
+    hx.fillStyle='rgba(255,255,255,0.9)'; hx.fill();
+    hx.strokeStyle='rgba(0,0,0,0.4)'; hx.lineWidth=1; hx.stroke();
+  });
+}
+
+// Timeline
+function drawTimeline(rounds) {
+  const tc = document.getElementById('timelineCanvas');
+  const tx = tc.getContext('2d');
+  const W3=800, H3=200;
+  tc.style.width='100%';
+  tx.clearRect(0,0,W3,H3);
+  tx.fillStyle='#111827'; tx.fillRect(0,0,W3,H3);
+
+  if(rounds.length < 2) {
+    tx.fillStyle='#6b7a99'; tx.font='20px DM Mono, monospace';
+    tx.textAlign='center'; tx.textBaseline='middle';
+    tx.fillText('Need 2+ rounds for timeline', W3/2, H3/2);
+    return;
+  }
+
+  const scores=rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
+  const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
+  const pad=30;
+
+  const px=i=>(pad + (i/(scores.length-1))*(W3-pad*2));
+  const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
+
+  // grid lines
+  tx.strokeStyle='rgba(255,255,255,0.05)'; tx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad+(g/4)*(H3-pad*2);
+    tx.beginPath(); tx.moveTo(pad,y); tx.lineTo(W3-pad,y); tx.stroke();
+  }
+
+  // area fill
+  tx.beginPath();
+  tx.moveTo(px(0),H3-pad);
+  scores.forEach((s,i)=>tx.lineTo(px(i),py(s)));
+  tx.lineTo(px(scores.length-1),H3-pad);
+  tx.closePath();
+  const grad=tx.createLinearGradient(0,0,0,H3);
+  grad.addColorStop(0,'rgba(232,197,71,0.3)');
+  grad.addColorStop(1,'rgba(232,197,71,0)');
+  tx.fillStyle=grad; tx.fill();
+
+  // line
+  tx.beginPath();
+  tx.moveTo(px(0),py(scores[0]));
+  scores.forEach((s,i)=>{if(i>0)tx.lineTo(px(i),py(s));});
+  tx.strokeStyle='#e8c547'; tx.lineWidth=2.5; tx.lineJoin='round';
+  tx.stroke();
+
+  // dots
+  scores.forEach((s,i)=>{
+    tx.beginPath(); tx.arc(px(i),py(s),4,0,Math.PI*2);
+    tx.fillStyle='#e8c547'; tx.fill();
+  });
+}
+
+// Zone bars
+const ZONES = [
+  {label:'X / 10', min:9,  max:10, color:'#f7e900'},
+  {label:'7–8',    min:7,  max:8,  color:'#e84040'},
+  {label:'5–6',    min:5,  max:6,  color:'#3b82f6'},
+  {label:'3–4',    min:3,  max:4,  color:'#555'},
+  {label:'1–2',    min:1,  max:2,  color:'#aaa'},
+  {label:'Miss',   min:0,  max:0,  color:'#333'},
+];
+
+function drawZoneBars(arrows) {
+  const el = document.getElementById('zoneBars');
+  el.innerHTML='';
+  const total=arrows.length||1;
+  ZONES.forEach(z=>{
+    const count=arrows.filter(a=>a.score>=z.min&&a.score<=z.max).length;
+    const pct=((count/total)*100).toFixed(1);
+    el.innerHTML+=`<div class="zone-bar-row">
+      <div class="zb-label">${z.label}</div>
+      <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${pct}%;background:${z.color}"></div></div>
+      <div class="zb-count">${count}</div>
+    </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+renderHome();
+drawTarget([]);
+</script>
+</body>
+</html>
