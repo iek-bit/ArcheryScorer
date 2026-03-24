@@ -397,54 +397,6 @@
     font-family: 'DM Mono', monospace;
   }
 
-  .filter-bar {
-    display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 0;
-  }
-  .filter-bar .filter-row {
-    flex: 1; padding: 0; flex-wrap: wrap;
-  }
-  .sort-btn {
-    flex-shrink: 0;
-    padding: 9px 12px; border-radius: 20px;
-    border: 1px solid var(--border); background: none;
-    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
-    cursor: pointer; transition: all .2s;
-    display: flex; align-items: center; gap: 5px; white-space: nowrap;
-  }
-  .sort-btn.active { border-color: var(--accent); color: var(--accent); }
-  .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
-
-  .sort-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.6);
-    display: flex; align-items: flex-end; justify-content: center;
-    z-index: 210; opacity: 0; pointer-events: none; transition: opacity .2s;
-  }
-  .sort-overlay.open { opacity: 1; pointer-events: all; }
-  .sort-sheet {
-    background: var(--bg2); border-radius: 20px 20px 0 0;
-    width: 100%; max-width: 480px;
-    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-    transform: translateY(30px); transition: transform .25s;
-  }
-  .sort-overlay.open .sort-sheet { transform: translateY(0); }
-  .sort-sheet h4 {
-    font-family: 'DM Mono', monospace; font-size: 11px;
-    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
-    margin-bottom: 12px;
-  }
-  .sort-option {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 13px 14px; border-radius: 12px; margin-bottom: 6px;
-    border: 1px solid var(--border); background: none;
-    width: 100%; cursor: pointer; transition: border-color .15s, background .15s;
-    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
-    text-align: left;
-  }
-  .sort-option:active { background: var(--bg3); }
-  .sort-option.active { border-color: var(--accent); background: rgba(232,197,71,.07); }
-  .sort-option .so-check { color: var(--accent); font-size: 16px; opacity: 0; }
-  .sort-option.active .so-check { opacity: 1; }
-
   .setup-option-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1139,13 +1091,7 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="diag-header">
     <h2>HISTORY</h2>
   </div>
-  <div class="filter-bar">
-    <div class="filter-row" id="homeFilterRow"></div>
-    <button class="sort-btn" id="homeSortBtn" onclick="openSortOverlay('home')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-      Sort
-    </button>
-  </div>
+  <div class="filter-row" id="homeFilterRow" style="padding:16px 16px 8px;"></div>
   <div class="filter-help" id="homeFilterHelp">Tap filters to narrow history. Tap again to remove.</div>
   <div id="recentList"></div>
 </div>
@@ -1195,14 +1141,8 @@ const PRACTICE_TARGET_OPTIONS = [
       oninput="setCoachSearch(this.value)"
     >
   </div>
-  <div class="filter-bar" style="padding-top:8px;">
-    <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
-    <button class="sort-btn" id="coachSortBtn" onclick="openSortOverlay('coach')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-      Sort
-    </button>
-  </div>
-  <div class="filter-help" id="coachFilterHelp">Browsing cloud scores. Search by archer name.</div>
+  <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+  <div class="filter-help" id="coachFilterHelp">Search by archer, then use filters to narrow their sessions.</div>
   <div id="coachList"></div>
 </div>
 
@@ -1385,16 +1325,6 @@ const PRACTICE_TARGET_OPTIONS = [
     <span>Settings</span>
   </button>
 </nav>
-
-<div class="sort-overlay" id="sortOverlay" onclick="closeSortOverlay(event)">
-  <div class="sort-sheet" onclick="event.stopPropagation()">
-    <h4>Sort Sessions</h4>
-    <button class="sort-option" data-sort="newest" onclick="setSort('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="oldest" onclick="setSort('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-high" onclick="setSort('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-low" onclick="setSort('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
-  </div>
-</div>
 
 <div class="score-flash" id="scoreFlash"></div>
 
@@ -1728,30 +1658,256 @@ function endSession() {
     openFinishOverlay();
 }
 
-function openFinishOverlay() { document.getElementById('finishOverlay').classList.add('open'); }
-function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-function goPage(name, btn) {
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    document.getElementById('page-'+name).classList.add('active');
-    btn.classList.add('active');
-    if (name === 'coach') renderCoach();
-    if (name === 'home') renderHome();
+function showQuickScoreSummary() {
+  const allRounds = session.rounds;
+  const grandTotal = allRounds.reduce((t, r) => t + r.arrows.reduce((s, a) => s + a.score, 0), 0);
+
+  document.getElementById('quickScoreTotalDisplay').textContent = grandTotal;
+
+  const listEl = document.getElementById('quickScoreRoundList');
+  listEl.innerHTML = allRounds.map((r, i) => {
+    const rs = r.arrows.reduce((s, a) => s + a.score, 0);
+    const pips = r.arrows.map(a => {
+      const bg = quickScorePipColor(a.score);
+      const light = a.score >= 3 && a.score <= 4 || a.score >= 1 && a.score <= 2;
+      return `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${bg};font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${light?'#bbb':'#000'}">${a.score===0?'M':a.score}</span>`;
+    }).join('');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:52px;flex-shrink:0">R${i+1} · ${r.distance}m</span>
+      <div style="display:flex;gap:4px;flex:1;flex-wrap:wrap">${pips}</div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);width:32px;text-align:right">${rs}</span>
+    </div>`;
+  }).join('');
+
+  closeOverlay('roundCompleteOverlay');
+  document.getElementById('quickScoreSummaryOverlay').classList.add('open');
 }
 
-function openDeviceNameOverlay() { document.getElementById('deviceNameOverlay').classList.add('open'); }
-function submitDeviceName() {
-    db.deviceProfile.name = document.getElementById('deviceNameInput').value;
-    save();
-    closeOverlay('deviceNameOverlay');
-    updateDeviceNameSummary();
+function quickScorePipColor(score) {
+  if (score >= 9) return '#f7e900';
+  if (score >= 7) return '#e84040';
+  if (score >= 5) return '#3b82f6';
+  if (score >= 3) return '#333333';
+  if (score >= 1) return '#dddddd';
+  return '#555555';
 }
-function updateDeviceNameSummary() { document.getElementById('deviceNameSummary').textContent = db.deviceProfile.name || 'Not set'; }
 
-function openCoachActivation() { 
-    if(coachUnlocked) { document.getElementById('disableCoachOverlay').classList.add('open'); }
-    else { document.getElementById('coachPasswordOverlay').classList.add('open'); }
+function exitEphemeralSession() {
+  session = null;
+  document.getElementById('quickScoreSummaryOverlay').classList.remove('open');
+  resetActiveSessionUI();
+  renderHome();
+  goPage('score', document.getElementById('nav-score'));
 }
+
+function discardSession() {
+  openDiscardSessionConfirm();
+}
+
+function confirmDiscardSession() {
+  if (!session) {
+    closeOverlay('discardSessionOverlay');
+    closeOverlay('endOverlay');
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
+  closeOverlay('discardSessionOverlay');
+  closeOverlay('endOverlay');
+  session = null;
+  resetActiveSessionUI();
+  renderHome();
+  goPage('score', document.getElementById('nav-score'));
+}
+
+// ═══════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════
+const FILTER_DEFS = [
+  {key: 'all', label: 'All', group: 'meta'},
+  {key: 'practice', label: 'Practice', group: 'scope'},
+  {key: 'tournament', label: 'Tournament', group: 'scope'},
+  {key: 'bullseye', label: 'Bullseye', group: 'family'},
+  {key: '3d', label: '3D', group: 'family'},
+  {key: '10m', label: '10m', group: 'value', family: 'bullseye'},
+  {key: '15m', label: '15m', group: 'value', family: 'bullseye'},
+  ...THREE_D_TARGETS.map(target => ({key: target.key, label: target.label, group: 'value', family: '3d'}))
+];
+
+const homeFilters = new Set();
+const diagFilters = new Set();
+const coachFilters = new Set();
+
+function getFilterDefinition(key) {
+  return FILTER_DEFS.find(def => def.key === key);
+}
+
+function getSelectedFilterMap(filters) {
+  const selected = [...filters];
+  return {
+    scope: selected.find(key => getFilterDefinition(key)?.group === 'scope') || null,
+    family: selected.find(key => getFilterDefinition(key)?.group === 'family') || null,
+    value: selected.find(key => getFilterDefinition(key)?.group === 'value') || null
+  };
+}
+
+function getVisibleFilters(filters) {
+  const selected = getSelectedFilterMap(filters);
+  const visible = ['all'];
+  if (!selected.scope) visible.push('practice', 'tournament');
+  else visible.push(selected.scope);
+  if (!selected.family) visible.push('bullseye', '3d');
+  else visible.push(selected.family);
+  if (selected.family === 'bullseye') {
+    visible.push(selected.value && ['10m', '15m'].includes(selected.value) ? selected.value : '10m', selected.value && ['10m', '15m'].includes(selected.value) ? null : '15m');
+  }
+  if (selected.family === '3d') {
+    if (selected.value && THREE_D_TARGET_LOOKUP[selected.value]) visible.push(selected.value);
+    else visible.push(...THREE_D_TARGETS.map(target => target.key));
+  }
+  return [...new Set(visible.filter(Boolean))];
+}
+
+function toggleFilter(filters, key) {
+  if (key === 'all') {
+    filters.clear();
+    return;
+  }
+  const def = getFilterDefinition(key);
+  if (!def) return;
+  if (filters.has(key)) {
+    filters.delete(key);
+    if (def.group === 'family') {
+      [...filters].forEach(selectedKey => {
+        const selectedDef = getFilterDefinition(selectedKey);
+        if (selectedDef?.group === 'value') filters.delete(selectedKey);
+      });
+    }
+    return;
+  }
+  if (def.group !== 'meta') {
+    [...filters].forEach(selectedKey => {
+      const selectedDef = getFilterDefinition(selectedKey);
+      if (selectedDef?.group === def.group) filters.delete(selectedKey);
+    });
+  }
+  if (def.group === 'family') {
+    [...filters].forEach(selectedKey => {
+      const selectedDef = getFilterDefinition(selectedKey);
+      if (selectedDef?.group === 'value') filters.delete(selectedKey);
+    });
+  }
+  if (def.group === 'value') {
+    const current = getSelectedFilterMap(filters);
+    if (current.family !== def.family) {
+      [...filters].forEach(selectedKey => {
+        const selectedDef = getFilterDefinition(selectedKey);
+        if (selectedDef?.group === 'family' || selectedDef?.group === 'value') filters.delete(selectedKey);
+      });
+      filters.add(def.family);
+    }
+  }
+  filters.add(key);
+}
+
+function renderFilters(rowId, helpId, filters, toggleFn) {
+  const row = document.getElementById(rowId);
+  const help = document.getElementById(helpId);
+  if (!row || !help) return;
+  const visible = getVisibleFilters(filters);
+  row.innerHTML = visible.map(key => {
+    const def = getFilterDefinition(key);
+    const active = key === 'all' ? filters.size === 0 : filters.has(key);
+    return `<button class="filter-btn${active ? ' active' : ''}" onclick="${toggleFn}('${key}')">${def.label}</button>`;
+  }).join('');
+  const selected = [...filters].map(key => getFilterDefinition(key)?.label).filter(Boolean);
+  help.textContent = selected.length ? `Active: ${selected.join(' + ')}` : 'Tap filters to narrow results. Tap again to remove.';
+}
+
+function toggleHomeFilter(key) {
+  toggleFilter(homeFilters, key);
+  renderHomeFilters();
+  renderHome();
+}
+
+function toggleDiagFilter(key) {
+  toggleFilter(diagFilters, key);
+  renderDiagFilters();
+  renderDiag();
+}
+
+function renderHomeFilters() {
+  renderFilters('homeFilterRow', 'homeFilterHelp', homeFilters, 'toggleHomeFilter');
+}
+
+function renderDiagFilters() {
+  renderFilters('diagFilterRow', 'diagFilterHelp', diagFilters, 'toggleDiagFilter');
+}
+
+function toggleCoachFilter(key) {
+  toggleFilter(coachFilters, key);
+  renderCoachFilters();
+  renderCoach();
+}
+
+function renderCoachFilters() {
+  renderFilters('coachFilterRow', 'coachFilterHelp', coachFilters, 'toggleCoachFilter');
+}
+
+function roundMatchesFilters(round, filters) {
+  const selected = getSelectedFilterMap(filters);
+  if (selected.family && roundDescriptor(round).mode !== selected.family) return false;
+  if (selected.value) {
+    if (round.mode === '3d' && round.animal !== selected.value) return false;
+    if (round.mode === 'bullseye' && `${round.distance}m` !== selected.value) return false;
+  }
+  return true;
+}
+
+function sessionMatchesFilter(sessionObj, filters) {
+  const selected = getSelectedFilterMap(filters);
+  if (selected.scope === 'practice' && sessionObj.type !== 'practice') return false;
+  if (selected.scope === 'tournament' && !isTournamentSession(sessionObj)) return false;
+  if (!selected.family && !selected.value) return true;
+  return sessionObj.rounds.some(round => roundMatchesFilters(round, filters));
+}
+
+function renderHome() {
+  const list = document.getElementById('recentList');
+  const filtered = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  if (!db.sessions.length) {
+    list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
+    return;
+  }
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No sessions match this filter.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map((s, fi) => {
+    const realIdx = db.sessions.indexOf(s);
+    const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
+    const typeLabel = `<span class="session-type">${sessionTypeBadge(s)}</span>`;
+    return `<div class="recent-item" onclick="openSessionOverlay(${realIdx})">
+      <div class="ri-left">
+        <span>${typeLabel}</span>
+        <span>${sessionMetaText(s)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="ri-score">${total}</div>
+        <span class="ri-chevron">${icon('arrowUpRight')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getSessionTotal(sessionObj) {
+  return sessionObj.rounds.reduce((sum, round) => sum + round.arrows.reduce((roundSum, arrow) => roundSum + arrow.score, 0), 0);
+}
+
+function setCoachSearch(value) {
+  coachSearch = value.trim().toLowerCase();
+  renderCoach();
+}
+
 function submitCoachPassword() {
     if(document.getElementById('coachPasswordInput').value === COACH_PASSWORD) {
         coachUnlocked = true;
@@ -1760,29 +1916,637 @@ function submitCoachPassword() {
         closeOverlay('coachPasswordOverlay');
     }
 }
-function updateCoachModeUI() {
-    document.getElementById('nav-coach').style.display = coachUnlocked ? '' : 'none';
-    document.getElementById('coachModeSummary').textContent = coachUnlocked ? 'Enabled' : 'Disabled';
-}
-function setCoachSearch(val) { coachSearch = val.toLowerCase(); renderCoach(); }
 
-function renderHome() {
-    const list = document.getElementById('recentList');
-    list.innerHTML = db.sessions.slice().reverse().map(s => `
-        <div class="recent-item">
-            <div class="ri-left">
-                <span>${s.archerName}</span>
-                <span>${new Date(s.date).toLocaleDateString()}</span>
+function renderCoach() {
+  const list = document.getElementById('coachList');
+  const input = document.getElementById('coachSearchInput');
+  if (!list || !input) return;
+
+  const namedSessions = db.sessions
+    .map((sessionObj, idx) => ({sessionObj, idx}))
+    .filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
+
+  const filtered = namedSessions.filter(({sessionObj}) => {
+    const name = normalizePersonName(sessionObj.archerName).toLowerCase();
+    if (coachSearch && !name.includes(coachSearch)) return false;
+    return sessionMatchesFilter(sessionObj, coachFilters);
+  });
+
+  if (!namedSessions.length) {
+    list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`;
+    return;
+  }
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No coach results match this search or filter.</div>`;
+    return;
+  }
+
+  const groups = new Map();
+  filtered.forEach(item => {
+    const name = normalizePersonName(item.sessionObj.archerName);
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(item);
+  });
+
+  list.innerHTML = [...groups.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([name, entries]) => {
+      const cards = entries
+        .sort((a, b) => new Date(b.sessionObj.date).getTime() - new Date(a.sessionObj.date).getTime())
+        .map(({sessionObj, idx}) => `
+          <div class="coach-card" onclick="openSessionOverlay(${idx})">
+            <div class="coach-card-top">
+              <div>
+                <div class="coach-card-name">${name}</div>
+                <div class="coach-card-meta">${sessionMetaText({...sessionObj, archerName: ''})}</div>
+              </div>
+              <div class="coach-card-score">${getSessionTotal(sessionObj)}</div>
             </div>
-            <div class="ri-score">${s.rounds.reduce((sum, r) => sum + r.arrows.reduce((as, a) => as + a.score, 0), 0)}</div>
-        </div>
-    `).join('');
+            <div class="coach-card-type">${sessionTypeBadge(sessionObj)}</div>
+          </div>
+        `).join('');
+      return `<div class="coach-group"><div class="coach-group-label">${name}</div>${cards}</div>`;
+    }).join('');
 }
 
-// Init
+// ═══════════════════════════════════════════════
+//  SESSION OVERLAY
+// ═══════════════════════════════════════════════
+let activeSessionIdx = null;
+
+function pipColor(score) {
+  if(score>=9) return '#f7e900';
+  if(score>=7) return '#e84040';
+  if(score>=5) return '#3b82f6';
+  if(score>=3) return '#333333';
+  if(score>=1) return '#dddddd';
+  return '#555555';
+}
+function pipLightText(score) { return score>=3&&score<=4 || score>=1&&score<=2; }
+
+function openSessionOverlay(idx) {
+  activeSessionIdx = idx;
+  activeSessionViewMode = document.getElementById('page-coach')?.classList.contains('active') ? 'coach' : 'default';
+  const s = db.sessions[idx];
+  const d = new Date(s.date);
+  const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('sessionOverlayTitle').innerHTML = sessionTypeBadge(s);
+  const locationLabel = formatLocation(s.location);
+  document.getElementById('sessionOverlayMeta').innerHTML =
+    locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
+  const owner = document.getElementById('sessionOverlayOwner');
+  const ownerName = normalizePersonName(s.archerName);
+  owner.textContent = ownerName || 'Unassigned';
+  owner.classList.toggle('unassigned', !ownerName);
+  const coachView = activeSessionViewMode === 'coach';
+  document.querySelectorAll('#sessionOverlay .icon-btn.danger, #sessionOverlay .icon-btn').forEach(btn => {
+    if (btn.getAttribute('aria-label') === 'Delete session' || btn.getAttribute('aria-label') === 'Edit archer name') {
+      btn.style.display = coachView ? 'none' : '';
+    }
+  });
+
+  const total = getSessionTotal(s);
+  document.getElementById('sessionOverlayTotal').textContent = total;
+
+  const container = document.getElementById('sessionOverlayRounds');
+  container.innerHTML = s.rounds.map((r,ri) => {
+    const rs = r.arrows.reduce((x,a)=>x+a.score,0);
+    const info = roundDescriptor(r);
+    const pips = r.arrows.map(a => {
+      const bg = pipColor(a.score);
+      const lt = pipLightText(a.score);
+      return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
+    }).join('');
+    return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
+      <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
+      <div class="sor-pips">${pips}</div>
+      <div class="sor-score">${rs}</div>
+      ${coachView ? '' : `<button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>`}
+    </div>`;
+  }).join('');
+
+  document.getElementById('sessionOverlay').classList.add('open');
+}
+
+function deleteCurrentSession() {
+  if (activeSessionViewMode === 'coach') return;
+  if (!confirm('Delete this entire session?')) return;
+  db.sessions.splice(activeSessionIdx, 1);
+  save();
+  closeOverlay('sessionOverlay');
+  renderHome();
+  renderCoach();
+  renderDiag();
+}
+
+function deleteRound(sessionIdx, roundIdx) {
+  if (activeSessionViewMode === 'coach') return;
+  if (!confirm('Delete this round?')) return;
+  db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
+  if (db.sessions[sessionIdx].rounds.length === 0) {
+    db.sessions.splice(sessionIdx, 1);
+    closeOverlay('sessionOverlay');
+  } else {
+    openSessionOverlay(sessionIdx); // refresh overlay
+  }
+  save();
+  renderHome();
+  renderCoach();
+  renderDiag();
+}
+
+function openSessionArcherOverlay() {
+  if (activeSessionViewMode === 'coach') return;
+  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  const input = document.getElementById('sessionArcherInput');
+  input.value = db.sessions[activeSessionIdx].archerName || '';
+  document.getElementById('sessionArcherOverlay').classList.add('open');
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 60);
+}
+
+function saveSessionArcherName() {
+  if (activeSessionViewMode === 'coach') return;
+  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  const input = document.getElementById('sessionArcherInput');
+  const nextName = normalizePersonName(input.value);
+  const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
+  if (nextName && nextName.toLowerCase() !== (existingName || '').toLowerCase()) {
+    const duplicate = db.sessions.some((s, i) =>
+      i !== activeSessionIdx &&
+      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
+      input.focus();
+      return;
+    }
+  }
+  db.sessions[activeSessionIdx].archerName = nextName;
+  save();
+  closeOverlay('sessionArcherOverlay');
+  openSessionOverlay(activeSessionIdx);
+  renderHome();
+  renderCoach();
+}
+
+// ═══════════════════════════════════════════════
+//  ROUND DETAIL
+// ═══════════════════════════════════════════════
+const detailCanvas = document.getElementById('detailCanvas');
+const dctx = detailCanvas.getContext('2d');
+
+function openRoundDetail(sessionIdx, roundIdx) {
+  const r = db.sessions[sessionIdx].rounds[roundIdx];
+  document.getElementById('detailTitle').textContent =
+    `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
+
+  drawTargetOnCtx(dctx, 600, r.arrows, r.mode);
+
+  const row = document.getElementById('detailArrows');
+  row.innerHTML = r.arrows.map(a => {
+    const bg = pipColor(a.score);
+    const lt = pipLightText(a.score);
+    return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
+  }).join('');
+
+  document.getElementById('detailScore').textContent = r.arrows.reduce((x,a)=>x+a.score,0);
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
+  const CX2=size/2, CY2=size/2, R2=size/2-10;
+  const rings = getRingsForMode(mode);
+  c.clearRect(0,0,size,size);
+  for(let i=rings.length-1;i>=0;i--){
+    const r=R2*rings[i].end;
+    c.beginPath(); c.arc(CX2,CY2,r,0,Math.PI*2);
+    c.fillStyle=rings[i].color; c.fill();
+    c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
+  }
+  c.strokeStyle='rgba(0,0,0,0.15)'; c.lineWidth=1; c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(CX2,4); c.lineTo(CX2,size-4); c.stroke();
+  c.beginPath(); c.moveTo(4,CY2); c.lineTo(size-4,CY2); c.stroke();
+  c.setLineDash([]);
+  const LC={'#f7e900':'#1a1000','#e84040':'#ffffff','#3b82f6':'#ffffff','#1a1a1a':'#cccccc','#ffffff':'#333333','#cccccc':'#555555'};
+  c.textAlign='center';
+  c.textBaseline='middle';
+  for(let i=0;i<rings.length;i++){
+    const innerR=i===0 ? 0 : R2 * rings[i-1].end;
+    const outerR=R2 * rings[i].end;
+    const ringWidth=outerR-innerR;
+    const labelR=innerR + ringWidth * 0.5;
+    const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
+    c.fillStyle=LC[rings[i].color]||'#fff';
+    c.font=`bold ${fontSize}px "DM Mono",monospace`;
+    if (i === 0) {
+      c.fillText(rings[i].score, CX2, CY2);
+      continue;
+    }
+    const positions = [
+      -Math.PI / 2,
+      0,
+      Math.PI / 2,
+      Math.PI,
+    ];
+    positions.forEach(angle => {
+      const x = CX2 + Math.cos(angle) * labelR;
+      const y = CY2 + Math.sin(angle) * labelR;
+      c.fillText(rings[i].score, x, y);
+    });
+  }
+  arrows.forEach((a,idx)=>{
+    const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
+    c.beginPath(); c.arc(px+2,py+2,12,0,Math.PI*2); c.fillStyle='rgba(0,0,0,0.4)'; c.fill();
+    c.beginPath(); c.arc(px,py,12,0,Math.PI*2);
+    c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
+    c.fillStyle='#000'; c.font='bold 12px "DM Mono",monospace';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(idx+1, px, py);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function goPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+
+  if(name==='score') {
+    if(session) {
+      document.getElementById('scorePicker').style.display = 'none';
+      document.getElementById('scoreActive').style.display = 'block';
+      renderScorePage();
+    } else {
+      document.getElementById('scorePicker').style.display = 'block';
+      document.getElementById('scoreActive').style.display = 'none';
+      drawTarget([]);
+    }
+  }
+  if(name==='diag') renderDiag();
+  if(name==='home') renderHome();
+  if(name==='coach') renderCoach();
+  if(name==='settings') updateDeviceNameSummary();
+  window.scrollTo(0,0);
+}
+
+// ═══════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════
+function downloadSave() {
+  const payload = {
+    ...db,
+    deviceProfile: normalizeDeviceProfile(db.deviceProfile),
+    theme: themeState
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `achery-scorer-save-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function uploadSave(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const parsed = JSON.parse(evt.target.result);
+      if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
+      db = {
+        sessions: parsed.sessions.map(normalizeSessionData),
+        savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [],
+        deviceProfile: normalizeDeviceProfile(parsed.deviceProfile)
+      };
+      if (parsed.theme && typeof parsed.theme === 'object') {
+        themeState = parsed.theme;
+        persistTheme();
+        applyTheme();
+      }
+      save();
+      refreshSavedLocationOptions();
+      renderHome();
+      renderCoach();
+      renderDiag();
+      updateDeviceNameSummary();
+      updateCoachModeUI();
+      alert(`Loaded ${db.sessions.length} session(s) successfully.`);
+    } catch {
+      alert('Could not read save file. Make sure it is a valid Achery Scorer backup.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function confirmReset() {
+  document.getElementById('resetOverlay').classList.add('open');
+}
+
+function resetData() {
+  db = { sessions: [], savedLocations: [], deviceProfile: {name: ''} };
+  session = null;
+  finishingSession = null;
+  activeSessionIdx = null;
+  pendingSessionType = null;
+  pendingLocationSessionId = null;
+  coachSearch = '';
+  coachFilters.clear();
+  coachUnlocked = false;
+  save();
+  localStorage.removeItem(COACH_UNLOCK_KEY);
+  refreshSavedLocationOptions();
+  resetActiveSessionUI();
+  const coachSearchInput = document.getElementById('coachSearchInput');
+  if (coachSearchInput) coachSearchInput.value = '';
+  closeOverlay('resetOverlay');
+  closeOverlay('sessionOverlay');
+  closeOverlay('sessionArcherOverlay');
+  closeOverlay('detailOverlay');
+  closeOverlay('finishOverlay');
+  closeOverlay('deviceNameOverlay');
+  closeOverlay('coachPasswordOverlay');
+  closeOverlay('discardSessionOverlay');
+  closeOverlay('endOverlay');
+  renderCoachFilters();
+  renderHome();
+  renderCoach();
+  renderDiag();
+  updateDeviceNameSummary();
+  updateCoachModeUI();
+  alert('All data has been reset.');
+}
+
+// ═══════════════════════════════════════════════
+//  DIAGNOSTICS
+// ═══════════════════════════════════════════════
+function getFilteredRounds() {
+  let rounds = [];
+  db.sessions.forEach(s => {
+    s.rounds.forEach(r => {
+      rounds.push({...normalizeRound(r), sessionType: s.type});
+    });
+  });
+  // include in-progress session
+  if(session) {
+    session.rounds.forEach(r => rounds.push({...normalizeRound(r), sessionType: session.type}));
+    if(session.currentRound.arrows.length) rounds.push({...normalizeRound(session.currentRound), sessionType: session.type});
+  }
+  const selected = getSelectedFilterMap(diagFilters);
+  return rounds.filter(round => {
+    if (selected.scope === 'practice' && round.sessionType !== 'practice') return false;
+    if (selected.scope === 'tournament' && !isTournamentSession({type: round.sessionType})) return false;
+    return roundMatchesFilters(round, diagFilters);
+  });
+}
+
+function renderDiag() {
+  const rounds = getFilteredRounds();
+  const allArrows = rounds.flatMap(r=>r.arrows);
+  const filteredSavedSessions = db.sessions.filter(sessionObj => sessionMatchesFilter(sessionObj, diagFilters));
+  const currentSessionMatches = session && (
+    session.rounds.length > 0 || session.currentRound.arrows.length > 0
+  ) && sessionMatchesFilter(buildFinishedSession() || normalizeSessionData(session), diagFilters);
+
+  // stats
+  document.getElementById('dArrows').textContent = allArrows.length || '—';
+  document.getElementById('dSessions').textContent = filteredSavedSessions.length + (currentSessionMatches ? 1 : 0) || '—';
+  if(rounds.length) {
+    const scores = rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
+    const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+    document.getElementById('dAvg').textContent = avg.toFixed(1);
+    document.getElementById('dBest').textContent = Math.max(...scores);
+  } else {
+    document.getElementById('dAvg').textContent = '—';
+    document.getElementById('dBest').textContent = '—';
+  }
+
+  drawHeatmap(allArrows);
+  drawTimeline(rounds);
+  drawZoneBars(allArrows);
+}
+
+// Heatmap
+function drawHeatmap(arrows) {
+  const hc = document.getElementById('heatmapCanvas');
+  const hx = hc.getContext('2d');
+  const W2 = 520, CX2 = W2/2, R2 = W2/2-10;
+  hx.clearRect(0,0,W2,W2);
+  const mixHeatColor = (hex, overlayHex, amount) => {
+    const base = hex.replace('#', '');
+    const overlay = overlayHex.replace('#', '');
+    const br = parseInt(base.slice(0, 2), 16);
+    const bg = parseInt(base.slice(2, 4), 16);
+    const bb = parseInt(base.slice(4, 6), 16);
+    const or = parseInt(overlay.slice(0, 2), 16);
+    const og = parseInt(overlay.slice(2, 4), 16);
+    const ob = parseInt(overlay.slice(4, 6), 16);
+    const blend = channel => Math.round(channel[0] + (channel[1] - channel[0]) * amount);
+    return `rgb(${blend([br, or])}, ${blend([bg, og])}, ${blend([bb, ob])})`;
+  };
+
+  // target background
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
+    hx.fillStyle = mixHeatColor(BULLSEYE_RINGS[i].color, '#0b1220', 0.5);
+    hx.fill();
+    hx.strokeStyle='rgba(255,255,255,0.18)';
+    hx.lineWidth=1;
+    hx.stroke();
+  }
+
+  hx.save();
+  hx.beginPath();
+  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
+  hx.clip();
+  hx.fillStyle = 'rgba(7, 11, 18, 0.16)';
+  hx.fillRect(0, 0, W2, W2);
+  hx.restore();
+
+  if(!arrows.length) return;
+
+  const heatCanvas = document.createElement('canvas');
+  heatCanvas.width = W2;
+  heatCanvas.height = W2;
+  const heatCtx = heatCanvas.getContext('2d');
+
+  // accumulate density
+  arrows.forEach(a=>{
+    const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
+    const grad=heatCtx.createRadialGradient(px,py,0,px,py,38);
+    grad.addColorStop(0,'rgba(255,255,255,0.52)');
+    grad.addColorStop(0.48,'rgba(255,255,255,0.24)');
+    grad.addColorStop(1,'rgba(255,255,255,0)');
+    heatCtx.beginPath(); heatCtx.arc(px,py,38,0,Math.PI*2);
+    heatCtx.fillStyle=grad; heatCtx.fill();
+  });
+
+  const heatData = heatCtx.getImageData(0,0,W2,W2);
+  let maxAlpha = 0;
+  for(let i=3;i<heatData.data.length;i+=4){
+    if(heatData.data[i] > maxAlpha) maxAlpha = heatData.data[i];
+  }
+  if(!maxAlpha) return;
+
+  const colored = hx.createImageData(W2,W2);
+  for(let i=0;i<heatData.data.length;i+=4){
+    const alpha = heatData.data[i+3];
+    if (!alpha) continue;
+    const t = Math.min(1, alpha / maxAlpha);
+    const eased = Math.pow(t, 0.62);
+    let r, g, b;
+    if (eased < 0.45) {
+      const p = eased / 0.45;
+      r = Math.round(255);
+      g = Math.round(188 - 84 * p);
+      b = Math.round(72 - 40 * p);
+    } else {
+      const p = (eased - 0.45) / 0.55;
+      r = Math.round(255 - 35 * p);
+      g = Math.round(104 - 82 * p);
+      b = Math.round(32 - 6 * p);
+    }
+    colored.data[i] = r;
+    colored.data[i+1] = g;
+    colored.data[i+2] = b;
+    colored.data[i+3] = Math.round(Math.min(250, 55 + eased * 195));
+  }
+
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = W2;
+  colorCanvas.height = W2;
+  colorCanvas.getContext('2d').putImageData(colored, 0, 0);
+
+  hx.save();
+  hx.beginPath();
+  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
+  hx.clip();
+  hx.drawImage(colorCanvas, 0, 0);
+  hx.restore();
+
+  // redraw ring outlines above the heatmap for readability
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
+    hx.strokeStyle='rgba(255,255,255,0.26)';
+    hx.lineWidth=1;
+    hx.stroke();
+  }
+}
+
+// Timeline
+function drawTimeline(rounds) {
+  const tc = document.getElementById('timelineCanvas');
+  const tx = tc.getContext('2d');
+  const W3=800, H3=200;
+  tc.style.width='100%';
+  tx.clearRect(0,0,W3,H3);
+  tx.fillStyle='#111827'; tx.fillRect(0,0,W3,H3);
+
+  if(rounds.length < 2) {
+    tx.fillStyle='#6b7a99'; tx.font='20px DM Mono, monospace';
+    tx.textAlign='center'; tx.textBaseline='middle';
+    tx.fillText('Need 2+ rounds for timeline', W3/2, H3/2);
+    return;
+  }
+
+  const scores=rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
+  const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
+  const pad=30;
+
+  const px=i=>(pad + (i/(scores.length-1))*(W3-pad*2));
+  const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
+
+  // grid lines
+  tx.strokeStyle='rgba(255,255,255,0.05)'; tx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad+(g/4)*(H3-pad*2);
+    tx.beginPath(); tx.moveTo(pad,y); tx.lineTo(W3-pad,y); tx.stroke();
+  }
+
+  // area fill
+  tx.beginPath();
+  tx.moveTo(px(0),H3-pad);
+  scores.forEach((s,i)=>tx.lineTo(px(i),py(s)));
+  tx.lineTo(px(scores.length-1),H3-pad);
+  tx.closePath();
+  const grad=tx.createLinearGradient(0,0,0,H3);
+  grad.addColorStop(0,'rgba(232,197,71,0.3)');
+  grad.addColorStop(1,'rgba(232,197,71,0)');
+  tx.fillStyle=grad; tx.fill();
+
+  // line
+  tx.beginPath();
+  tx.moveTo(px(0),py(scores[0]));
+  scores.forEach((s,i)=>{if(i>0)tx.lineTo(px(i),py(s));});
+  tx.strokeStyle='#e8c547'; tx.lineWidth=2.5; tx.lineJoin='round';
+  tx.stroke();
+
+  // dots
+  scores.forEach((s,i)=>{
+    tx.beginPath(); tx.arc(px(i),py(s),4,0,Math.PI*2);
+    tx.fillStyle='#e8c547'; tx.fill();
+  });
+}
+
+// Zone bars
+const ZONES = [
+  {label:'X / 10', min:9,  max:10, color:'#f7e900'},
+  {label:'7–8',    min:7,  max:8,  color:'#e84040'},
+  {label:'5–6',    min:5,  max:6,  color:'#3b82f6'},
+  {label:'3–4',    min:3,  max:4,  color:'#555'},
+  {label:'1–2',    min:1,  max:2,  color:'#aaa'},
+  {label:'Miss',   min:0,  max:0,  color:'#333'},
+];
+
+function drawZoneBars(arrows) {
+  const el = document.getElementById('zoneBars');
+  el.innerHTML='';
+  const total=arrows.length||1;
+  ZONES.forEach(z=>{
+    const count=arrows.filter(a=>a.score>=z.min&&a.score<=z.max).length;
+    const pct=((count/total)*100).toFixed(1);
+    el.innerHTML+=`<div class="zone-bar-row">
+      <div class="zb-label">${z.label}</div>
+      <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${pct}%;background:${z.color}"></div></div>
+      <div class="zb-count">${count}</div>
+    </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+applyTheme();
+refreshSavedLocationOptions();
+renderHomeFilters();
+renderDiagFilters();
+renderCoachFilters();
+renderThreeDTournamentSetup();
 updateDeviceNameSummary();
 updateCoachModeUI();
 renderHome();
+renderCoach();
+drawTarget([]);
+
+function wipeEphemeralOnExit() {
+  if (session?.ephemeral) {
+    session = null;
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  }
+}
+window.addEventListener('beforeunload', wipeEphemeralOnExit);
+window.addEventListener('pagehide', wipeEphemeralOnExit);
 </script>
 </body>
 </html>
