@@ -397,6 +397,54 @@
     font-family: 'DM Mono', monospace;
   }
 
+  .filter-bar {
+    display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 0;
+  }
+  .filter-bar .filter-row {
+    flex: 1; padding: 0; flex-wrap: wrap;
+  }
+  .sort-btn {
+    flex-shrink: 0;
+    padding: 9px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: none;
+    color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
+    cursor: pointer; transition: all .2s;
+    display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .sort-btn.active { border-color: var(--accent); color: var(--accent); }
+  .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  .sort-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 210; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .sort-overlay.open { opacity: 1; pointer-events: all; }
+  .sort-sheet {
+    background: var(--bg2); border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 480px;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(30px); transition: transform .25s;
+  }
+  .sort-overlay.open .sort-sheet { transform: translateY(0); }
+  .sort-sheet h4 {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .sort-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 14px; border-radius: 12px; margin-bottom: 6px;
+    border: 1px solid var(--border); background: none;
+    width: 100%; cursor: pointer; transition: border-color .15s, background .15s;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    text-align: left;
+  }
+  .sort-option:active { background: var(--bg3); }
+  .sort-option.active { border-color: var(--accent); background: rgba(232,197,71,.07); }
+  .sort-option .so-check { color: var(--accent); font-size: 16px; opacity: 0; }
+  .sort-option.active .so-check { opacity: 1; }
+
   .setup-option-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1009,7 +1057,10 @@ const PRACTICE_TARGET_OPTIONS = [
 ];
 </script>
 
+<!-- PAGES -->
 <div id="page-score" class="page active">
+
+  <!-- idle: session picker -->
   <div id="scorePicker">
     <div class="session-cards" style="padding-top:60px;">
       <div class="session-card tournament" onclick="launchSession('bullseye_tournament')">
@@ -1028,6 +1079,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
 
+  <!-- active: scoring UI -->
   <div id="scoreActive" style="display:none">
     <div class="scoring-header">
       <div style="flex:1">
@@ -1091,7 +1143,13 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="diag-header">
     <h2>HISTORY</h2>
   </div>
-  <div class="filter-row" id="homeFilterRow" style="padding:16px 16px 8px;"></div>
+  <div class="filter-bar">
+    <div class="filter-row" id="homeFilterRow"></div>
+    <button class="sort-btn" id="homeSortBtn" onclick="openSortOverlay('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      Sort
+    </button>
+  </div>
   <div class="filter-help" id="homeFilterHelp">Tap filters to narrow history. Tap again to remove.</div>
   <div id="recentList"></div>
 </div>
@@ -1141,7 +1199,13 @@ const PRACTICE_TARGET_OPTIONS = [
       oninput="setCoachSearch(this.value)"
     >
   </div>
-  <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+  <div class="filter-bar" style="padding-top:8px;">
+    <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+    <button class="sort-btn" id="coachSortBtn" onclick="openSortOverlay('coach')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      Sort
+    </button>
+  </div>
   <div class="filter-help" id="coachFilterHelp">Search by archer, then use filters to narrow their sessions.</div>
   <div id="coachList"></div>
 </div>
@@ -1227,8 +1291,21 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
     </div>
   </div>
+
+  <div class="settings-section">
+    <div class="settings-label">ABOUT</div>
+    <div class="settings-row" onclick="openAboutOverlay()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Achery Scorer</div>
+        <div class="settings-row-sub">Archery scoring & diagnostics PWA</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+  </div>
 </div>
 
+<!-- Reset confirm overlay -->
 <div class="overlay" id="resetOverlay">
   <div class="modal">
     <h3>Reset All Data?</h3>
@@ -1250,6 +1327,28 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<div class="detail-overlay" id="aboutOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <div>
+        <h3>Achery Scorer</h3>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">1.0.0</span></div>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('aboutOverlay')" aria-label="Close about popup">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:16px">
+      Achery Scorer is a mobile-first archery scoring app for tracking practice and tournament sessions, reviewing session history, and analyzing arrow grouping over time.
+    </p>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px 16px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Highlights</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--text)">
+        Manual and tournament scoring, saved session history, grouping heatmaps, theme customization, and location-aware session logging.
+      </div>
+    </div>
+  </div>
+</div>
 <div class="detail-overlay" id="detailOverlay">
   <div class="detail-modal">
     <div class="detail-modal-header">
@@ -1267,6 +1366,7 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<!-- Session detail overlay (rounds list) -->
 <div class="detail-overlay" id="sessionOverlay">
   <div class="detail-modal">
     <div class="detail-modal-header">
@@ -1303,6 +1403,7 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<!-- NAV -->
 <nav>
   <button class="active" onclick="goPage('score',this)" id="nav-score">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
@@ -1326,9 +1427,23 @@ const PRACTICE_TARGET_OPTIONS = [
   </button>
 </nav>
 
+<!-- Sort overlay -->
+<div class="sort-overlay" id="sortOverlay" onclick="closeSortOverlay(event)">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Sort Sessions</h4>
+    <button class="sort-option" data-sort="newest" onclick="setSort('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="oldest" onclick="setSort('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-high" onclick="setSort('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-low" onclick="setSort('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-best" onclick="setSort('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-worst" onclick="setSort('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
+  </div>
+</div>
+
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 
+<!-- End session overlay -->
 <div class="overlay" id="endOverlay">
   <div class="modal">
     <h3 id="endOverlayTitle">End Session?</h3>
@@ -1351,13 +1466,18 @@ const PRACTICE_TARGET_OPTIONS = [
 <div class="overlay" id="finishOverlay">
   <div class="modal">
     <h3>Finish Session</h3>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Add a location for this session before saving to the cloud.</p>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Add a location for this session before saving. If a city is detected automatically, it will be suggested here.</p>
     <input
       id="finishLocationInput"
       class="modal-input"
       type="text"
       placeholder="Enter city"
+      autocomplete="address-level2"
+      list="savedLocationOptions"
+      oninput="locationInputDirty = true"
     >
+    <datalist id="savedLocationOptions"></datalist>
+    <!-- <div class="modal-help" id="finishLocationHint">City name only.</div> -->
     <button class="modal-btn primary" onclick="saveFinishedSession()">SAVE SESSION</button>
     <button class="modal-btn" onclick="saveFinishedSession(false)">SAVE WITHOUT LOCATION</button>
   </div>
@@ -1366,7 +1486,10 @@ const PRACTICE_TARGET_OPTIONS = [
 <div class="overlay" id="threeDTournamentOverlay">
   <div class="modal">
     <h3>3D Tournament Setup</h3>
+    <p class="setup-subtitle">Choose the animal you begin on, then choose whether round order moves toward the farther or closer targets.</p>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Start Animal</div>
     <div class="setup-option-grid" id="threeDStartOptions"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px">Direction</div>
     <div class="setup-option-grid" id="threeDDirectionOptions" style="grid-template-columns:1fr 1fr"></div>
     <button class="modal-btn primary" onclick="confirmThreeDTournamentSetup()">START 3D TOURNAMENT</button>
     <button class="modal-btn" onclick="closeOverlay('threeDTournamentOverlay')">CANCEL</button>
@@ -1376,28 +1499,53 @@ const PRACTICE_TARGET_OPTIONS = [
 <div class="overlay centered" id="deviceNameOverlay">
   <div class="modal">
     <h3 id="deviceNameOverlayTitle">Set Archer Name</h3>
+    <p id="deviceNameOverlayMessage" style="color:var(--muted);font-size:14px;margin-bottom:16px">Enter the name this device should score under.</p>
     <input
       id="deviceNameInput"
       class="modal-input"
       type="text"
       placeholder="Archer name"
+      autocomplete="name"
       maxlength="40"
     >
+    <div class="modal-help">This device name is saved locally and included in backups.</div>
     <button class="modal-btn primary" onclick="submitDeviceName()">SAVE NAME</button>
     <button class="modal-btn" onclick="closeDeviceNameOverlay()">CANCEL</button>
+  </div>
+</div>
+
+<div class="overlay centered" id="sessionArcherOverlay">
+  <div class="modal">
+    <h3>Edit Session Archer</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Update the archer name for this saved session only.</p>
+    <div class="inline-field">
+      <label for="sessionArcherInput">Archer Name</label>
+      <input
+        id="sessionArcherInput"
+        class="modal-input"
+        type="text"
+        placeholder="Archer name"
+        autocomplete="name"
+        maxlength="40"
+      >
+    </div>
+    <button class="modal-btn primary" onclick="saveSessionArcherName()">SAVE NAME</button>
+    <button class="modal-btn" onclick="closeOverlay('sessionArcherOverlay')">CANCEL</button>
   </div>
 </div>
 
 <div class="overlay centered" id="coachPasswordOverlay">
   <div class="modal">
     <h3>Coach Access</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Enter the coach password to unlock archer search mode.</p>
     <input
       id="coachPasswordInput"
       class="modal-input"
       type="password"
       placeholder="Coach password"
+      autocomplete="current-password"
     >
-    <p id="coachPasswordHint" class="modal-help"></p>
+    <div class="modal-help" id="coachPasswordHint">Password required.</div>
     <button class="modal-btn primary" onclick="submitCoachPassword()">ENTER COACH MODE</button>
     <button class="modal-btn" onclick="closeOverlay('coachPasswordOverlay')">CANCEL</button>
   </div>
@@ -1406,173 +1554,858 @@ const PRACTICE_TARGET_OPTIONS = [
 <div class="overlay centered" id="disableCoachOverlay">
   <div class="modal">
     <h3>Disable Coach Mode?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will remove coach access from this device. You can re-enable it with the coach password at any time.</p>
     <button class="modal-btn danger" onclick="confirmDisableCoach()">DISABLE COACH MODE</button>
     <button class="modal-btn" onclick="closeOverlay('disableCoachOverlay')">CANCEL</button>
   </div>
 </div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAWxmld7VD6kzq81WpmzV4rtzj5rfdWi_c",
-    authDomain: "archery-scorer-61574.firebaseapp.com",
-    projectId: "archery-scorer-61574",
-    storageBucket: "archery-scorer-61574.firebasestorage.app",
-    messagingSenderId: "712841951010",
-    appId: "1:712841951010:web:6c5d3479cf419f083c977b"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db_cloud = getFirestore(app);
-
-  // Global access for standard script functions
-  window.db_cloud = db_cloud;
-  window.firebase_addDoc = addDoc;
-  window.firebase_collection = collection;
-
-  // Real-time listener for Coach View
-  const coachQuery = query(collection(db_cloud, "sessions"), orderBy("date", "desc"));
-  onSnapshot(coachQuery, (snapshot) => {
-    window.cloudSessions = snapshot.docs.map(doc => ({ ...doc.data(), firebase_id: doc.id }));
-    if (document.getElementById('page-coach').classList.contains('active')) {
-      renderCoach();
-    }
-  });
-</script>
 
 <script>
 // ═══════════════════════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
+const APP_VERSION = '1.0.0';
 const COACH_PASSWORD = 'cabeacons';
 const COACH_UNLOCK_KEY = 'achery_scorer_coach_unlock_v1';
+const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
+db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
+db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
+db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db.deviceProfile : {name: ''};
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 const THEME_KEY = 'achery_scorer_theme_v1';
-
-let session = null;
-let finishingSession = null;
-let coachUnlocked = localStorage.getItem(COACH_UNLOCK_KEY) === 'true';
-let cloudSessions = []; // Filled by firebase listener
-let coachSearch = '';
-
-// ═══════════════════════════════════════════════
-//  FIREBASE SYNC
-// ═══════════════════════════════════════════════
-async function syncSessionToCloud(sessionData) {
-  if (!window.db_cloud) return;
+const THEME_PRESETS = {
+  auto: {
+    name: 'Auto',
+    followsSystem: true
+  },
+  dark: {
+    name: 'Dark',
+    bg: '#0a0f1a',
+    bg2: '#111827',
+    bg3: '#1e2a3a',
+    accent: '#e8c547',
+    accent2: '#f0a04b',
+    accent3: '#f7d978',
+    text: '#e8eaf0',
+    muted: '#6b7a99',
+    border: '#2a3a50',
+    gold: '#e8c547',
+    silver: '#9daab8'
+  },
+  white: {
+    name: 'White',
+    bg: '#f7f7f2',
+    bg2: '#ffffff',
+    bg3: '#edf0e8',
+    accent: '#1f2937',
+    accent2: '#64748b',
+    accent3: '#94a3b8',
+    text: '#0f172a',
+    muted: '#5f6c80',
+    border: '#d0d5dd',
+    gold: '#1f2937',
+    silver: '#98a2b3'
+  },
+  forest: {
+    name: 'Dark Green / White',
+    bg: '#102019',
+    bg2: '#163126',
+    bg3: '#214536',
+    accent: '#f6f7f2',
+    accent2: '#9ed3b0',
+    accent3: '#d8e7dc',
+    text: '#fbfdf8',
+    muted: '#a2bcaf',
+    border: '#335c49',
+    gold: '#f6f7f2',
+    silver: '#b5c7bd'
+  },
+  moss: {
+    name: 'Green / Black',
+    bg: '#0f1511',
+    bg2: '#18211b',
+    bg3: '#243229',
+    accent: '#79c08f',
+    accent2: '#aed7a4',
+    accent3: '#5f8f6c',
+    text: '#f2f7f2',
+    muted: '#9cb0a5',
+    border: '#33463b',
+    gold: '#79c08f',
+    silver: '#a4b7ad'
+  }
+};
+const THEME_SWATCH_KEYS = ['accent', 'accent2', 'accent3', 'text'];
+const THEME_COLOR_OPTIONS = {
+  accent: ['#e8c547', '#f97316', '#ef4444', '#79c08f', '#14b8a6', '#3b82f6', '#8b5cf6', '#f43f5e', '#9ca3af', '#6b7280', '#374151', '#000000', '#7c5a00', '#7a2e0e', '#1f4d36', '#1e3a8a'],
+  accent2: ['#f0a04b', '#fb7185', '#f59e0b', '#aed7a4', '#67e8f9', '#60a5fa', '#c084fc', '#f9a8d4', '#d1d5db', '#9ca3af', '#4b5563', '#111827', '#8a5a12', '#7a1f3d', '#365314', '#1f2937'],
+  accent3: ['#f7d978', '#fdba74', '#fca5a5', '#d8e7dc', '#99f6e4', '#93c5fd', '#d8b4fe', '#5f8f6c', '#e5e7eb', '#9ca3af', '#6b7280', '#000000', '#334155', '#3f3f46', '#14532d'],
+  text: ['#ffffff', '#f8fafc', '#ecf3ec', '#e8eaf0', '#d1fae5', '#d1d5db', '#9ca3af', '#111827', '#0f172a', '#000000', '#1f2937', '#374151', '#0b0f19', '#1c1917']
+};
+let themeState = (() => {
   try {
-    // Add a device identifier or just use the archer name
-    const payload = { ...sessionData, syncedAt: new Date().toISOString() };
-    await window.firebase_addDoc(window.firebase_collection(window.db_cloud, "sessions"), payload);
-    console.log("Cloud sync successful");
-  } catch (e) {
-    console.error("Cloud sync failed: ", e);
+    const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
+    return parsed && typeof parsed === 'object'
+      ? parsed
+      : {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
+  } catch {
+    return {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
+  }
+})();
+let activeThemeColorKey = 'accent';
+
+function normalizePersonName(value) {
+  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : '';
+}
+
+function normalizeDeviceProfile(raw = {}) {
+  return {
+    name: normalizePersonName(raw.name)
+  };
+}
+
+function normalizeRound(round = {}) {
+  const mode = round.mode || (round.animal ? '3d' : 'bullseye');
+  const normalizeArrowScore = score => {
+    const base = typeof score === 'number' ? score : 0;
+    if (mode === '3d' && base > 0 && base < 7) return 7;
+    return base;
+  };
+  return {
+    mode,
+    distance: mode === 'bullseye' ? (round.distance === 15 ? 15 : 10) : null,
+    animal: mode === '3d' ? (THREE_D_TARGET_LOOKUP[round.animal] ? round.animal : 'turkey') : null,
+    arrows: Array.isArray(round.arrows) ? round.arrows.map(arrow => ({
+      nx: typeof arrow?.nx === 'number' ? arrow.nx : 0,
+      ny: typeof arrow?.ny === 'number' ? arrow.ny : 0,
+      score: normalizeArrowScore(arrow?.score)
+    })) : [],
+    locked: !!round.locked
+  };
+}
+
+function normalizeSessionType(type) {
+  if (type === 'tournament') return 'bullseye_tournament';
+  if (type === 'bullseye_tournament' || type === '3d_tournament') return type;
+  return 'practice';
+}
+
+function normalizeSessionData(raw = {}) {
+  const type = normalizeSessionType(raw.type);
+  return {
+    id: raw.id || Date.now(),
+    type,
+    date: raw.date || new Date().toISOString(),
+    location: raw.location || null,
+    archerName: normalizePersonName(raw.archerName),
+    rounds: Array.isArray(raw.rounds) ? raw.rounds.map(normalizeRound) : [],
+    currentRound: raw.currentRound ? normalizeRound(raw.currentRound) : {mode: 'bullseye', distance: 10, animal: null, arrows: [], locked: false},
+    startAnimal: type === '3d_tournament' && THREE_D_TARGET_LOOKUP[raw.startAnimal] ? raw.startAnimal : undefined,
+    direction: type === '3d_tournament' && (raw.direction === -1 ? -1 : 1),
+    tournamentSequence: type === '3d_tournament' && Array.isArray(raw.tournamentSequence)
+      ? raw.tournamentSequence.filter(animal => THREE_D_TARGET_LOOKUP[animal]).slice(0, 6)
+      : undefined
+  };
+}
+
+db.sessions = db.sessions.map(normalizeSessionData);
+db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
+
+// ═══════════════════════════════════════════════
+//  SESSION STATE
+// ═══════════════════════════════════════════════
+let session = null; // current in-progress session
+let finishingSession = null;
+let pendingLocationSessionId = null;
+let medianIOSGeoReady = !/MedianIOS/i.test(navigator.userAgent);
+let locationInputDirty = false;
+let threeDTournamentSetup = {startAnimal: 'turkey', direction: 1};
+let pendingSessionType = null;
+let deviceNameOverlayContext = 'launch';
+let coachSearch = '';
+let coachUnlocked = localStorage.getItem(COACH_UNLOCK_KEY) === 'true';
+let activeSessionViewMode = 'default';
+
+function isTournamentSession(sessionObj) {
+  return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament';
+}
+
+function isThreeDSession(sessionObj) {
+  return sessionObj?.type === '3d_tournament';
+}
+
+function createRound(mode = 'bullseye', value = 10) {
+  return normalizeRound(mode === '3d'
+    ? {mode: '3d', animal: value, arrows: [], locked: false}
+    : {mode: 'bullseye', distance: value, arrows: [], locked: false});
+}
+
+function roundDescriptor(round) {
+  const normalized = normalizeRound(round);
+  if (normalized.mode === '3d') {
+    return {mode: '3d', label: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey', shortLabel: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey'};
+  }
+  return {mode: 'bullseye', label: `${normalized.distance}m`, shortLabel: `${normalized.distance}m`};
+}
+
+function sessionTypeLabel(sessionObj) {
+  if (sessionObj?.type === 'bullseye_tournament') return 'Bullseye Tournament';
+  if (sessionObj?.type === '3d_tournament') return '3D Tournament';
+  return 'Practice';
+}
+
+function sessionTypeBadge(sessionObj) {
+  if (sessionObj?.type === 'bullseye_tournament') return `${icon('trophy', 'type-icon')}Bullseye Tournament`;
+  if (sessionObj?.type === '3d_tournament') return `${icon('trophy', 'type-icon')}3D Tournament`;
+  return `${icon('target', 'type-icon')}Practice`;
+}
+
+function getThreeDTournamentSequence(startAnimal = 'turkey', direction = 1) {
+  const startIdx = Math.max(0, THREE_D_TARGETS.findIndex(target => target.key === startAnimal));
+  return Array.from({length: THREE_D_TARGETS.length}, (_, offset) => {
+    const index = (startIdx + direction * offset + THREE_D_TARGETS.length) % THREE_D_TARGETS.length;
+    return THREE_D_TARGETS[index].key;
+  });
+}
+
+function getCurrentTournamentRoundConfig(sessionObj = session) {
+  if (!sessionObj) return createRound('bullseye', 10);
+  const roundNumber = sessionObj.rounds.length;
+  if (sessionObj.type === '3d_tournament') {
+    const sequence = Array.isArray(sessionObj.tournamentSequence) && sessionObj.tournamentSequence.length === 6
+      ? sessionObj.tournamentSequence
+      : getThreeDTournamentSequence(sessionObj.startAnimal, sessionObj.direction);
+    return createRound('3d', sequence[roundNumber] || sequence[0] || 'turkey');
+  }
+  return createRound('bullseye', roundNumber < 3 ? 10 : 15);
+}
+
+function isMedianAndroidAvailable() {
+  return !!window.median?.android?.geoLocation;
+}
+
+function persistTheme() {
+  localStorage.setItem(THEME_KEY, JSON.stringify(themeState));
+}
+
+function resolveThemePreset(name) {
+  if (name === 'auto') {
+    return systemThemeQuery?.matches ? THEME_PRESETS.dark : THEME_PRESETS.white;
+  }
+  return THEME_PRESETS[name] || THEME_PRESETS.dark;
+}
+
+function getActiveTheme() {
+  const preset = resolveThemePreset(themeState.preset);
+  if (themeState.preset === 'auto') return {...preset};
+  return {
+    ...preset,
+    accent: themeState.accent || preset.accent,
+    accent2: themeState.accent2 || preset.accent2,
+    accent3: themeState.accent3 || preset.accent3,
+    text: themeState.text || preset.text,
+    gold: themeState.accent || preset.gold
+  };
+}
+
+function renderThemePresets() {
+  const grid = document.getElementById('themePresetGrid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(THEME_PRESETS).map(([key, theme]) => {
+    const active = themeState.preset === key ? ' active' : '';
+    const previewTheme = key === 'auto' ? resolveThemePreset('auto') : theme;
+    const swatches = THEME_SWATCH_KEYS.map(colorKey => `<span style="background:${previewTheme[colorKey]}"></span>`).join('');
+    return `<button class="theme-preset${active}" onclick="applyPresetTheme('${key}')">
+      <div class="theme-preset-name">${theme.name}</div>
+      <div class="theme-swatches">${swatches}</div>
+    </button>`;
+  }).join('');
+}
+
+function getThemeColorLabel(key) {
+  if (key === 'accent') return 'Primary Color';
+  if (key === 'accent2') return 'Secondary Color';
+  if (key === 'accent3') return 'Tertiary Color';
+  return 'Text Color';
+}
+
+function renderThemeTrigger(key, triggerId) {
+  const theme = getActiveTheme();
+  const trigger = document.getElementById(triggerId);
+  if (!trigger) return;
+  const current = theme[key];
+  const light = ['#ffffff', '#f8fafc', '#ecf3ec'].includes(current.toLowerCase()) ? ' light' : '';
+  trigger.innerHTML = `<span class="theme-trigger-swatch${light}" style="--option-color:${current}"></span><span>${getThemeColorLabel(key)}</span>`;
+}
+
+function renderThemeOptions() {
+  renderThemeTrigger('accent', 'primaryColorTrigger');
+  renderThemeTrigger('accent2', 'secondaryColorTrigger');
+  renderThemeTrigger('accent3', 'tertiaryColorTrigger');
+  renderThemeTrigger('text', 'textColorTrigger');
+  const container = document.getElementById('themeColorOverlayOptions');
+  const title = document.getElementById('themeColorOverlayTitle');
+  if (!container || !title) return;
+  const theme = getActiveTheme();
+  title.textContent = getThemeColorLabel(activeThemeColorKey);
+  container.innerHTML = THEME_COLOR_OPTIONS[activeThemeColorKey].map(color => {
+    const active = theme[activeThemeColorKey].toLowerCase() === color.toLowerCase() ? ' active' : '';
+    const light = ['#ffffff', '#f8fafc', '#ecf3ec'].includes(color.toLowerCase()) ? ' light' : '';
+    return `<button class="theme-option${active}${light}" style="--option-color:${color}" onclick="selectThemeColor('${activeThemeColorKey}','${color}')" aria-label="${activeThemeColorKey} ${color}"></button>`;
+  }).join('');
+}
+
+function openThemeColorPicker(key) {
+  activeThemeColorKey = key;
+  renderThemeOptions();
+  document.getElementById('themeColorOverlay').classList.add('open');
+}
+
+function selectThemeColor(key, color) {
+  updateCustomTheme(key, color);
+  closeOverlay('themeColorOverlay');
+}
+
+function refreshThemeSensitiveUI() {
+  if (session) renderScorePage();
+  else drawTarget([]);
+  if (document.getElementById('page-home').classList.contains('active')) renderHome();
+  if (document.getElementById('page-diag').classList.contains('active')) renderDiag();
+  if (document.getElementById('page-coach')?.classList.contains('active')) renderCoach();
+}
+
+function applyTheme() {
+  const theme = getActiveTheme();
+  const root = document.documentElement;
+  Object.entries(theme).forEach(([key, value]) => {
+    if (key === 'name') return;
+    root.style.setProperty(`--${key}`, value);
+  });
+  renderThemePresets();
+  renderThemeOptions();
+  refreshThemeSensitiveUI();
+}
+
+function applyPresetTheme(name) {
+  const preset = resolveThemePreset(name);
+  if (!preset) return;
+  if (name === 'auto') {
+    themeState = {preset: 'auto'};
+    persistTheme();
+    applyTheme();
+    return;
+  }
+  themeState = {
+    preset: name,
+    accent: preset.accent,
+    accent2: preset.accent2,
+    accent3: preset.accent3,
+    text: preset.text
+  };
+  persistTheme();
+  applyTheme();
+}
+
+function updateCustomTheme(key, value) {
+  if (!['accent', 'accent2', 'accent3', 'text'].includes(key)) return;
+  if (themeState.preset === 'auto') {
+    const resolvedPresetName = systemThemeQuery?.matches ? 'dark' : 'white';
+    themeState = {
+      preset: resolvedPresetName,
+      accent: THEME_PRESETS[resolvedPresetName].accent,
+      accent2: THEME_PRESETS[resolvedPresetName].accent2,
+      accent3: THEME_PRESETS[resolvedPresetName].accent3,
+      text: THEME_PRESETS[resolvedPresetName].text
+    };
+  }
+  themeState[key] = value;
+  persistTheme();
+  applyTheme();
+}
+
+function openAboutOverlay() {
+  document.getElementById('aboutVersion').textContent = APP_VERSION;
+  document.getElementById('aboutOverlay').classList.add('open');
+}
+
+if (systemThemeQuery) {
+  const handleSystemThemeChange = () => {
+    if (themeState.preset === 'auto') applyTheme();
+  };
+  if (typeof systemThemeQuery.addEventListener === 'function') {
+    systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+  } else if (typeof systemThemeQuery.addListener === 'function') {
+    systemThemeQuery.addListener(handleSystemThemeChange);
   }
 }
 
-// ═══════════════════════════════════════════════
-//  CORE FUNCTIONS (Modified for Firebase)
-// ═══════════════════════════════════════════════
+function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
+  const dx = aLat - bLat;
+  const dy = aLng - bLng;
+  return dx * dx + dy * dy;
+}
+
+function getNearestSavedLocation(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  let best = null;
+  let bestDistance = Infinity;
+  db.savedLocations.forEach(loc => {
+    if (!loc?.label || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
+    const dist = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
+    if (dist < bestDistance) {
+      bestDistance = dist;
+      best = loc;
+    }
+  });
+  return best;
+}
+
+function refreshSavedLocationOptions() {
+  const datalist = document.getElementById('savedLocationOptions');
+  if (!datalist) return;
+  const uniqueLabels = [...new Set(db.savedLocations.map(loc => loc?.label).filter(Boolean))];
+  datalist.innerHTML = uniqueLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
+}
+
+function saveChosenLocation(location) {
+  const label = location?.label?.trim();
+  if (!label) return;
+  const existing = db.savedLocations.find(loc => loc.label.toLowerCase() === label.toLowerCase());
+  const next = {
+    label,
+    lat: typeof location.lat === 'number' ? location.lat : existing?.lat,
+    lng: typeof location.lng === 'number' ? location.lng : existing?.lng,
+    updatedAt: new Date().toISOString()
+  };
+  if (existing) {
+    Object.assign(existing, next);
+  } else {
+    db.savedLocations.push(next);
+  }
+}
+
+function assignLocationToSession(sessionId, location) {
+  if (session?.id === sessionId) {
+    if (session.location?.manual && !location.manual) return;
+    session.location = {...session.location, ...location};
+    return;
+  }
+  if (finishingSession?.id === sessionId) {
+    if (finishingSession.location?.manual && !location.manual) return;
+    finishingSession.location = {...finishingSession.location, ...location};
+    syncFinishLocationInput();
+    return;
+  }
+  const savedSession = db.sessions.find(s => s.id === sessionId);
+  if (savedSession) {
+    if (savedSession.location?.manual && !location.manual) return;
+    savedSession.location = {...savedSession.location, ...location};
+    save();
+    renderHome();
+    renderCoach();
+    if (activeSessionIdx !== null && db.sessions[activeSessionIdx]?.id === sessionId) {
+      openSessionOverlay(activeSessionIdx);
+    }
+  }
+}
+
+function formatLocation(sessionLocation) {
+  if (!sessionLocation) return '';
+  if (sessionLocation.label) return sessionLocation.label;
+  return '';
+}
+
+function summarizeReverseGeocode(data) {
+  if (!data || typeof data !== 'object') return '';
+  return (
+    data.city ||
+    data.locality ||
+    data.localityName ||
+    data.principalSubdivision ||
+    data.localityInfo?.administrative?.find(a => a.adminLevel === 6 || a.adminLevel === 5)?.name ||
+    ''
+  );
+}
+
+async function reverseGeocodeLocation(sessionId, lat, lng) {
+  try {
+    const url = `https://api-bdc.net/data/reverse-geocode?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=en`;
+    const res = await fetch(url, {headers: {Accept: 'application/json'}});
+    if (!res.ok) return;
+    const data = await res.json();
+    const label = summarizeReverseGeocode(data);
+    if (!label) return;
+    assignLocationToSession(sessionId, {label});
+  } catch {
+    // Leave coordinates as the fallback when reverse geocoding fails.
+  }
+}
+
+function sessionMetaText(sessionObj) {
+  const parts = [];
+  if (sessionObj?.archerName) parts.push(sessionObj.archerName);
+  if (sessionObj?.date) {
+    const d = new Date(sessionObj.date);
+    parts.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}));
+  }
+  if (sessionObj?.rounds) {
+    const labels = [...new Set(sessionObj.rounds.map(r => roundDescriptor(r).shortLabel))];
+    if (sessionObj.rounds.length) parts.push(`${sessionObj.rounds.length} rounds`);
+    if (labels.length) parts.push(labels.join(' · '));
+  }
+  const locationLabel = formatLocation(sessionObj?.location);
+  if (locationLabel) parts.push(`${icon('location', 'type-icon')}${locationLabel}`);
+  return parts.join(' · ');
+}
+
+function buildFinishedSession() {
+  if (!session) return null;
+  const finished = {
+    id: session.id,
+    type: session.type,
+    date: session.date,
+    location: session.location ? {...session.location} : null,
+    archerName: session.archerName || '',
+    rounds: session.rounds.map(r => ({...r, arrows: [...r.arrows]})),
+  };
+  if (session.type === '3d_tournament') {
+    finished.startAnimal = session.startAnimal;
+    finished.direction = session.direction;
+    finished.tournamentSequence = [...(session.tournamentSequence || [])];
+  }
+  if (session.currentRound.arrows.length > 0) {
+    finished.rounds.push({...session.currentRound, arrows: [...session.currentRound.arrows]});
+  }
+  return finished;
+}
+
+function resetActiveSessionUI() {
+  document.getElementById('scorePicker').style.display = 'block';
+  document.getElementById('scoreActive').style.display = 'none';
+}
+
+function syncFinishLocationInput() {
+  const input = document.getElementById('finishLocationInput');
+  if (!input || !finishingSession || locationInputDirty) return;
+  input.value = formatLocation(finishingSession.location) || '';
+}
+
+function getDeviceArcherName() {
+  return normalizePersonName(db.deviceProfile?.name);
+}
+
+function updateDeviceNameSummary() {
+  const summary = document.getElementById('deviceNameSummary');
+  if (!summary) return;
+  summary.textContent = getDeviceArcherName() || 'Not set yet';
+}
+
+function updateCoachModeUI() {
+  const navBtn = document.getElementById('nav-coach');
+  if (navBtn) navBtn.style.display = coachUnlocked ? '' : 'none';
+  const summary = document.getElementById('coachModeSummary');
+  if (summary) summary.textContent = coachUnlocked ? 'Enabled on this device' : 'Disabled on this device';
+}
+
+function closeDeviceNameOverlay() {
+  pendingSessionType = null;
+  closeOverlay('deviceNameOverlay');
+}
+
+function openDeviceNameOverlay(context = 'launch') {
+  deviceNameOverlayContext = context;
+  const existing = getDeviceArcherName();
+  document.getElementById('deviceNameOverlayTitle').textContent = context === 'settings' ? 'Edit Device Archer Name' : 'Set Archer Name';
+  document.getElementById('deviceNameOverlayMessage').textContent = context === 'settings'
+    ? 'Change the saved archer name for this device. Future sessions will use this name.'
+    : 'Before scoring your first session, enter the archer name this device should score under.';
+  const input = document.getElementById('deviceNameInput');
+  input.value = existing;
+  document.getElementById('deviceNameOverlay').classList.add('open');
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 60);
+}
+
+function submitDeviceName() {
+  const input = document.getElementById('deviceNameInput');
+  const nextName = normalizePersonName(input.value);
+  if (!nextName) {
+    alert('Please enter an archer name.');
+    input.focus();
+    return;
+  }
+  const currentName = getDeviceArcherName();
+  if (nextName.toLowerCase() !== (currentName || '').toLowerCase()) {
+    const duplicate = db.sessions.some(s =>
+      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
+      input.focus();
+      return;
+    }
+  }
+  db.deviceProfile = normalizeDeviceProfile({name: nextName});
+  save();
+  updateDeviceNameSummary();
+  closeOverlay('deviceNameOverlay');
+  if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
+    const nextType = pendingSessionType;
+    pendingSessionType = null;
+    startSession(nextType);
+    return;
+  }
+  pendingSessionType = null;
+  renderCoach();
+}
+
+function ensureDeviceNameForScoring(type) {
+  if (getDeviceArcherName()) return true;
+  pendingSessionType = type;
+  openDeviceNameOverlay('launch');
+  return false;
+}
+
+function launchSession(type) {
+  if (!ensureDeviceNameForScoring(type)) return;
+  startSession(type);
+}
+
+function launchEphemeralSession() {
+  startSession('practice', { ephemeral: true });
+}
+
+function openCoachActivation() {
+  if (coachUnlocked) {
+    document.getElementById('disableCoachOverlay').classList.add('open');
+    return;
+  }
+  const input = document.getElementById('coachPasswordInput');
+  const hint = document.getElementById('coachPasswordHint');
+  input.value = '';
+  hint.textContent = 'Enter the coach password to enable coach mode on this device.';
+  document.getElementById('coachPasswordOverlay').classList.add('open');
+  setTimeout(() => input.focus(), 60);
+}
+
+function confirmDisableCoach() {
+  coachUnlocked = false;
+  localStorage.removeItem(COACH_UNLOCK_KEY);
+  closeOverlay('disableCoachOverlay');
+  updateCoachModeUI();
+  // if currently on coach page, navigate away
+  if (document.getElementById('page-coach')?.classList.contains('active')) {
+    goPage('score', document.getElementById('nav-score'));
+  }
+}
+
+function openFinishOverlay() {
+  locationInputDirty = false;
+  const nearest = getNearestSavedLocation(finishingSession?.location?.lat, finishingSession?.location?.lng);
+  if (finishingSession && !finishingSession.location?.label && nearest) {
+    finishingSession.location = {...(finishingSession.location || {}), label: nearest.label};
+  }
+  refreshSavedLocationOptions();
+  syncFinishLocationInput();
+  document.getElementById('finishOverlay').classList.add('open');
+}
+
 function saveFinishedSession(withLocation = true) {
-  if (!finishingSession) return;
-  
+  if (!finishingSession) {
+    closeOverlay('finishOverlay');
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
   const input = document.getElementById('finishLocationInput');
   const typedLocation = input.value.trim();
-  
   if (withLocation && typedLocation) {
-    finishingSession.location = { label: typedLocation, manual: true };
+    finishingSession.location = {...(finishingSession.location || {}), label: typedLocation, manual: true};
+  } else if (!withLocation) {
+    finishingSession.location = {manual: true};
+  } else if (finishingSession.location?.label) {
+    finishingSession.location = {...finishingSession.location, label: finishingSession.location.label.trim()};
   } else {
-    finishingSession.location = { manual: true };
+    finishingSession.location = {manual: true};
   }
-
-  // 1. Save Locally (Persistence)
+  if (finishingSession.location?.label) {
+    saveChosenLocation(finishingSession.location);
+  }
   db.sessions.push(finishingSession);
   save();
-
-  // 2. Save to Cloud (Coach Visibility)
-  syncSessionToCloud(finishingSession);
-
+  refreshSavedLocationOptions();
   finishingSession = null;
   closeOverlay('finishOverlay');
   renderHome();
+  renderCoach();
   renderDiag();
   goPage('score', document.getElementById('nav-score'));
 }
 
-function renderCoach() {
-  const list = document.getElementById('coachList');
-  if (!list) return;
+function checkMedianAndroidLocationReady(sessionId) {
+  try {
+    const status = window.median?.android?.geoLocation?.isLocationServicesEnabled;
+    if (typeof status !== 'function') {
+      requestBrowserLocation(sessionId);
+      return;
+    }
+    status({
+      callback: result => {
+        if (result?.enabled) {
+          requestBrowserLocation(sessionId);
+          return;
+        }
+        try {
+          window.median.android.geoLocation.promptLocationServices();
+        } catch {
+          requestBrowserLocation(sessionId);
+          return;
+        }
+        setTimeout(() => {
+          if (pendingLocationSessionId === sessionId) checkMedianAndroidLocationReady(sessionId);
+        }, 1500);
+      }
+    });
+  } catch {
+    requestBrowserLocation(sessionId);
+  }
+}
 
-  // Use cloudSessions instead of local db.sessions
-  const filtered = (window.cloudSessions || []).filter(s => {
-    const name = (s.archerName || '').toLowerCase();
-    return name.includes(coachSearch);
-  });
+function requestBrowserLocation(sessionId) {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      pendingLocationSessionId = null;
+      assignLocationToSession(sessionId, {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: new Date(pos.timestamp).toISOString()
+      });
+      reverseGeocodeLocation(sessionId, pos.coords.latitude, pos.coords.longitude);
+    },
+    () => {
+      pendingLocationSessionId = null;
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000
+    }
+  );
+}
 
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state">No archers found in the cloud.</div>`;
+function requestSessionLocation(sessionId) {
+  if (!navigator.geolocation) return;
+  pendingLocationSessionId = sessionId;
+  if (!medianIOSGeoReady) return;
+  if (isMedianAndroidAvailable()) {
+    checkMedianAndroidLocationReady(sessionId);
     return;
   }
+  requestBrowserLocation(sessionId);
+}
 
-  // Group by Archer Name
-  const groups = new Map();
-  filtered.forEach(s => {
-    const name = s.archerName || 'Anonymous';
-    if (!groups.has(name)) groups.set(name, []);
-    groups.get(name).push(s);
-  });
+window.median_geolocation_ready = function medianGeolocationReady() {
+  medianIOSGeoReady = true;
+  if (pendingLocationSessionId) requestSessionLocation(pendingLocationSessionId);
+};
 
-  list.innerHTML = [...groups.entries()].map(([name, entries]) => {
-    const cards = entries.map(s => {
-        const total = s.rounds.reduce((sum, r) => sum + r.arrows.reduce((as, a) => as + a.score, 0), 0);
-        return `
-          <div class="coach-card">
-            <div class="coach-card-top">
-              <div>
-                <div class="coach-card-name">${name}</div>
-                <div class="coach-card-meta">${new Date(s.date).toLocaleDateString()} · ${s.type}</div>
-              </div>
-              <div class="coach-card-score">${total}</div>
-            </div>
-          </div>
-        `;
-    }).join('');
-    return `<div class="coach-group"><div class="coach-group-label">${name}</div>${cards}</div>`;
+function startSession(type, options = {}) {
+  const normalizedType = normalizeSessionType(type);
+  session = {
+    id: Date.now(),
+    type: normalizedType,
+    date: new Date().toISOString(),
+    location: null,
+    archerName: options.ephemeral ? '' : getDeviceArcherName(),
+    ephemeral: options.ephemeral || false,
+    rounds: [],
+    currentRound: createRound('bullseye', 10)
+  };
+  if (normalizedType === '3d_tournament') {
+    session.startAnimal = threeDTournamentSetup.startAnimal;
+    session.direction = threeDTournamentSetup.direction;
+    session.tournamentSequence = getThreeDTournamentSequence(threeDTournamentSetup.startAnimal, threeDTournamentSetup.direction);
+    session.currentRound = getCurrentTournamentRoundConfig(session);
+  }
+  document.getElementById('scorePicker').style.display = 'none';
+  document.getElementById('scoreActive').style.display = 'block';
+  goPage('score', document.getElementById('nav-score'));
+  renderScorePage();
+  requestSessionLocation(session.id);
+}
+
+function sessionRoundNumber() {
+  return session.rounds.length + 1;
+}
+
+function openThreeDTournamentSetup() {
+  renderThreeDTournamentSetup();
+  document.getElementById('threeDTournamentOverlay').classList.add('open');
+}
+
+function renderThreeDTournamentSetup() {
+  const startContainer = document.getElementById('threeDStartOptions');
+  const directionContainer = document.getElementById('threeDDirectionOptions');
+  if (!startContainer || !directionContainer) return;
+  startContainer.innerHTML = THREE_D_TARGETS.map(target => {
+    const active = threeDTournamentSetup.startAnimal === target.key ? ' active' : '';
+    return `<button class="setup-option${active}" onclick="selectThreeDStartAnimal('${target.key}')">${target.label}</button>`;
+  }).join('');
+  directionContainer.innerHTML = [
+    {value: 1, label: 'Toward Farther'},
+    {value: -1, label: 'Toward Closer'}
+  ].map(option => {
+    const active = threeDTournamentSetup.direction === option.value ? ' active' : '';
+    return `<button class="setup-option${active}" onclick="selectThreeDDirection(${option.value})">${option.label}</button>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════════════
-//  UI & NAVIGATION (Rest of your existing logic)
-// ═══════════════════════════════════════════════
-
-// --- Re-inserting helpers from your original file to maintain full functionality ---
-function normalizeRoundScore(mode, score) {
-  if (mode === '3d' && score > 0 && score < 7) return 7;
-  return score;
+function selectThreeDStartAnimal(animal) {
+  if (!THREE_D_TARGET_LOOKUP[animal]) return;
+  threeDTournamentSetup.startAnimal = animal;
+  renderThreeDTournamentSetup();
 }
 
+function selectThreeDDirection(direction) {
+  threeDTournamentSetup.direction = direction === -1 ? -1 : 1;
+  renderThreeDTournamentSetup();
+}
+
+function confirmThreeDTournamentSetup() {
+  closeOverlay('threeDTournamentOverlay');
+  launchSession('3d_tournament');
+}
+
+// ═══════════════════════════════════════════════
+//  TARGET DRAWING
+// ═══════════════════════════════════════════════
+const BULLSEYE_RINGS = [
+  {score:10, color:'#f7e900', end:0.1},
+  {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3},
+  {score:7,  color:'#e84040', end:0.4},
+  {score:6,  color:'#3b82f6', end:0.5},
+  {score:5,  color:'#3b82f6', end:0.6},
+  {score:4,  color:'#1a1a1a', end:0.7},
+  {score:3,  color:'#1a1a1a', end:0.8},
+  {score:2,  color:'#ffffff', end:0.9},
+  {score:1,  color:'#ffffff', end:1.0},
+];
+
+const THREE_D_RINGS = [
+  {score:10, color:'#f7e900', end:0.1},
+  {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3},
+  {score:7,  color:'#e84040', end:1.0},
+];
+
 function getRingsForMode(mode = 'bullseye') {
-  return mode === '3d' ? [
-    {score:10, color:'#f7e900', end:0.1},
-    {score:9,  color:'#f7e900', end:0.2},
-    {score:8,  color:'#e84040', end:0.3},
-    {score:7,  color:'#e84040', end:1.0},
-  ] : [
-    {score:10, color:'#f7e900', end:0.1},
-    {score:9,  color:'#f7e900', end:0.2},
-    {score:8,  color:'#e84040', end:0.3},
-    {score:7,  color:'#e84040', end:0.4},
-    {score:6,  color:'#3b82f6', end:0.5},
-    {score:5,  color:'#3b82f6', end:0.6},
-    {score:4,  color:'#1a1a1a', end:0.7},
-    {score:3,  color:'#1a1a1a', end:0.8},
-    {score:2,  color:'#ffffff', end:0.9},
-    {score:1,  color:'#ffffff', end:1.0},
-  ];
+  return mode === '3d' ? THREE_D_RINGS : BULLSEYE_RINGS;
 }
 
 const canvas = document.getElementById('targetCanvas');
@@ -1583,24 +2416,6 @@ function drawTarget(arrows=[], mode='bullseye') {
   drawTargetOnCtx(ctx, W, arrows, mode);
 }
 
-function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
-  const CX2=size/2, CY2=size/2, R2=size/2-10;
-  const rings = getRingsForMode(mode);
-  c.clearRect(0,0,size,size);
-  rings.reverse().forEach(ring => {
-    c.beginPath(); c.arc(CX2,CY2,R2*ring.end,0,Math.PI*2);
-    c.fillStyle=ring.color; c.fill();
-    c.strokeStyle='rgba(0,0,0,0.2)'; c.stroke();
-  });
-  arrows.forEach((a,idx)=>{
-    const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
-    c.beginPath(); c.arc(px,py,12,0,Math.PI*2);
-    c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
-    c.fillStyle='#000'; c.font='bold 12px monospace'; c.textAlign='center'; c.textBaseline='middle';
-    c.fillText(idx+1, px, py);
-  });
-}
-
 function getScoreAt(mode, nx, ny) {
   const d = Math.sqrt(nx*nx + ny*ny);
   if (d >= 1) return 0;
@@ -1609,54 +2424,294 @@ function getScoreAt(mode, nx, ny) {
   return matched ? matched.score : 0;
 }
 
-canvas.addEventListener('click', e => {
-    if (!session || session.currentRound.arrows.length >= 5) return;
-    const rect = canvas.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) * (W/rect.width) - CX) / R;
-    const ny = ((e.clientY - rect.top) * (H/rect.height) - CY) / R;
-    const score = normalizeRoundScore(session.currentRound.mode, getScoreAt(session.currentRound.mode, nx, ny));
-    session.currentRound.arrows.push({nx, ny, score});
-    renderScorePage();
-});
-
-function createRound(mode = 'bullseye', val = 10) {
-    return { mode, distance: mode==='bullseye'?val:null, animal: mode==='3d'?val:null, arrows: [], locked: false };
+function normalizeRoundScore(mode, score) {
+  if (mode === '3d' && score > 0 && score < 7) return 7;
+  return score;
 }
 
-function launchSession(type) {
-  const name = db.deviceProfile.name;
-  if (!name) { openDeviceNameOverlay(); return; }
-  session = { id: Date.now(), type, date: new Date().toISOString(), archerName: name, rounds: [], currentRound: createRound() };
-  document.getElementById('scorePicker').style.display = 'none';
-  document.getElementById('scoreActive').style.display = 'block';
+canvas.addEventListener('click', handleTargetClick);
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  handleTargetClick(t);
+});
+
+function handleTargetClick(e) {
+  if (!session) return;
+  const cr = session.currentRound;
+  if (cr.locked || cr.arrows.length >= 5) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+  const nx = (px - CX) / R;
+  const ny = (py - CY) / R;
+  const score = normalizeRoundScore(cr.mode, getScoreAt(cr.mode, nx, ny));
+  cr.arrows.push({nx, ny, score});
+  flashScore(score);
+  renderScorePage();
+  if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
+    const sessionId = session.id;
+    cr.locked = true;
+    renderScorePage();
+    setTimeout(() => {
+      if (session?.id === sessionId && session.currentRound.locked) endSession();
+    }, 250);
+  }
+}
+
+function undoLastArrow() {
+  if (!session) return;
+  const cr = session.currentRound;
+  if (!cr.arrows.length || cr.locked) return;
+  cr.arrows.pop();
+  closeOverlay('roundCompleteOverlay');
   renderScorePage();
 }
 
+function flashScore(s) {
+  const el = document.getElementById('scoreFlash');
+  el.textContent = s === 0 ? 'M' : s;
+  el.style.color = s >= 9 ? '#f7e900' : s >= 7 ? '#e8c547' : s >= 5 ? '#3b82f6' : s >= 3 ? '#888' : '#e05252';
+  el.classList.remove('hide');
+  el.classList.add('show');
+  setTimeout(() => { el.classList.add('hide'); }, 600);
+  setTimeout(() => { el.classList.remove('show','hide'); }, 900);
+}
+
+// ═══════════════════════════════════════════════
+//  SCORE PAGE RENDER
+// ═══════════════════════════════════════════════
 function renderScorePage() {
-    const cr = session.currentRound;
-    document.getElementById('roundScoreDisplay').textContent = cr.arrows.reduce((s,a)=>s+a.score,0) || '—';
-    const total = session.rounds.reduce((s,r)=>s+r.arrows.reduce((ss,a)=>ss+a.score,0),0) + cr.arrows.reduce((s,a)=>s+a.score,0);
-    document.getElementById('sessionTotalDisplay').textContent = total;
-    drawTarget(cr.arrows, cr.mode);
-    if (cr.arrows.length === 5) document.getElementById('roundCompleteOverlay').classList.add('open');
+  if(!session) return;
+  const cr = session.currentRound;
+  const rn = sessionRoundNumber();
+  const roundInfo = roundDescriptor(cr);
+
+  // title
+  document.getElementById('scoreTitle').textContent =
+    isTournamentSession(session)
+      ? `Round ${rn} / 6`
+      : `Round ${rn}`;
+  document.getElementById('scoreMeta').textContent = sessionTypeLabel(session).toUpperCase();
+
+  // round target options
+  document.getElementById('roundTargetLabel').textContent = roundInfo.mode === '3d' ? 'ANIMAL' : 'DISTANCE';
+  const targetOptions = document.getElementById('roundTargetOptions');
+  if (session.type === 'practice') {
+    targetOptions.innerHTML = PRACTICE_TARGET_OPTIONS.map(option => {
+      const active = option.mode === cr.mode && (option.mode === '3d' ? option.animal === cr.animal : option.distance === cr.distance);
+      return `<button class="dist-btn${active ? ' active' : ''}" onclick="setPracticeRoundTarget('${option.mode}','${option.mode === '3d' ? option.animal : option.distance}')">${option.label}</button>`;
+    }).join('');
+  } else {
+    targetOptions.innerHTML = `<button class="dist-btn active" disabled>${roundInfo.label}</button>`;
+  }
+
+  // round score
+  const roundScore = cr.arrows.reduce((s,a)=>s+a.score,0);
+  document.getElementById('roundScoreDisplay').textContent = cr.arrows.length ? roundScore : '—';
+
+  // session total
+  const total = session.rounds.reduce((s,r)=>s+r.arrows.reduce((ss,a)=>ss+a.score,0),0) + roundScore;
+  document.getElementById('sessionTotalDisplay').textContent = total;
+
+  // arrow dots
+  const dots = document.getElementById('arrowDots');
+  dots.innerHTML = '';
+  for(let i=0;i<5;i++){
+    const d = document.createElement('div');
+    d.className = 'arrow-dot';
+    if(i < cr.arrows.length) {
+      const a = cr.arrows[i];
+      d.classList.add('scored');
+      d.style.background = arrowColor(a.score);
+      d.textContent = a.score === 0 ? 'M' : a.score;
+    } else if(i === cr.arrows.length) {
+      d.classList.add('current');
+      d.textContent = '·';
+    } else {
+      d.textContent = '·';
+    }
+    dots.appendChild(d);
+  }
+
+  const done = cr.arrows.length === 5;
+  const undoBtn = document.getElementById('undoArrowBtn');
+  undoBtn.disabled = !cr.arrows.length || cr.locked;
+  document.getElementById('undoSecondaryBtn').style.display = cr.locked ? 'none' : '';
+
+  const overlay = document.getElementById('roundCompleteOverlay');
+  const overlayTitle = document.getElementById('roundCompleteTitle');
+  const overlayMessage = document.getElementById('roundCompleteMessage');
+  const overlayPrimaryBtn = document.getElementById('roundCompletePrimaryBtn');
+  if (cr.locked && isTournamentSession(session) && rn === 6) {
+    overlayTitle.textContent = session.type === '3d_tournament' ? '3D Tournament Complete' : 'Bullseye Tournament Complete';
+    overlayMessage.textContent = 'Finalizing your tournament session...';
+    overlayPrimaryBtn.style.display = 'none';
+    overlay.classList.remove('open');
+  } else if (done) {
+    overlayTitle.textContent = 'Round Complete';
+    overlayMessage.textContent = 'Choose your next action.';
+    overlayPrimaryBtn.style.display = '';
+    overlayPrimaryBtn.textContent = isTournamentSession(session) && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
+    overlay.classList.add('open');
+  } else {
+    overlay.classList.remove('open');
+  }
+
+  // completed rounds
+  const list = document.getElementById('completedRounds');
+  list.innerHTML = '';
+  session.rounds.forEach((r,i)=>{
+    const s = r.arrows.reduce((x,a)=>x+a.score,0);
+    const completedRoundInfo = roundDescriptor(r);
+    const row = document.createElement('div');
+    row.className = 'round-score-row';
+    row.innerHTML = `
+      <div class="rsr-label">Round ${i+1} · ${completedRoundInfo.shortLabel}</div>
+      <div class="rsr-arrows">${r.arrows.map(a=>a.score===0?'M':a.score).join(' · ')}</div>
+      <div class="rsr-score">${s}</div>`;
+    list.appendChild(row);
+  });
+
+  drawTarget(cr.arrows, cr.mode);
+}
+
+function arrowColor(s) {
+  if(s>=9) return '#f7e900';
+  if(s>=7) return '#e84040';
+  if(s>=5) return '#3b82f6';
+  if(s>=3) return '#333';
+  if(s>=1) return '#aaa';
+  return '#666';
+}
+
+function setPracticeRoundTarget(mode, value) {
+  if(!session || session.type !== 'practice') return;
+  if (session.currentRound.arrows.length || session.currentRound.locked) return;
+  session.currentRound = mode === '3d'
+    ? createRound('3d', value)
+    : createRound('bullseye', Number(value) === 15 ? 15 : 10);
+  renderScorePage();
 }
 
 function nextRound() {
-    session.rounds.push({...session.currentRound});
-    session.currentRound = createRound(session.currentRound.mode, session.currentRound.distance || session.currentRound.animal);
-    document.getElementById('roundCompleteOverlay').classList.remove('open');
-    renderScorePage();
+  if(!session) return;
+  const cr = session.currentRound;
+  if(cr.locked || cr.arrows.length < 5) return;
+  closeOverlay('roundCompleteOverlay');
+  session.rounds.push({...cr, arrows:[...cr.arrows]});
+
+  // tournament: 6 rounds then auto-end
+  if(isTournamentSession(session) && session.rounds.length===6) {
+    endSession(); return;
+  }
+
+  if (isTournamentSession(session)) {
+    session.currentRound = getCurrentTournamentRoundConfig(session);
+  } else {
+    session.currentRound = createRound(cr.mode, cr.mode === '3d' ? cr.animal : cr.distance);
+  }
+  renderScorePage();
+  // scroll to top of score page
+  window.scrollTo(0,0);
 }
 
-function openEndSession() { document.getElementById('endOverlay').classList.add('open'); }
-function endSession() { 
+// ═══════════════════════════════════════════════
+//  SESSION END
+// ═══════════════════════════════════════════════
+function isTournamentEarlyExit() {
+  return !!session && isTournamentSession(session) && session.rounds.length < 6;
+}
+
+function updateEndOverlay() {
+  const title = document.getElementById('endOverlayTitle');
+  const message = document.getElementById('endOverlayMessage');
+  const primaryBtn = document.getElementById('endOverlayPrimaryBtn');
+  const dangerBtn = document.getElementById('endOverlayDangerBtn');
+  const cancelBtn = document.getElementById('endOverlayCancelBtn');
+
+  if (session?.ephemeral) {
+    title.textContent = 'End Quick Score?';
+    message.textContent = 'Your score will be shown but not saved.';
+    primaryBtn.style.display = '';
+    primaryBtn.textContent = 'SEE RESULTS';
+    primaryBtn.onclick = endSession;
+    dangerBtn.style.display = 'none';
+    cancelBtn.textContent = 'CONTINUE SCORING';
+    return;
+  }
+
+  if (isTournamentEarlyExit()) {
+    title.textContent = 'Leave Tournament?';
+    message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
+    primaryBtn.style.display = 'none';
+    dangerBtn.style.display = '';
+    dangerBtn.textContent = 'DISCARD SESSION';
+    dangerBtn.onclick = openDiscardSessionConfirm;
+    cancelBtn.textContent = 'CONTINUE SCORING';
+    return;
+  }
+
+  title.textContent = 'End Session?';
+  message.textContent = 'Choose whether to save your progress or discard this session entirely.';
+  primaryBtn.style.display = '';
+  primaryBtn.textContent = 'SAVE & EXIT';
+  primaryBtn.onclick = endSession;
+  dangerBtn.style.display = '';
+  dangerBtn.textContent = 'DISCARD SESSION';
+  dangerBtn.onclick = openDiscardSessionConfirm;
+  cancelBtn.textContent = 'CONTINUE SESSION';
+}
+
+function openEndSession() {
+  updateEndOverlay();
+  document.getElementById('endOverlay').classList.add('open');
+}
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function sessionHasProgress() {
+  return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0);
+}
+
+function openDiscardSessionConfirm() {
+  if (!session) {
     closeOverlay('endOverlay');
-    finishingSession = {...session};
-    if (session.currentRound.arrows.length > 0) finishingSession.rounds.push(session.currentRound);
-    session = null;
-    document.getElementById('scorePicker').style.display = 'block';
-    document.getElementById('scoreActive').style.display = 'none';
-    openFinishOverlay();
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
+  if (!sessionHasProgress()) {
+    confirmDiscardSession();
+    return;
+  }
+  document.getElementById('discardSessionOverlay').classList.add('open');
+}
+
+function endSession() {
+  closeOverlay('endOverlay');
+  if(!session) { goPage('score', document.getElementById('nav-score')); return; }
+
+  if (session.ephemeral) {
+    // push current round if it has arrows
+    const cr = session.currentRound;
+    if (cr.arrows.length > 0) {
+      session.rounds.push({...cr, arrows:[...cr.arrows]});
+    }
+    showQuickScoreSummary();
+    return;
+  }
+
+  const finished = buildFinishedSession();
+  session = null;
+  resetActiveSessionUI();
+  if (!finished || !finished.rounds.length) {
+    renderHome();
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
+  finishingSession = finished;
+  openFinishOverlay();
 }
 
 function showQuickScoreSummary() {
@@ -1737,6 +2792,81 @@ const FILTER_DEFS = [
 const homeFilters = new Set();
 const diagFilters = new Set();
 const coachFilters = new Set();
+
+// ── Sort state ──
+let homeSort = 'newest';
+let coachSort = 'newest';
+let activeSortContext = 'home'; // which page opened the overlay
+
+const SORT_DEFS = [
+  { key: 'newest',        label: 'Newest → Oldest' },
+  { key: 'oldest',        label: 'Oldest → Newest' },
+  { key: 'score-high',    label: 'Highest Score First' },
+  { key: 'score-low',     label: 'Lowest Score First' },
+  { key: 'grouping-best', label: 'Best Grouping First' },
+  { key: 'grouping-worst',label: 'Worst Grouping First' },
+];
+
+function openSortOverlay(context) {
+  activeSortContext = context;
+  const current = context === 'home' ? homeSort : coachSort;
+  document.querySelectorAll('.sort-option').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === current);
+  });
+  document.getElementById('sortOverlay').classList.add('open');
+}
+
+function closeSortOverlay(e) {
+  document.getElementById('sortOverlay').classList.remove('open');
+}
+
+function setSort(key) {
+  if (activeSortContext === 'home') {
+    homeSort = key;
+    const btn = document.getElementById('homeSortBtn');
+    btn.classList.toggle('active', key !== 'newest');
+  } else {
+    coachSort = key;
+    const btn = document.getElementById('coachSortBtn');
+    btn.classList.toggle('active', key !== 'newest');
+  }
+  closeSortOverlay();
+  if (activeSortContext === 'home') renderHome();
+  else renderCoach();
+}
+
+function computeGroupingScore(sessionObj) {
+  // average spread of arrow positions per round (lower = tighter grouping)
+  const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
+  if (!rounds.length) return Infinity;
+  const roundSpreads = rounds.map(r => {
+    const xs = r.arrows.map(a => a.nx);
+    const ys = r.arrows.map(a => a.ny);
+    const cx = xs.reduce((s,v) => s+v, 0) / xs.length;
+    const cy = ys.reduce((s,v) => s+v, 0) / ys.length;
+    return r.arrows.reduce((s,a) => s + Math.sqrt((a.nx-cx)**2+(a.ny-cy)**2), 0) / r.arrows.length;
+  });
+  return roundSpreads.reduce((s,v) => s+v, 0) / roundSpreads.length;
+}
+
+function applySortToSessions(sessions, sortKey) {
+  const arr = [...sessions];
+  switch (sortKey) {
+    case 'oldest':
+      return arr.reverse();
+    case 'score-high':
+      return arr.sort((a,b) => getSessionTotal(b) - getSessionTotal(a));
+    case 'score-low':
+      return arr.sort((a,b) => getSessionTotal(a) - getSessionTotal(b));
+    case 'grouping-best':
+      return arr.sort((a,b) => computeGroupingScore(a) - computeGroupingScore(b));
+    case 'grouping-worst':
+      return arr.sort((a,b) => computeGroupingScore(b) - computeGroupingScore(a));
+    case 'newest':
+    default:
+      return arr; // already newest-first from the .reverse() in renderHome
+  }
+}
 
 function getFilterDefinition(key) {
   return FILTER_DEFS.find(def => def.key === key);
@@ -1874,7 +3004,8 @@ function sessionMatchesFilter(sessionObj, filters) {
 
 function renderHome() {
   const list = document.getElementById('recentList');
-  const filtered = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  const filtered = applySortToSessions(newestFirst, homeSort);
   if (!db.sessions.length) {
     list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
     return;
@@ -1910,12 +3041,19 @@ function setCoachSearch(value) {
 }
 
 function submitCoachPassword() {
-    if(document.getElementById('coachPasswordInput').value === COACH_PASSWORD) {
-        coachUnlocked = true;
-        localStorage.setItem(COACH_UNLOCK_KEY, 'true');
-        updateCoachModeUI();
-        closeOverlay('coachPasswordOverlay');
-    }
+  const input = document.getElementById('coachPasswordInput');
+  const hint = document.getElementById('coachPasswordHint');
+  if (input.value !== COACH_PASSWORD) {
+    hint.textContent = 'Incorrect password.';
+    input.focus();
+    input.select();
+    return;
+  }
+  coachUnlocked = true;
+  localStorage.setItem(COACH_UNLOCK_KEY, 'true');
+  updateCoachModeUI();
+  closeOverlay('coachPasswordOverlay');
+  goPage('coach', document.getElementById('nav-coach'));
 }
 
 function renderCoach() {
@@ -1923,15 +3061,23 @@ function renderCoach() {
   const input = document.getElementById('coachSearchInput');
   if (!list || !input) return;
 
-  const namedSessions = db.sessions
-    .map((sessionObj, idx) => ({sessionObj, idx}))
+  const namedSessions = [...db.sessions]
+    .reverse()
+    .map((sessionObj, revIdx) => ({sessionObj, idx: db.sessions.length - 1 - revIdx}))
     .filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
 
-  const filtered = namedSessions.filter(({sessionObj}) => {
+  const filteredUnsorted = namedSessions.filter(({sessionObj}) => {
     const name = normalizePersonName(sessionObj.archerName).toLowerCase();
     if (coachSearch && !name.includes(coachSearch)) return false;
     return sessionMatchesFilter(sessionObj, coachFilters);
   });
+
+  const sortedItems = applySortToSessions(
+    filteredUnsorted.map(item => item.sessionObj),
+    coachSort
+  ).map(sessionObj => filteredUnsorted.find(item => item.sessionObj === sessionObj));
+
+  const filtered = sortedItems;
 
   if (!namedSessions.length) {
     list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`;
