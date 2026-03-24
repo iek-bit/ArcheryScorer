@@ -2056,6 +2056,17 @@ function submitDeviceName() {
     input.focus();
     return;
   }
+  const currentName = getDeviceArcherName();
+  if (nextName.toLowerCase() !== (currentName || '').toLowerCase()) {
+    const duplicate = db.sessions.some(s =>
+      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
+      input.focus();
+      return;
+    }
+  }
   db.deviceProfile = normalizeDeviceProfile({name: nextName});
   save();
   updateDeviceNameSummary();
@@ -3029,7 +3040,21 @@ function openSessionArcherOverlay() {
 function saveSessionArcherName() {
   if (activeSessionViewMode === 'coach') return;
   if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
-  db.sessions[activeSessionIdx].archerName = normalizePersonName(document.getElementById('sessionArcherInput').value);
+  const input = document.getElementById('sessionArcherInput');
+  const nextName = normalizePersonName(input.value);
+  const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
+  if (nextName && nextName.toLowerCase() !== (existingName || '').toLowerCase()) {
+    const duplicate = db.sessions.some((s, i) =>
+      i !== activeSessionIdx &&
+      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
+      input.focus();
+      return;
+    }
+  }
+  db.sessions[activeSessionIdx].archerName = nextName;
   save();
   closeOverlay('sessionArcherOverlay');
   openSessionOverlay(activeSessionIdx);
