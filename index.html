@@ -248,6 +248,8 @@
   .round-info .ri-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
   .distance-toggle {
     display: flex; gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
   .dist-btn {
     padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
@@ -375,6 +377,43 @@
     cursor: pointer; transition: all .2s;
   }
   .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .filter-help {
+    padding: 0 16px 8px;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .setup-option-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .setup-option {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg3);
+    color: var(--text);
+    padding: 14px 12px;
+    cursor: pointer;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    transition: transform .1s, border-color .15s, background .15s;
+  }
+  .setup-option:active { transform: scale(.98); }
+  .setup-option.active {
+    border-color: var(--accent);
+    background: rgba(232,197,71,.12);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .setup-subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin: -6px 0 12px;
+  }
 
   .stat-grid {
     display: grid; grid-template-columns: 1fr 1fr;
@@ -719,6 +758,21 @@ function icon(name, extraClass = '') {
   const markup = ICONS[name] || '';
   return extraClass ? markup.replace('class="ui-icon"', `class="ui-icon ${extraClass}"`) : markup;
 }
+
+const THREE_D_TARGETS = [
+  {key: 'turkey', label: 'Turkey'},
+  {key: 'coyote', label: 'Coyote'},
+  {key: 'bear', label: 'Bear'},
+  {key: 'antelope', label: 'Antelope'},
+  {key: 'deer', label: 'Deer'},
+  {key: 'ram', label: 'Ram'}
+];
+const THREE_D_TARGET_LOOKUP = Object.fromEntries(THREE_D_TARGETS.map(target => [target.key, target.label]));
+const PRACTICE_TARGET_OPTIONS = [
+  {mode: 'bullseye', distance: 10, label: '10m'},
+  {mode: 'bullseye', distance: 15, label: '15m'},
+  ...THREE_D_TARGETS.map(target => ({mode: '3d', animal: target.key, label: target.label}))
+];
 </script>
 
 <!-- PAGES -->
@@ -727,12 +781,16 @@ function icon(name, extraClass = '') {
   <!-- idle: session picker -->
   <div id="scorePicker">
     <div class="session-cards" style="padding-top:60px;">
-      <div class="session-card tournament" onclick="startSession('tournament')">
+      <div class="session-card tournament" onclick="startSession('bullseye_tournament')">
         <div class="card-badge">3×10m + 3×15m</div>
-        <h2>Tournament</h2>
+        <h2>Bullseye Tournament</h2>
+      </div>
+      <div class="session-card tournament" onclick="openThreeDTournamentSetup()">
+        <div class="card-badge">6 animals, 5 arrows each</div>
+        <h2>3D Tournament</h2>
       </div>
       <div class="session-card practice" onclick="startSession('practice')">
-        <div class="card-badge">Free distance</div>
+        <div class="card-badge">Bullseye + 3D free choice</div>
         <h2>Practice</h2>
       </div>
     </div>
@@ -759,11 +817,8 @@ function icon(name, extraClass = '') {
         <div class="ri-val" id="roundScoreDisplay">—</div>
       </div>
       <div>
-        <div class="ri-label">DISTANCE</div>
-        <div class="distance-toggle">
-          <button class="dist-btn active" id="btn10" onclick="setDistance(10)">10m</button>
-          <button class="dist-btn" id="btn15" onclick="setDistance(15)">15m</button>
-        </div>
+        <div class="ri-label" id="roundTargetLabel">TARGET</div>
+        <div class="distance-toggle" id="roundTargetOptions"></div>
       </div>
       <div>
         <div class="ri-label">SESSION</div>
@@ -795,13 +850,8 @@ function icon(name, extraClass = '') {
   <div class="diag-header">
     <h2>HISTORY</h2>
   </div>
-  <div class="filter-row" style="padding:16px 16px 8px;">
-    <button class="filter-btn active" onclick="setHomeFilter('all',this)">All</button>
-    <button class="filter-btn" onclick="setHomeFilter('tournament',this)">Tournament</button>
-    <button class="filter-btn" onclick="setHomeFilter('practice',this)">Practice</button>
-    <button class="filter-btn" onclick="setHomeFilter('10m',this)">10m</button>
-    <button class="filter-btn" onclick="setHomeFilter('15m',this)">15m</button>
-  </div>
+  <div class="filter-row" id="homeFilterRow" style="padding:16px 16px 8px;"></div>
+  <div class="filter-help" id="homeFilterHelp">Tap filters to narrow history. Tap again to remove.</div>
   <div id="recentList"></div>
 </div>
 
@@ -809,13 +859,8 @@ function icon(name, extraClass = '') {
   <div class="diag-header">
     <h2>DIAGNOSTICS</h2>
   </div>
-  <div class="filter-row">
-    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-    <button class="filter-btn" onclick="setFilter('tournament',this)">Tournament</button>
-    <button class="filter-btn" onclick="setFilter('practice',this)">Practice</button>
-    <button class="filter-btn" onclick="setFilter('10m',this)">10m</button>
-    <button class="filter-btn" onclick="setFilter('15m',this)">15m</button>
-  </div>
+  <div class="filter-row" id="diagFilterRow"></div>
+  <div class="filter-help" id="diagFilterHelp">Mix compatible filters like tournament + 3D + ram.</div>
   <div class="stat-grid">
     <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val" id="dAvg">—</div></div>
     <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val" id="dArrows">—</div></div>
@@ -1056,6 +1101,19 @@ function icon(name, extraClass = '') {
   </div>
 </div>
 
+<div class="overlay" id="threeDTournamentOverlay">
+  <div class="modal">
+    <h3>3D Tournament Setup</h3>
+    <p class="setup-subtitle">Choose the animal you begin on, then choose whether round order moves toward the farther or closer targets.</p>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Start Animal</div>
+    <div class="setup-option-grid" id="threeDStartOptions"></div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px">Direction</div>
+    <div class="setup-option-grid" id="threeDDirectionOptions" style="grid-template-columns:1fr 1fr"></div>
+    <button class="modal-btn primary" onclick="confirmThreeDTournamentSetup()">START 3D TOURNAMENT</button>
+    <button class="modal-btn" onclick="closeOverlay('threeDTournamentOverlay')">CANCEL</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 //  DATA LAYER
@@ -1149,6 +1207,46 @@ let themeState = (() => {
 })();
 let activeThemeColorKey = 'accent';
 
+function normalizeRound(round = {}) {
+  const mode = round.mode || (round.animal ? '3d' : 'bullseye');
+  return {
+    mode,
+    distance: mode === 'bullseye' ? (round.distance === 15 ? 15 : 10) : null,
+    animal: mode === '3d' ? (THREE_D_TARGET_LOOKUP[round.animal] ? round.animal : 'turkey') : null,
+    arrows: Array.isArray(round.arrows) ? round.arrows.map(arrow => ({
+      nx: typeof arrow?.nx === 'number' ? arrow.nx : 0,
+      ny: typeof arrow?.ny === 'number' ? arrow.ny : 0,
+      score: typeof arrow?.score === 'number' ? arrow.score : 0
+    })) : [],
+    locked: !!round.locked
+  };
+}
+
+function normalizeSessionType(type) {
+  if (type === 'tournament') return 'bullseye_tournament';
+  if (type === 'bullseye_tournament' || type === '3d_tournament') return type;
+  return 'practice';
+}
+
+function normalizeSessionData(raw = {}) {
+  const type = normalizeSessionType(raw.type);
+  return {
+    id: raw.id || Date.now(),
+    type,
+    date: raw.date || new Date().toISOString(),
+    location: raw.location || null,
+    rounds: Array.isArray(raw.rounds) ? raw.rounds.map(normalizeRound) : [],
+    currentRound: raw.currentRound ? normalizeRound(raw.currentRound) : {mode: 'bullseye', distance: 10, animal: null, arrows: [], locked: false},
+    startAnimal: type === '3d_tournament' && THREE_D_TARGET_LOOKUP[raw.startAnimal] ? raw.startAnimal : undefined,
+    direction: type === '3d_tournament' && (raw.direction === -1 ? -1 : 1),
+    tournamentSequence: type === '3d_tournament' && Array.isArray(raw.tournamentSequence)
+      ? raw.tournamentSequence.filter(animal => THREE_D_TARGET_LOOKUP[animal]).slice(0, 6)
+      : undefined
+  };
+}
+
+db.sessions = db.sessions.map(normalizeSessionData);
+
 // ═══════════════════════════════════════════════
 //  SESSION STATE
 // ═══════════════════════════════════════════════
@@ -1157,6 +1255,61 @@ let finishingSession = null;
 let pendingLocationSessionId = null;
 let medianIOSGeoReady = !/MedianIOS/i.test(navigator.userAgent);
 let locationInputDirty = false;
+let threeDTournamentSetup = {startAnimal: 'turkey', direction: 1};
+
+function isTournamentSession(sessionObj) {
+  return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament';
+}
+
+function isThreeDSession(sessionObj) {
+  return sessionObj?.type === '3d_tournament';
+}
+
+function createRound(mode = 'bullseye', value = 10) {
+  return normalizeRound(mode === '3d'
+    ? {mode: '3d', animal: value, arrows: [], locked: false}
+    : {mode: 'bullseye', distance: value, arrows: [], locked: false});
+}
+
+function roundDescriptor(round) {
+  const normalized = normalizeRound(round);
+  if (normalized.mode === '3d') {
+    return {mode: '3d', label: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey', shortLabel: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey'};
+  }
+  return {mode: 'bullseye', label: `${normalized.distance}m`, shortLabel: `${normalized.distance}m`};
+}
+
+function sessionTypeLabel(sessionObj) {
+  if (sessionObj?.type === 'bullseye_tournament') return 'Bullseye Tournament';
+  if (sessionObj?.type === '3d_tournament') return '3D Tournament';
+  return 'Practice';
+}
+
+function sessionTypeBadge(sessionObj) {
+  if (sessionObj?.type === 'bullseye_tournament') return `${icon('trophy', 'type-icon')}Bullseye Tournament`;
+  if (sessionObj?.type === '3d_tournament') return `${icon('trophy', 'type-icon')}3D Tournament`;
+  return `${icon('target', 'type-icon')}Practice`;
+}
+
+function getThreeDTournamentSequence(startAnimal = 'turkey', direction = 1) {
+  const startIdx = Math.max(0, THREE_D_TARGETS.findIndex(target => target.key === startAnimal));
+  return Array.from({length: THREE_D_TARGETS.length}, (_, offset) => {
+    const index = (startIdx + direction * offset + THREE_D_TARGETS.length) % THREE_D_TARGETS.length;
+    return THREE_D_TARGETS[index].key;
+  });
+}
+
+function getCurrentTournamentRoundConfig(sessionObj = session) {
+  if (!sessionObj) return createRound('bullseye', 10);
+  const roundNumber = sessionObj.rounds.length;
+  if (sessionObj.type === '3d_tournament') {
+    const sequence = Array.isArray(sessionObj.tournamentSequence) && sessionObj.tournamentSequence.length === 6
+      ? sessionObj.tournamentSequence
+      : getThreeDTournamentSequence(sessionObj.startAnimal, sessionObj.direction);
+    return createRound('3d', sequence[roundNumber] || sequence[0] || 'turkey');
+  }
+  return createRound('bullseye', roundNumber < 3 ? 10 : 15);
+}
 
 function isMedianAndroidAvailable() {
   return !!window.median?.android?.geoLocation;
@@ -1424,9 +1577,9 @@ function sessionMetaText(sessionObj) {
     parts.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}));
   }
   if (sessionObj?.rounds) {
-    const distLabel = [...new Set(sessionObj.rounds.map(r => r.distance + 'm'))].join(' & ');
-    if (distLabel) parts.push(`${sessionObj.rounds.length} rounds`);
-    if (distLabel) parts.push(distLabel);
+    const labels = [...new Set(sessionObj.rounds.map(r => roundDescriptor(r).shortLabel))];
+    if (sessionObj.rounds.length) parts.push(`${sessionObj.rounds.length} rounds`);
+    if (labels.length) parts.push(labels.join(' · '));
   }
   const locationLabel = formatLocation(sessionObj?.location);
   if (locationLabel) parts.push(`${icon('location', 'type-icon')}${locationLabel}`);
@@ -1442,6 +1595,11 @@ function buildFinishedSession() {
     location: session.location ? {...session.location} : null,
     rounds: session.rounds.map(r => ({...r, arrows: [...r.arrows]})),
   };
+  if (session.type === '3d_tournament') {
+    finished.startAnimal = session.startAnimal;
+    finished.direction = session.direction;
+    finished.tournamentSequence = [...(session.tournamentSequence || [])];
+  }
   if (session.currentRound.arrows.length > 0) {
     finished.rounds.push({...session.currentRound, arrows: [...session.currentRound.arrows]});
   }
@@ -1569,18 +1727,21 @@ window.median_geolocation_ready = function medianGeolocationReady() {
 };
 
 function startSession(type) {
+  const normalizedType = normalizeSessionType(type);
   session = {
     id: Date.now(),
-    type,
+    type: normalizedType,
     date: new Date().toISOString(),
     location: null,
     rounds: [],
-    currentRound: {
-      distance: 10,
-      arrows: [],
-      locked: false
-    }
+    currentRound: createRound('bullseye', 10)
   };
+  if (normalizedType === '3d_tournament') {
+    session.startAnimal = threeDTournamentSetup.startAnimal;
+    session.direction = threeDTournamentSetup.direction;
+    session.tournamentSequence = getThreeDTournamentSequence(threeDTournamentSetup.startAnimal, threeDTournamentSetup.direction);
+    session.currentRound = getCurrentTournamentRoundConfig(session);
+  }
   document.getElementById('scorePicker').style.display = 'none';
   document.getElementById('scoreActive').style.display = 'block';
   goPage('score', document.getElementById('nav-score'));
@@ -1592,9 +1753,42 @@ function sessionRoundNumber() {
   return session.rounds.length + 1;
 }
 
-function getTournamentDistance() {
-  const n = session.rounds.length + 1;
-  return n <= 3 ? 10 : 15;
+function openThreeDTournamentSetup() {
+  renderThreeDTournamentSetup();
+  document.getElementById('threeDTournamentOverlay').classList.add('open');
+}
+
+function renderThreeDTournamentSetup() {
+  const startContainer = document.getElementById('threeDStartOptions');
+  const directionContainer = document.getElementById('threeDDirectionOptions');
+  if (!startContainer || !directionContainer) return;
+  startContainer.innerHTML = THREE_D_TARGETS.map(target => {
+    const active = threeDTournamentSetup.startAnimal === target.key ? ' active' : '';
+    return `<button class="setup-option${active}" onclick="selectThreeDStartAnimal('${target.key}')">${target.label}</button>`;
+  }).join('');
+  directionContainer.innerHTML = [
+    {value: 1, label: 'Toward Farther'},
+    {value: -1, label: 'Toward Closer'}
+  ].map(option => {
+    const active = threeDTournamentSetup.direction === option.value ? ' active' : '';
+    return `<button class="setup-option${active}" onclick="selectThreeDDirection(${option.value})">${option.label}</button>`;
+  }).join('');
+}
+
+function selectThreeDStartAnimal(animal) {
+  if (!THREE_D_TARGET_LOOKUP[animal]) return;
+  threeDTournamentSetup.startAnimal = animal;
+  renderThreeDTournamentSetup();
+}
+
+function selectThreeDDirection(direction) {
+  threeDTournamentSetup.direction = direction === -1 ? -1 : 1;
+  renderThreeDTournamentSetup();
+}
+
+function confirmThreeDTournamentSetup() {
+  closeOverlay('threeDTournamentOverlay');
+  startSession('3d_tournament');
 }
 
 // ═══════════════════════════════════════════════
@@ -1650,7 +1844,7 @@ function handleTargetClick(e) {
   cr.arrows.push({nx, ny, score});
   flashScore(score);
   renderScorePage();
-  if (session.type === 'tournament' && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
+  if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
     const sessionId = session.id;
     cr.locked = true;
     renderScorePage();
@@ -1686,24 +1880,26 @@ function renderScorePage() {
   if(!session) return;
   const cr = session.currentRound;
   const rn = sessionRoundNumber();
+  const roundInfo = roundDescriptor(cr);
 
   // title
   document.getElementById('scoreTitle').textContent =
-    session.type === 'tournament'
+    isTournamentSession(session)
       ? `Round ${rn} / 6`
       : `Round ${rn}`;
-  document.getElementById('scoreMeta').textContent =
-    session.type === 'tournament' ? 'TOURNAMENT' : 'PRACTICE';
+  document.getElementById('scoreMeta').textContent = sessionTypeLabel(session).toUpperCase();
 
-  // distance buttons
-  const isTournament = session.type === 'tournament';
-  if(isTournament) {
-    cr.distance = getTournamentDistance();
+  // round target options
+  document.getElementById('roundTargetLabel').textContent = roundInfo.mode === '3d' ? 'ANIMAL' : 'DISTANCE';
+  const targetOptions = document.getElementById('roundTargetOptions');
+  if (session.type === 'practice') {
+    targetOptions.innerHTML = PRACTICE_TARGET_OPTIONS.map(option => {
+      const active = option.mode === cr.mode && (option.mode === '3d' ? option.animal === cr.animal : option.distance === cr.distance);
+      return `<button class="dist-btn${active ? ' active' : ''}" onclick="setPracticeRoundTarget('${option.mode}','${option.mode === '3d' ? option.animal : option.distance}')">${option.label}</button>`;
+    }).join('');
+  } else {
+    targetOptions.innerHTML = `<button class="dist-btn active" disabled>${roundInfo.label}</button>`;
   }
-  document.getElementById('btn10').classList.toggle('active', cr.distance === 10);
-  document.getElementById('btn15').classList.toggle('active', cr.distance === 15);
-  document.getElementById('btn10').disabled = isTournament;
-  document.getElementById('btn15').disabled = isTournament;
 
   // round score
   const roundScore = cr.arrows.reduce((s,a)=>s+a.score,0);
@@ -1741,8 +1937,8 @@ function renderScorePage() {
   const overlayTitle = document.getElementById('roundCompleteTitle');
   const overlayMessage = document.getElementById('roundCompleteMessage');
   const overlayPrimaryBtn = document.getElementById('roundCompletePrimaryBtn');
-  if (cr.locked && session.type === 'tournament' && rn === 6) {
-    overlayTitle.textContent = 'Tournament Complete';
+  if (cr.locked && isTournamentSession(session) && rn === 6) {
+    overlayTitle.textContent = session.type === '3d_tournament' ? '3D Tournament Complete' : 'Bullseye Tournament Complete';
     overlayMessage.textContent = 'Finalizing your tournament session...';
     overlayPrimaryBtn.style.display = 'none';
     overlay.classList.add('open');
@@ -1750,7 +1946,7 @@ function renderScorePage() {
     overlayTitle.textContent = 'Round Complete';
     overlayMessage.textContent = 'Choose your next action.';
     overlayPrimaryBtn.style.display = '';
-    overlayPrimaryBtn.textContent = session.type === 'tournament' && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
+    overlayPrimaryBtn.textContent = isTournamentSession(session) && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
     overlay.classList.add('open');
   } else {
     overlay.classList.remove('open');
@@ -1761,10 +1957,11 @@ function renderScorePage() {
   list.innerHTML = '';
   session.rounds.forEach((r,i)=>{
     const s = r.arrows.reduce((x,a)=>x+a.score,0);
+    const completedRoundInfo = roundDescriptor(r);
     const row = document.createElement('div');
     row.className = 'round-score-row';
     row.innerHTML = `
-      <div class="rsr-label">Round ${i+1} · ${r.distance}m</div>
+      <div class="rsr-label">Round ${i+1} · ${completedRoundInfo.shortLabel}</div>
       <div class="rsr-arrows">${r.arrows.map(a=>a.score===0?'M':a.score).join(' · ')}</div>
       <div class="rsr-score">${s}</div>`;
     list.appendChild(row);
@@ -1782,9 +1979,12 @@ function arrowColor(s) {
   return '#666';
 }
 
-function setDistance(d) {
-  if(!session || session.type==='tournament') return;
-  session.currentRound.distance = d;
+function setPracticeRoundTarget(mode, value) {
+  if(!session || session.type !== 'practice') return;
+  if (session.currentRound.arrows.length || session.currentRound.locked) return;
+  session.currentRound = mode === '3d'
+    ? createRound('3d', value)
+    : createRound('bullseye', Number(value) === 15 ? 15 : 10);
   renderScorePage();
 }
 
@@ -1796,12 +1996,15 @@ function nextRound() {
   session.rounds.push({...cr, arrows:[...cr.arrows]});
 
   // tournament: 6 rounds then auto-end
-  if(session.type==='tournament' && session.rounds.length===6) {
+  if(isTournamentSession(session) && session.rounds.length===6) {
     endSession(); return;
   }
 
-  const nextDist = session.type==='tournament' ? getTournamentDistance() : cr.distance;
-  session.currentRound = {distance: nextDist, arrows: [], locked: false};
+  if (isTournamentSession(session)) {
+    session.currentRound = getCurrentTournamentRoundConfig(session);
+  } else {
+    session.currentRound = createRound(cr.mode, cr.mode === '3d' ? cr.animal : cr.distance);
+  }
   renderScorePage();
   // scroll to top of score page
   window.scrollTo(0,0);
@@ -1811,7 +2014,7 @@ function nextRound() {
 //  SESSION END
 // ═══════════════════════════════════════════════
 function isTournamentEarlyExit() {
-  return !!session && session.type === 'tournament' && session.rounds.length < 6;
+  return !!session && isTournamentSession(session) && session.rounds.length < 6;
 }
 
 function updateEndOverlay() {
@@ -1877,27 +2080,147 @@ function discardSession() {
 // ═══════════════════════════════════════════════
 //  HOME
 // ═══════════════════════════════════════════════
-let homeFilter = 'all';
+const FILTER_DEFS = [
+  {key: 'all', label: 'All', group: 'meta'},
+  {key: 'practice', label: 'Practice', group: 'scope'},
+  {key: 'tournament', label: 'Tournament', group: 'scope'},
+  {key: 'bullseye', label: 'Bullseye', group: 'family'},
+  {key: '3d', label: '3D', group: 'family'},
+  {key: '10m', label: '10m', group: 'value', family: 'bullseye'},
+  {key: '15m', label: '15m', group: 'value', family: 'bullseye'},
+  ...THREE_D_TARGETS.map(target => ({key: target.key, label: target.label, group: 'value', family: '3d'}))
+];
 
-function setHomeFilter(f, btn) {
-  homeFilter = f;
-  document.querySelectorAll('.filter-row .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+const homeFilters = new Set();
+const diagFilters = new Set();
+
+function getFilterDefinition(key) {
+  return FILTER_DEFS.find(def => def.key === key);
+}
+
+function getSelectedFilterMap(filters) {
+  const selected = [...filters];
+  return {
+    scope: selected.find(key => getFilterDefinition(key)?.group === 'scope') || null,
+    family: selected.find(key => getFilterDefinition(key)?.group === 'family') || null,
+    value: selected.find(key => getFilterDefinition(key)?.group === 'value') || null
+  };
+}
+
+function getVisibleFilters(filters) {
+  const selected = getSelectedFilterMap(filters);
+  const visible = ['all'];
+  if (!selected.scope) visible.push('practice', 'tournament');
+  else visible.push(selected.scope);
+  if (!selected.family) visible.push('bullseye', '3d');
+  else visible.push(selected.family);
+  if (selected.family === 'bullseye') {
+    visible.push(selected.value && ['10m', '15m'].includes(selected.value) ? selected.value : '10m', selected.value && ['10m', '15m'].includes(selected.value) ? null : '15m');
+  }
+  if (selected.family === '3d') {
+    if (selected.value && THREE_D_TARGET_LOOKUP[selected.value]) visible.push(selected.value);
+    else visible.push(...THREE_D_TARGETS.map(target => target.key));
+  }
+  return [...new Set(visible.filter(Boolean))];
+}
+
+function toggleFilter(filters, key) {
+  if (key === 'all') {
+    filters.clear();
+    return;
+  }
+  const def = getFilterDefinition(key);
+  if (!def) return;
+  if (filters.has(key)) {
+    filters.delete(key);
+    if (def.group === 'family') {
+      [...filters].forEach(selectedKey => {
+        const selectedDef = getFilterDefinition(selectedKey);
+        if (selectedDef?.group === 'value') filters.delete(selectedKey);
+      });
+    }
+    return;
+  }
+  if (def.group !== 'meta') {
+    [...filters].forEach(selectedKey => {
+      const selectedDef = getFilterDefinition(selectedKey);
+      if (selectedDef?.group === def.group) filters.delete(selectedKey);
+    });
+  }
+  if (def.group === 'family') {
+    [...filters].forEach(selectedKey => {
+      const selectedDef = getFilterDefinition(selectedKey);
+      if (selectedDef?.group === 'value') filters.delete(selectedKey);
+    });
+  }
+  if (def.group === 'value') {
+    const current = getSelectedFilterMap(filters);
+    if (current.family !== def.family) {
+      [...filters].forEach(selectedKey => {
+        const selectedDef = getFilterDefinition(selectedKey);
+        if (selectedDef?.group === 'family' || selectedDef?.group === 'value') filters.delete(selectedKey);
+      });
+      filters.add(def.family);
+    }
+  }
+  filters.add(key);
+}
+
+function renderFilters(rowId, helpId, filters, toggleFn) {
+  const row = document.getElementById(rowId);
+  const help = document.getElementById(helpId);
+  if (!row || !help) return;
+  const visible = getVisibleFilters(filters);
+  row.innerHTML = visible.map(key => {
+    const def = getFilterDefinition(key);
+    const active = key === 'all' ? filters.size === 0 : filters.has(key);
+    return `<button class="filter-btn${active ? ' active' : ''}" onclick="${toggleFn}('${key}')">${def.label}</button>`;
+  }).join('');
+  const selected = [...filters].map(key => getFilterDefinition(key)?.label).filter(Boolean);
+  help.textContent = selected.length ? `Active: ${selected.join(' + ')}` : 'Tap filters to narrow results. Tap again to remove.';
+}
+
+function toggleHomeFilter(key) {
+  toggleFilter(homeFilters, key);
+  renderHomeFilters();
   renderHome();
 }
 
-function sessionMatchesFilter(s) {
-  if (homeFilter === 'all') return true;
-  if (homeFilter === 'tournament') return s.type === 'tournament';
-  if (homeFilter === 'practice') return s.type === 'practice';
-  if (homeFilter === '10m') return s.rounds.some(r => r.distance === 10);
-  if (homeFilter === '15m') return s.rounds.some(r => r.distance === 15);
+function toggleDiagFilter(key) {
+  toggleFilter(diagFilters, key);
+  renderDiagFilters();
+  renderDiag();
+}
+
+function renderHomeFilters() {
+  renderFilters('homeFilterRow', 'homeFilterHelp', homeFilters, 'toggleHomeFilter');
+}
+
+function renderDiagFilters() {
+  renderFilters('diagFilterRow', 'diagFilterHelp', diagFilters, 'toggleDiagFilter');
+}
+
+function roundMatchesFilters(round, filters) {
+  const selected = getSelectedFilterMap(filters);
+  if (selected.family && roundDescriptor(round).mode !== selected.family) return false;
+  if (selected.value) {
+    if (round.mode === '3d' && round.animal !== selected.value) return false;
+    if (round.mode === 'bullseye' && `${round.distance}m` !== selected.value) return false;
+  }
   return true;
+}
+
+function sessionMatchesFilter(sessionObj, filters) {
+  const selected = getSelectedFilterMap(filters);
+  if (selected.scope === 'practice' && sessionObj.type !== 'practice') return false;
+  if (selected.scope === 'tournament' && !isTournamentSession(sessionObj)) return false;
+  if (!selected.family && !selected.value) return true;
+  return sessionObj.rounds.some(round => roundMatchesFilters(round, filters));
 }
 
 function renderHome() {
   const list = document.getElementById('recentList');
-  const filtered = [...db.sessions].reverse().filter(sessionMatchesFilter);
+  const filtered = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
   if (!db.sessions.length) {
     list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
     return;
@@ -1909,9 +2232,7 @@ function renderHome() {
   list.innerHTML = filtered.map((s, fi) => {
     const realIdx = db.sessions.indexOf(s);
     const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
-    const typeLabel = s.type === 'tournament'
-      ? `<span class="session-type">${icon('trophy', 'type-icon')}Tournament</span>`
-      : `<span class="session-type">${icon('target', 'type-icon')}Practice</span>`;
+    const typeLabel = `<span class="session-type">${sessionTypeBadge(s)}</span>`;
     return `<div class="recent-item" onclick="openSessionOverlay(${realIdx})">
       <div class="ri-left">
         <span>${typeLabel}</span>
@@ -1945,10 +2266,7 @@ function openSessionOverlay(idx) {
   const s = db.sessions[idx];
   const d = new Date(s.date);
   const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-  document.getElementById('sessionOverlayTitle').innerHTML =
-    s.type==='tournament'
-      ? `${icon('trophy', 'type-icon')} Tournament`
-      : `${icon('target', 'type-icon')} Practice`;
+  document.getElementById('sessionOverlayTitle').innerHTML = sessionTypeBadge(s);
   const locationLabel = formatLocation(s.location);
   document.getElementById('sessionOverlayMeta').innerHTML =
     locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
@@ -1959,13 +2277,14 @@ function openSessionOverlay(idx) {
   const container = document.getElementById('sessionOverlayRounds');
   container.innerHTML = s.rounds.map((r,ri) => {
     const rs = r.arrows.reduce((x,a)=>x+a.score,0);
+    const info = roundDescriptor(r);
     const pips = r.arrows.map(a => {
       const bg = pipColor(a.score);
       const lt = pipLightText(a.score);
       return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
     }).join('');
     return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
-      <div class="sor-label">R${ri+1} · ${r.distance}m</div>
+      <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
       <div class="sor-pips">${pips}</div>
       <div class="sor-score">${rs}</div>
       <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
@@ -2004,9 +2323,8 @@ const dctx = detailCanvas.getContext('2d');
 
 function openRoundDetail(sessionIdx, roundIdx) {
   const r = db.sessions[sessionIdx].rounds[roundIdx];
-  const s = db.sessions[sessionIdx];
   document.getElementById('detailTitle').textContent =
-    `Round ${roundIdx+1} · ${r.distance}m`;
+    `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
 
   drawTargetOnCtx(dctx, 600, r.arrows);
 
@@ -2124,7 +2442,7 @@ function uploadSave(e) {
       const parsed = JSON.parse(evt.target.result);
       if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
       db = {
-        sessions: parsed.sessions,
+        sessions: parsed.sessions.map(normalizeSessionData),
         savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : []
       };
       if (parsed.theme && typeof parsed.theme === 'object') {
@@ -2160,41 +2478,37 @@ function resetData() {
 // ═══════════════════════════════════════════════
 //  DIAGNOSTICS
 // ═══════════════════════════════════════════════
-let diagFilter = 'all';
-
-function setFilter(f, btn) {
-  diagFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderDiag();
-}
-
 function getFilteredRounds() {
   let rounds = [];
   db.sessions.forEach(s => {
     s.rounds.forEach(r => {
-      rounds.push({...r, sessionType: s.type});
+      rounds.push({...normalizeRound(r), sessionType: s.type});
     });
   });
   // include in-progress session
   if(session) {
-    session.rounds.forEach(r => rounds.push({...r, sessionType: session.type}));
-    if(session.currentRound.arrows.length) rounds.push({...session.currentRound, sessionType: session.type});
+    session.rounds.forEach(r => rounds.push({...normalizeRound(r), sessionType: session.type}));
+    if(session.currentRound.arrows.length) rounds.push({...normalizeRound(session.currentRound), sessionType: session.type});
   }
-  if(diagFilter==='tournament') return rounds.filter(r=>r.sessionType==='tournament');
-  if(diagFilter==='practice') return rounds.filter(r=>r.sessionType==='practice');
-  if(diagFilter==='10m') return rounds.filter(r=>r.distance===10);
-  if(diagFilter==='15m') return rounds.filter(r=>r.distance===15);
-  return rounds;
+  const selected = getSelectedFilterMap(diagFilters);
+  return rounds.filter(round => {
+    if (selected.scope === 'practice' && round.sessionType !== 'practice') return false;
+    if (selected.scope === 'tournament' && !isTournamentSession({type: round.sessionType})) return false;
+    return roundMatchesFilters(round, diagFilters);
+  });
 }
 
 function renderDiag() {
   const rounds = getFilteredRounds();
   const allArrows = rounds.flatMap(r=>r.arrows);
+  const filteredSavedSessions = db.sessions.filter(sessionObj => sessionMatchesFilter(sessionObj, diagFilters));
+  const currentSessionMatches = session && (
+    session.rounds.length > 0 || session.currentRound.arrows.length > 0
+  ) && sessionMatchesFilter(buildFinishedSession() || normalizeSessionData(session), diagFilters);
 
   // stats
   document.getElementById('dArrows').textContent = allArrows.length || '—';
-  document.getElementById('dSessions').textContent = db.sessions.length || '—';
+  document.getElementById('dSessions').textContent = filteredSavedSessions.length + (currentSessionMatches ? 1 : 0) || '—';
   if(rounds.length) {
     const scores = rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
     const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
@@ -2404,6 +2718,9 @@ function drawZoneBars(arrows) {
 // ═══════════════════════════════════════════════
 applyTheme();
 refreshSavedLocationOptions();
+renderHomeFilters();
+renderDiagFilters();
+renderThreeDTournamentSetup();
 renderHome();
 drawTarget([]);
 </script>
