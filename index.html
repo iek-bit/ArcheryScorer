@@ -1076,8 +1076,17 @@ const PRACTICE_TARGET_OPTIONS = [
     <h3 id="endOverlayTitle">End Session?</h3>
     <p id="endOverlayMessage" style="color:var(--muted);font-size:14px;margin-bottom:20px">Choose whether to save your progress or discard this session entirely.</p>
     <button class="modal-btn primary" id="endOverlayPrimaryBtn" onclick="endSession()">SAVE & EXIT</button>
-    <button class="modal-btn danger" id="endOverlayDangerBtn" onclick="discardSession()">DISCARD SESSION</button>
+    <button class="modal-btn danger" id="endOverlayDangerBtn" onclick="openDiscardSessionConfirm()">DISCARD SESSION</button>
     <button class="modal-btn" id="endOverlayCancelBtn" onclick="closeOverlay('endOverlay')">CONTINUE SESSION</button>
+  </div>
+</div>
+
+<div class="overlay" id="discardSessionOverlay">
+  <div class="modal">
+    <h3>Discard Session?</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will remove the current session and any unsaved rounds.</p>
+    <button class="modal-btn danger" onclick="confirmDiscardSession()">DISCARD SESSION</button>
+    <button class="modal-btn" onclick="closeOverlay('discardSessionOverlay')">KEEP SESSION</button>
   </div>
 </div>
 
@@ -2051,7 +2060,7 @@ function updateEndOverlay() {
     message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
     primaryBtn.style.display = 'none';
     dangerBtn.textContent = 'DISCARD SESSION';
-    dangerBtn.onclick = discardSession;
+    dangerBtn.onclick = openDiscardSessionConfirm;
     cancelBtn.textContent = 'CONTINUE SCORING';
     return;
   }
@@ -2060,7 +2069,7 @@ function updateEndOverlay() {
   message.textContent = 'Choose whether to save your progress or discard this session entirely.';
   primaryBtn.style.display = '';
   dangerBtn.textContent = 'DISCARD SESSION';
-  dangerBtn.onclick = discardSession;
+  dangerBtn.onclick = openDiscardSessionConfirm;
   cancelBtn.textContent = 'CONTINUE SESSION';
 }
 
@@ -2069,6 +2078,15 @@ function openEndSession() {
   document.getElementById('endOverlay').classList.add('open');
 }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function openDiscardSessionConfirm() {
+  if (!session) {
+    closeOverlay('endOverlay');
+    goPage('score', document.getElementById('nav-score'));
+    return;
+  }
+  document.getElementById('discardSessionOverlay').classList.add('open');
+}
 
 function endSession() {
   closeOverlay('endOverlay');
@@ -2086,12 +2104,17 @@ function endSession() {
 }
 
 function discardSession() {
+  openDiscardSessionConfirm();
+}
+
+function confirmDiscardSession() {
   if (!session) {
+    closeOverlay('discardSessionOverlay');
     closeOverlay('endOverlay');
     goPage('score', document.getElementById('nav-score'));
     return;
   }
-  if (!confirm('Discard this session and lose any unsaved rounds?')) return;
+  closeOverlay('discardSessionOverlay');
   closeOverlay('endOverlay');
   session = null;
   resetActiveSessionUI();
