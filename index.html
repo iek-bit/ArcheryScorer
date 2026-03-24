@@ -1566,23 +1566,71 @@ function drawHeatmap(arrows) {
 
   if(!arrows.length) return;
 
-  // draw heat blobs
+  const heatCanvas = document.createElement('canvas');
+  heatCanvas.width = W2;
+  heatCanvas.height = W2;
+  const heatCtx = heatCanvas.getContext('2d');
+
+  // accumulate density
   arrows.forEach(a=>{
     const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
-    const grad=hx.createRadialGradient(px,py,0,px,py,30);
-    grad.addColorStop(0,'rgba(232,80,50,0.5)');
-    grad.addColorStop(1,'rgba(232,80,50,0)');
-    hx.beginPath(); hx.arc(px,py,30,0,Math.PI*2);
-    hx.fillStyle=grad; hx.fill();
+    const grad=heatCtx.createRadialGradient(px,py,0,px,py,42);
+    grad.addColorStop(0,'rgba(255,255,255,0.32)');
+    grad.addColorStop(0.55,'rgba(255,255,255,0.16)');
+    grad.addColorStop(1,'rgba(255,255,255,0)');
+    heatCtx.beginPath(); heatCtx.arc(px,py,42,0,Math.PI*2);
+    heatCtx.fillStyle=grad; heatCtx.fill();
   });
 
-  // arrow dots
-  arrows.forEach(a=>{
-    const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
-    hx.beginPath(); hx.arc(px,py,5,0,Math.PI*2);
-    hx.fillStyle='rgba(255,255,255,0.9)'; hx.fill();
-    hx.strokeStyle='rgba(0,0,0,0.4)'; hx.lineWidth=1; hx.stroke();
-  });
+  const heatData = heatCtx.getImageData(0,0,W2,W2);
+  let maxAlpha = 0;
+  for(let i=3;i<heatData.data.length;i+=4){
+    if(heatData.data[i] > maxAlpha) maxAlpha = heatData.data[i];
+  }
+  if(!maxAlpha) return;
+
+  const colored = hx.createImageData(W2,W2);
+  for(let i=0;i<heatData.data.length;i+=4){
+    const alpha = heatData.data[i+3];
+    if (!alpha) continue;
+    const t = Math.min(1, alpha / maxAlpha);
+    const eased = Math.pow(t, 0.85);
+    let r, g, b;
+    if (eased < 0.5) {
+      const p = eased / 0.5;
+      r = Math.round(255);
+      g = Math.round(214 - 74 * p);
+      b = Math.round(102 - 70 * p);
+    } else {
+      const p = (eased - 0.5) / 0.5;
+      r = Math.round(255 - 31 * p);
+      g = Math.round(140 - 108 * p);
+      b = Math.round(32 - 2 * p);
+    }
+    colored.data[i] = r;
+    colored.data[i+1] = g;
+    colored.data[i+2] = b;
+    colored.data[i+3] = Math.round(Math.min(235, 30 + eased * 205));
+  }
+
+  const colorCanvas = document.createElement('canvas');
+  colorCanvas.width = W2;
+  colorCanvas.height = W2;
+  colorCanvas.getContext('2d').putImageData(colored, 0, 0);
+
+  hx.save();
+  hx.beginPath();
+  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
+  hx.clip();
+  hx.drawImage(colorCanvas, 0, 0);
+  hx.restore();
+
+  // redraw ring outlines above the heatmap for readability
+  for(let i=RINGS.length-1;i>=0;i--){
+    const r=R2*(i+1)/RINGS.length;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
+    hx.strokeStyle='rgba(0,0,0,0.22)'; hx.lineWidth=1; hx.stroke();
+  }
 }
 
 // Timeline
