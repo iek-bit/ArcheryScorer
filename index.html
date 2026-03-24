@@ -1073,7 +1073,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <h3 id="roundCompleteTitle">Round Complete</h3>
     <p id="roundCompleteMessage">Choose your next action.</p>
     <button class="end-btn" id="roundCompletePrimaryBtn" onclick="nextRound()">NEXT ROUND →</button>
-    <button class="end-btn secondary" onclick="undoLastArrow()">UNDO LAST ARROW</button>
+    <button class="end-btn secondary" id="undoSecondaryBtn" onclick="undoLastArrow()">UNDO LAST ARROW</button>
   </div>
 </div>
 
@@ -2416,6 +2416,7 @@ function renderScorePage() {
   const done = cr.arrows.length === 5;
   const undoBtn = document.getElementById('undoArrowBtn');
   undoBtn.disabled = !cr.arrows.length || cr.locked;
+  document.getElementById('undoSecondaryBtn').style.display = cr.locked ? 'none' : '';
 
   const overlay = document.getElementById('roundCompleteOverlay');
   const overlayTitle = document.getElementById('roundCompleteTitle');
@@ -2425,7 +2426,7 @@ function renderScorePage() {
     overlayTitle.textContent = session.type === '3d_tournament' ? '3D Tournament Complete' : 'Bullseye Tournament Complete';
     overlayMessage.textContent = 'Finalizing your tournament session...';
     overlayPrimaryBtn.style.display = 'none';
-    overlay.classList.add('open');
+    overlay.classList.remove('open');
   } else if (done) {
     overlayTitle.textContent = 'Round Complete';
     overlayMessage.textContent = 'Choose your next action.';
