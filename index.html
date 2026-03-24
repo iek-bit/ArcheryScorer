@@ -1151,6 +1151,14 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
+    <div class="settings-row" onclick="openCoachActivation()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Coach Mode</div>
+        <div class="settings-row-sub" id="coachModeSummary">Disabled on this device</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
   </div>
 
   <div class="settings-section">
@@ -1335,7 +1343,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>
     <span>Stats</span>
   </button>
-  <button onclick="openCoachAccess()" id="nav-coach">
+  <button onclick="goPage('coach',this)" id="nav-coach" style="display:none">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg>
     <span>Coach</span>
   </button>
@@ -1998,6 +2006,13 @@ function updateDeviceNameSummary() {
   summary.textContent = getDeviceArcherName() || 'Not set yet';
 }
 
+function updateCoachModeUI() {
+  const navBtn = document.getElementById('nav-coach');
+  if (navBtn) navBtn.style.display = coachUnlocked ? '' : 'none';
+  const summary = document.getElementById('coachModeSummary');
+  if (summary) summary.textContent = coachUnlocked ? 'Enabled on this device' : 'Disabled on this device';
+}
+
 function closeDeviceNameOverlay() {
   pendingSessionType = null;
   closeOverlay('deviceNameOverlay');
@@ -2051,6 +2066,19 @@ function ensureDeviceNameForScoring(type) {
 function launchSession(type) {
   if (!ensureDeviceNameForScoring(type)) return;
   startSession(type);
+}
+
+function openCoachActivation() {
+  if (coachUnlocked) {
+    goPage('coach', document.getElementById('nav-coach'));
+    return;
+  }
+  const input = document.getElementById('coachPasswordInput');
+  const hint = document.getElementById('coachPasswordHint');
+  input.value = '';
+  hint.textContent = 'Enter the coach password to enable coach mode on this device.';
+  document.getElementById('coachPasswordOverlay').classList.add('open');
+  setTimeout(() => input.focus(), 60);
 }
 
 function openFinishOverlay() {
@@ -2744,19 +2772,6 @@ function setCoachSearch(value) {
   renderCoach();
 }
 
-function openCoachAccess() {
-  if (coachUnlocked) {
-    goPage('coach', document.getElementById('nav-coach'));
-    return;
-  }
-  const input = document.getElementById('coachPasswordInput');
-  const hint = document.getElementById('coachPasswordHint');
-  input.value = '';
-  hint.textContent = 'Password required.';
-  document.getElementById('coachPasswordOverlay').classList.add('open');
-  setTimeout(() => input.focus(), 60);
-}
-
 function submitCoachPassword() {
   const input = document.getElementById('coachPasswordInput');
   const hint = document.getElementById('coachPasswordHint');
@@ -2768,6 +2783,7 @@ function submitCoachPassword() {
   }
   coachUnlocked = true;
   localStorage.setItem(COACH_UNLOCK_KEY, 'true');
+  updateCoachModeUI();
   closeOverlay('coachPasswordOverlay');
   goPage('coach', document.getElementById('nav-coach'));
 }
@@ -3079,6 +3095,7 @@ function uploadSave(e) {
       renderCoach();
       renderDiag();
       updateDeviceNameSummary();
+      updateCoachModeUI();
       alert(`Loaded ${db.sessions.length} session(s) successfully.`);
     } catch {
       alert('Could not read save file. Make sure it is a valid Achery Scorer backup.');
@@ -3122,6 +3139,7 @@ function resetData() {
   renderCoach();
   renderDiag();
   updateDeviceNameSummary();
+  updateCoachModeUI();
   alert('All data has been reset.');
 }
 
@@ -3373,6 +3391,7 @@ renderDiagFilters();
 renderCoachFilters();
 renderThreeDTournamentSetup();
 updateDeviceNameSummary();
+updateCoachModeUI();
 renderHome();
 renderCoach();
 drawTarget([]);
