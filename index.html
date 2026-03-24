@@ -812,8 +812,10 @@ function icon(name, extraClass = '') {
       type="text"
       placeholder="Enter city"
       autocomplete="address-level2"
+      list="savedLocationOptions"
       oninput="locationInputDirty = true"
     >
+    <datalist id="savedLocationOptions"></datalist>
     <div class="modal-help" id="finishLocationHint">City name only.</div>
     <button class="modal-btn primary" onclick="saveFinishedSession()">SAVE SESSION</button>
     <button class="modal-btn" onclick="saveFinishedSession(false)">SAVE WITHOUT LOCATION</button>
@@ -825,7 +827,9 @@ function icon(name, extraClass = '') {
 //  DATA LAYER
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[]}');
+let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[]}');
+db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
+db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
 // ═══════════════════════════════════════════════
@@ -839,6 +843,51 @@ let locationInputDirty = false;
 
 function isMedianAndroidAvailable() {
   return !!window.median?.android?.geoLocation;
+}
+
+function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
+  const dx = aLat - bLat;
+  const dy = aLng - bLng;
+  return dx * dx + dy * dy;
+}
+
+function getNearestSavedLocation(lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  let best = null;
+  let bestDistance = Infinity;
+  db.savedLocations.forEach(loc => {
+    if (!loc?.label || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
+    const dist = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
+    if (dist < bestDistance) {
+      bestDistance = dist;
+      best = loc;
+    }
+  });
+  return best;
+}
+
+function refreshSavedLocationOptions() {
+  const datalist = document.getElementById('savedLocationOptions');
+  if (!datalist) return;
+  const uniqueLabels = [...new Set(db.savedLocations.map(loc => loc?.label).filter(Boolean))];
+  datalist.innerHTML = uniqueLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
+}
+
+function saveChosenLocation(location) {
+  const label = location?.label?.trim();
+  if (!label) return;
+  const existing = db.savedLocations.find(loc => loc.label.toLowerCase() === label.toLowerCase());
+  const next = {
+    label,
+    lat: typeof location.lat === 'number' ? location.lat : existing?.lat,
+    lng: typeof location.lng === 'number' ? location.lng : existing?.lng,
+    updatedAt: new Date().toISOString()
+  };
+  if (existing) {
+    Object.assign(existing, next);
+  } else {
+    db.savedLocations.push(next);
+  }
 }
 
 function assignLocationToSession(sessionId, location) {
@@ -941,6 +990,11 @@ function syncFinishLocationInput() {
 
 function openFinishOverlay() {
   locationInputDirty = false;
+  const nearest = getNearestSavedLocation(finishingSession?.location?.lat, finishingSession?.location?.lng);
+  if (finishingSession && !finishingSession.location?.label && nearest) {
+    finishingSession.location = {...(finishingSession.location || {}), label: nearest.label};
+  }
+  refreshSavedLocationOptions();
   syncFinishLocationInput();
   document.getElementById('finishOverlay').classList.add('open');
 }
@@ -962,8 +1016,12 @@ function saveFinishedSession(withLocation = true) {
   } else {
     finishingSession.location = {manual: true};
   }
+  if (finishingSession.location?.label) {
+    saveChosenLocation(finishingSession.location);
+  }
   db.sessions.push(finishingSession);
   save();
+  refreshSavedLocationOptions();
   finishingSession = null;
   closeOverlay('finishOverlay');
   renderHome();
@@ -1581,8 +1639,12 @@ function uploadSave(e) {
     try {
       const parsed = JSON.parse(evt.target.result);
       if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
-      db = parsed;
+      db = {
+        sessions: parsed.sessions,
+        savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : []
+      };
       save();
+      refreshSavedLocationOptions();
       renderHome();
       alert(`Loaded ${db.sessions.length} session(s) successfully.`);
     } catch {
@@ -1598,8 +1660,9 @@ function confirmReset() {
 }
 
 function resetData() {
-  db = { sessions: [] };
+  db = { sessions: [], savedLocations: [] };
   save();
+  refreshSavedLocationOptions();
   closeOverlay('resetOverlay');
   renderHome();
   alert('All data has been reset.');
@@ -1825,6 +1888,7 @@ function drawZoneBars(arrows) {
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
+refreshSavedLocationOptions();
 renderHome();
 drawTarget([]);
 </script>
