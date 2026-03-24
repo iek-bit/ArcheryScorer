@@ -1213,10 +1213,22 @@ function drawTargetOnCtx(c, size, arrows=[]) {
     const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
     c.fillStyle=LC[RINGS[i].color]||'#fff';
     c.font=`bold ${fontSize}px "DM Mono",monospace`;
-    c.fillText(RINGS[i].score, CX2, CY2-labelR);
-    c.fillText(RINGS[i].score, CX2 + labelR, CY2);
-    c.fillText(RINGS[i].score, CX2, CY2 + labelR);
-    c.fillText(RINGS[i].score, CX2 - labelR, CY2);
+    if (i === 0) {
+      c.fillText(RINGS[i].score, CX2, CY2);
+      continue;
+    }
+    const angleOffset = Math.PI / 12;
+    const positions = [
+      -Math.PI / 2 + angleOffset,
+      angleOffset,
+      Math.PI / 2 + angleOffset,
+      Math.PI + angleOffset,
+    ];
+    positions.forEach(angle => {
+      const x = CX2 + Math.cos(angle) * labelR;
+      const y = CY2 + Math.sin(angle) * labelR;
+      c.fillText(RINGS[i].score, x, y);
+    });
   }
   arrows.forEach((a,idx)=>{
     const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
