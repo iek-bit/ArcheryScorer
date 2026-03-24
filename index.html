@@ -821,27 +821,19 @@ function assignLocationToSession(sessionId, location) {
 function formatLocation(sessionLocation) {
   if (!sessionLocation) return '';
   if (sessionLocation.label) return sessionLocation.label;
-  if (typeof sessionLocation.lat !== 'number' || typeof sessionLocation.lng !== 'number') {
-    return '';
-  }
-  return `${sessionLocation.lat.toFixed(4)}, ${sessionLocation.lng.toFixed(4)}`;
+  return '';
 }
 
 function summarizeReverseGeocode(data) {
   if (!data || typeof data !== 'object') return '';
-  const locality =
+  return (
     data.city ||
     data.locality ||
     data.localityName ||
     data.principalSubdivision ||
     data.localityInfo?.administrative?.find(a => a.adminLevel === 6 || a.adminLevel === 5)?.name ||
-    '';
-  const region =
-    data.principalSubdivision ||
-    data.localityInfo?.administrative?.find(a => a.adminLevel === 4)?.name ||
-    '';
-  const country = data.countryName || data.countryCode || '';
-  return [locality, region, country].filter(Boolean).join(', ');
+    ''
+  );
 }
 
 async function reverseGeocodeLocation(sessionId, lat, lng) {
@@ -908,14 +900,13 @@ function requestBrowserLocation(sessionId) {
   navigator.geolocation.getCurrentPosition(
     pos => {
       pendingLocationSessionId = null;
-      const location = {
+      assignLocationToSession(sessionId, {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         accuracy: pos.coords.accuracy,
         timestamp: new Date(pos.timestamp).toISOString()
-      };
-      assignLocationToSession(sessionId, location);
-      reverseGeocodeLocation(sessionId, location.lat, location.lng);
+      });
+      reverseGeocodeLocation(sessionId, pos.coords.latitude, pos.coords.longitude);
     },
     () => {
       pendingLocationSessionId = null;
