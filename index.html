@@ -92,6 +92,10 @@
     background: rgba(224,82,82,.08);
   }
   .icon-btn.danger:active { border-color: var(--red); }
+  .icon-btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
 
   /* ── PAGES ── */
   .page { display: none; padding: 0 0 calc(70px + env(safe-area-inset-bottom)); min-height: 100dvh; }
@@ -272,15 +276,6 @@
     display: flex; justify-content: center; gap: 8px;
     padding: 8px 16px;
     flex-wrap: wrap;
-  }
-  .score-actions {
-    display: flex;
-    justify-content: center;
-    padding: 4px 16px 0;
-  }
-  .score-actions .end-btn {
-    margin: 0;
-    max-width: 320px;
   }
   .arrow-dot {
     width: 44px; height: 44px; border-radius: 50%;
@@ -716,7 +711,8 @@ const ICONS = {
   trophy: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg>',
   location: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>',
   arrowUpRight: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>',
-  search: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>'
+  search: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>',
+  undo: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7L4 12l5 5"></path><path d="M5 12h8a6 6 0 1 1 0 12h-2"></path></svg>'
 };
 
 function icon(name, extraClass = '') {
@@ -749,7 +745,10 @@ function icon(name, extraClass = '') {
         <h2 id="scoreTitle">Round 1</h2>
         <div class="scoring-meta" id="scoreMeta"></div>
       </div>
-      <button class="icon-btn" onclick="openEndSession()" title="Stop session" aria-label="Stop session">
+      <button class="icon-btn" id="undoArrowBtn" onclick="undoLastArrow()" title="Undo last arrow" aria-label="Undo last arrow">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7L4 12l5 5"></path><path d="M5 12h8a6 6 0 1 1 0 12h-2"></path></svg>
+      </button>
+      <button class="icon-btn danger" onclick="openEndSession()" title="Stop session" aria-label="Stop session">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>
       </button>
     </div>
@@ -777,11 +776,6 @@ function icon(name, extraClass = '') {
     </div>
 
     <div class="arrows-row" id="arrowDots"></div>
-    <div class="score-actions">
-      <button class="end-btn secondary" id="undoArrowBtn" onclick="undoLastArrow()">UNDO LAST ARROW</button>
-    </div>
-
-    <button class="end-btn secondary" onclick="openEndSession()">END SESSION</button>
 
     <div class="recent-header" style="margin-top:8px">COMPLETED ROUNDS</div>
     <div class="round-scores-list" id="completedRounds"></div>
@@ -1829,10 +1823,10 @@ function updateEndOverlay() {
 
   if (isTournamentEarlyExit()) {
     title.textContent = 'Leave Tournament?';
-    message.textContent = 'Tournament sessions cannot be saved early. You can discard the current round or keep scoring.';
+    message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
     primaryBtn.style.display = 'none';
-    dangerBtn.textContent = 'DISCARD ROUND';
-    dangerBtn.onclick = discardCurrentRound;
+    dangerBtn.textContent = 'DISCARD SESSION';
+    dangerBtn.onclick = discardSession;
     cancelBtn.textContent = 'CONTINUE SCORING';
     return;
   }
@@ -1878,18 +1872,6 @@ function discardSession() {
   resetActiveSessionUI();
   renderHome();
   goPage('score', document.getElementById('nav-score'));
-}
-
-function discardCurrentRound() {
-  if (!session) {
-    closeOverlay('endOverlay');
-    return;
-  }
-  if (!confirm('Discard the current round and continue the tournament?')) return;
-  closeOverlay('endOverlay');
-  const nextDist = session.type === 'tournament' ? getTournamentDistance() : session.currentRound.distance;
-  session.currentRound = {distance: nextDist, arrows: [], locked: false};
-  renderScorePage();
 }
 
 // ═══════════════════════════════════════════════
