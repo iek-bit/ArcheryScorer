@@ -852,12 +852,13 @@ function icon(name, extraClass = '') {
 
   <div class="settings-section">
     <div class="settings-label">ABOUT</div>
-    <div class="settings-row" style="cursor:default">
+    <div class="settings-row" onclick="openAboutOverlay()">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
       <div class="settings-row-text">
         <div class="settings-row-title">Achery Scorer</div>
         <div class="settings-row-sub">Archery scoring & diagnostics PWA</div>
       </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
   </div>
 </div>
@@ -881,6 +882,29 @@ function icon(name, extraClass = '') {
       </button>
     </div>
     <div class="theme-options" id="themeColorOverlayOptions"></div>
+  </div>
+</div>
+
+<div class="detail-overlay" id="aboutOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <div>
+        <h3>Achery Scorer</h3>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">1.0.0</span></div>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('aboutOverlay')" aria-label="Close about popup">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:16px">
+      Achery Scorer is a mobile-first archery scoring app for tracking practice and tournament sessions, reviewing session history, and analyzing arrow grouping over time.
+    </p>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px 16px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Highlights</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--text)">
+        Manual and tournament scoring, saved session history, grouping heatmaps, theme customization, and location-aware session logging.
+      </div>
+    </div>
   </div>
 </div>
 <div class="detail-overlay" id="detailOverlay">
@@ -984,12 +1008,18 @@ function icon(name, extraClass = '') {
 //  DATA LAYER
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
+const APP_VERSION = '1.0.0';
+const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[]}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
 db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 const THEME_KEY = 'achery_scorer_theme_v1';
 const THEME_PRESETS = {
+  auto: {
+    name: 'Auto',
+    followsSystem: true
+  },
   dark: {
     name: 'Dark',
     bg: '#0a0f1a',
@@ -1059,9 +1089,9 @@ let themeState = (() => {
     const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
     return parsed && typeof parsed === 'object'
       ? parsed
-      : {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
+      : {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
   } catch {
-    return {preset: 'dark', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
+    return {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
   }
 })();
 let activeThemeColorKey = 'accent';
@@ -1083,8 +1113,16 @@ function persistTheme() {
   localStorage.setItem(THEME_KEY, JSON.stringify(themeState));
 }
 
+function resolveThemePreset(name) {
+  if (name === 'auto') {
+    return systemThemeQuery?.matches ? THEME_PRESETS.dark : THEME_PRESETS.white;
+  }
+  return THEME_PRESETS[name] || THEME_PRESETS.dark;
+}
+
 function getActiveTheme() {
-  const preset = THEME_PRESETS[themeState.preset] || THEME_PRESETS.dark;
+  const preset = resolveThemePreset(themeState.preset);
+  if (themeState.preset === 'auto') return {...preset};
   return {
     ...preset,
     accent: themeState.accent || preset.accent,
@@ -1100,7 +1138,8 @@ function renderThemePresets() {
   if (!grid) return;
   grid.innerHTML = Object.entries(THEME_PRESETS).map(([key, theme]) => {
     const active = themeState.preset === key ? ' active' : '';
-    const swatches = THEME_SWATCH_KEYS.map(colorKey => `<span style="background:${theme[colorKey]}"></span>`).join('');
+    const previewTheme = key === 'auto' ? resolveThemePreset('auto') : theme;
+    const swatches = THEME_SWATCH_KEYS.map(colorKey => `<span style="background:${previewTheme[colorKey]}"></span>`).join('');
     return `<button class="theme-preset${active}" onclick="applyPresetTheme('${key}')">
       <div class="theme-preset-name">${theme.name}</div>
       <div class="theme-swatches">${swatches}</div>
@@ -1172,8 +1211,14 @@ function applyTheme() {
 }
 
 function applyPresetTheme(name) {
-  const preset = THEME_PRESETS[name];
+  const preset = resolveThemePreset(name);
   if (!preset) return;
+  if (name === 'auto') {
+    themeState = {preset: 'auto'};
+    persistTheme();
+    applyTheme();
+    return;
+  }
   themeState = {
     preset: name,
     accent: preset.accent,
@@ -1187,9 +1232,35 @@ function applyPresetTheme(name) {
 
 function updateCustomTheme(key, value) {
   if (!['accent', 'accent2', 'accent3', 'text'].includes(key)) return;
+  if (themeState.preset === 'auto') {
+    const resolvedPresetName = systemThemeQuery?.matches ? 'dark' : 'white';
+    themeState = {
+      preset: resolvedPresetName,
+      accent: THEME_PRESETS[resolvedPresetName].accent,
+      accent2: THEME_PRESETS[resolvedPresetName].accent2,
+      accent3: THEME_PRESETS[resolvedPresetName].accent3,
+      text: THEME_PRESETS[resolvedPresetName].text
+    };
+  }
   themeState[key] = value;
   persistTheme();
   applyTheme();
+}
+
+function openAboutOverlay() {
+  document.getElementById('aboutVersion').textContent = APP_VERSION;
+  document.getElementById('aboutOverlay').classList.add('open');
+}
+
+if (systemThemeQuery) {
+  const handleSystemThemeChange = () => {
+    if (themeState.preset === 'auto') applyTheme();
+  };
+  if (typeof systemThemeQuery.addEventListener === 'function') {
+    systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+  } else if (typeof systemThemeQuery.addListener === 'function') {
+    systemThemeQuery.addListener(handleSystemThemeChange);
+  }
 }
 
 function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
@@ -1968,7 +2039,11 @@ function goPage(name, btn) {
 //  SETTINGS
 // ═══════════════════════════════════════════════
 function downloadSave() {
-  const json = JSON.stringify(db, null, 2);
+  const payload = {
+    ...db,
+    theme: themeState
+  };
+  const json = JSON.stringify(payload, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1990,6 +2065,11 @@ function uploadSave(e) {
         sessions: parsed.sessions,
         savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : []
       };
+      if (parsed.theme && typeof parsed.theme === 'object') {
+        themeState = parsed.theme;
+        persistTheme();
+        applyTheme();
+      }
       save();
       refreshSavedLocationOptions();
       renderHome();
