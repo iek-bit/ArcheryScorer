@@ -527,6 +527,7 @@ const ICONS = {
   trash: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>',
   bow: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg>',
   trophy: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg>',
+  location: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>',
   arrowUpRight: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"></path><path d="M9 7h8v8"></path></svg>',
   search: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>'
 };
@@ -794,12 +795,161 @@ const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 //  SESSION STATE
 // ═══════════════════════════════════════════════
 let session = null; // current in-progress session
+let pendingLocationSessionId = null;
+let medianIOSGeoReady = !/MedianIOS/i.test(navigator.userAgent);
+
+function isMedianAndroidAvailable() {
+  return !!window.median?.android?.geoLocation;
+}
+
+function assignLocationToSession(sessionId, location) {
+  if (session?.id === sessionId) {
+    session.location = {...session.location, ...location};
+    return;
+  }
+  const savedSession = db.sessions.find(s => s.id === sessionId);
+  if (savedSession) {
+    savedSession.location = {...savedSession.location, ...location};
+    save();
+    renderHome();
+    if (activeSessionIdx !== null && db.sessions[activeSessionIdx]?.id === sessionId) {
+      openSessionOverlay(activeSessionIdx);
+    }
+  }
+}
+
+function formatLocation(sessionLocation) {
+  if (!sessionLocation) return '';
+  if (sessionLocation.label) return sessionLocation.label;
+  if (typeof sessionLocation.lat !== 'number' || typeof sessionLocation.lng !== 'number') {
+    return '';
+  }
+  return `${sessionLocation.lat.toFixed(4)}, ${sessionLocation.lng.toFixed(4)}`;
+}
+
+function summarizeReverseGeocode(data) {
+  if (!data || typeof data !== 'object') return '';
+  const locality =
+    data.city ||
+    data.locality ||
+    data.localityName ||
+    data.principalSubdivision ||
+    data.localityInfo?.administrative?.find(a => a.adminLevel === 6 || a.adminLevel === 5)?.name ||
+    '';
+  const region =
+    data.principalSubdivision ||
+    data.localityInfo?.administrative?.find(a => a.adminLevel === 4)?.name ||
+    '';
+  const country = data.countryName || data.countryCode || '';
+  return [locality, region, country].filter(Boolean).join(', ');
+}
+
+async function reverseGeocodeLocation(sessionId, lat, lng) {
+  try {
+    const url = `https://api-bdc.net/data/reverse-geocode?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=en`;
+    const res = await fetch(url, {headers: {Accept: 'application/json'}});
+    if (!res.ok) return;
+    const data = await res.json();
+    const label = summarizeReverseGeocode(data);
+    if (!label) return;
+    assignLocationToSession(sessionId, {label});
+  } catch {
+    // Leave coordinates as the fallback when reverse geocoding fails.
+  }
+}
+
+function sessionMetaText(sessionObj) {
+  const parts = [];
+  if (sessionObj?.date) {
+    const d = new Date(sessionObj.date);
+    parts.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}));
+  }
+  if (sessionObj?.rounds) {
+    const distLabel = [...new Set(sessionObj.rounds.map(r => r.distance + 'm'))].join(' & ');
+    if (distLabel) parts.push(`${sessionObj.rounds.length} rounds`);
+    if (distLabel) parts.push(distLabel);
+  }
+  const locationLabel = formatLocation(sessionObj?.location);
+  if (locationLabel) parts.push(`${icon('location', 'type-icon')}${locationLabel}`);
+  return parts.join(' · ');
+}
+
+function checkMedianAndroidLocationReady(sessionId) {
+  try {
+    const status = window.median?.android?.geoLocation?.isLocationServicesEnabled;
+    if (typeof status !== 'function') {
+      requestBrowserLocation(sessionId);
+      return;
+    }
+    status({
+      callback: result => {
+        if (result?.enabled) {
+          requestBrowserLocation(sessionId);
+          return;
+        }
+        try {
+          window.median.android.geoLocation.promptLocationServices();
+        } catch {
+          requestBrowserLocation(sessionId);
+          return;
+        }
+        setTimeout(() => {
+          if (pendingLocationSessionId === sessionId) checkMedianAndroidLocationReady(sessionId);
+        }, 1500);
+      }
+    });
+  } catch {
+    requestBrowserLocation(sessionId);
+  }
+}
+
+function requestBrowserLocation(sessionId) {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      pendingLocationSessionId = null;
+      const location = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: new Date(pos.timestamp).toISOString()
+      };
+      assignLocationToSession(sessionId, location);
+      reverseGeocodeLocation(sessionId, location.lat, location.lng);
+    },
+    () => {
+      pendingLocationSessionId = null;
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000
+    }
+  );
+}
+
+function requestSessionLocation(sessionId) {
+  if (!navigator.geolocation) return;
+  pendingLocationSessionId = sessionId;
+  if (!medianIOSGeoReady) return;
+  if (isMedianAndroidAvailable()) {
+    checkMedianAndroidLocationReady(sessionId);
+    return;
+  }
+  requestBrowserLocation(sessionId);
+}
+
+window.median_geolocation_ready = function medianGeolocationReady() {
+  medianIOSGeoReady = true;
+  if (pendingLocationSessionId) requestSessionLocation(pendingLocationSessionId);
+};
 
 function startSession(type) {
   session = {
     id: Date.now(),
     type,
     date: new Date().toISOString(),
+    location: null,
     rounds: [],
     currentRound: {
       distance: 10,
@@ -811,6 +961,7 @@ function startSession(type) {
   document.getElementById('scoreActive').style.display = 'block';
   goPage('score', document.getElementById('nav-score'));
   renderScorePage();
+  requestSessionLocation(session.id);
 }
 
 function sessionRoundNumber() {
@@ -1076,16 +1227,13 @@ function renderHome() {
   list.innerHTML = filtered.map((s, fi) => {
     const realIdx = db.sessions.indexOf(s);
     const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
-    const d = new Date(s.date);
-    const label = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
     const typeLabel = s.type === 'tournament'
       ? `<span class="session-type">${icon('trophy', 'type-icon')}Tournament</span>`
       : `<span class="session-type">${icon('target', 'type-icon')}Practice</span>`;
-    const distLabel = [...new Set(s.rounds.map(r=>r.distance+'m'))].join(' & ');
     return `<div class="recent-item" onclick="openSessionOverlay(${realIdx})">
       <div class="ri-left">
         <span>${typeLabel}</span>
-        <span>${label} · ${s.rounds.length} rounds · ${distLabel}</span>
+        <span>${sessionMetaText(s)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="ri-score">${total}</div>
@@ -1119,7 +1267,9 @@ function openSessionOverlay(idx) {
     s.type==='tournament'
       ? `${icon('trophy', 'type-icon')} Tournament`
       : `${icon('target', 'type-icon')} Practice`;
-  document.getElementById('sessionOverlayMeta').textContent = dateStr;
+  const locationLabel = formatLocation(s.location);
+  document.getElementById('sessionOverlayMeta').innerHTML =
+    locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
 
   const total = s.rounds.reduce((x,r)=>x+r.arrows.reduce((y,a)=>y+a.score,0),0);
   document.getElementById('sessionOverlayTotal').textContent = total;
