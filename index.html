@@ -277,7 +277,7 @@
   #targetCanvas {
     border-radius: 50%;
     width: 100%;
-    max-width: min(500px, calc(100dvh - 300px)); /* Bounds the width so the 1:1 aspect ratio never distorts */
+    max-width: min(500px, calc(100dvh - 300px)); 
     aspect-ratio: 1 / 1;
     cursor: crosshair;
     display: block;
@@ -286,7 +286,8 @@
 
   /* Magnifier Tool */
   #magnifierWrap {
-    position: fixed; /* Fix to viewport to follow finger smoothly */
+    position: fixed; 
+    top: 0; left: 0; /* Changed from dynamic left/top to 0 to rely purely on transform */
     width: 130px; height: 130px;
     border-radius: 50%;
     border: 3px solid var(--accent);
@@ -296,7 +297,7 @@
     display: none;
     overflow: hidden;
     z-index: 500;
-    transform: translate(-50%, -120%); /* Offset significantly above the finger */
+    will-change: transform; /* Hardware accelerates the div for buttery smooth movement */
   }
   #magnifierCanvas { width: 100%; height: 100%; }
   .magnifier-crosshair {
@@ -2388,6 +2389,17 @@ let targetTouchState = {
   isScrolling: false, magnifying: false, timer: null, active: false
 };
 
+// Magnifier Render Loop (Performance Optimization)
+let magRAF = null;
+let magActive = false;
+let magTargetX = 0, magTargetY = 0;
+
+function renderMagnifierLoop() {
+  if (!magActive) return;
+  updateMagnifier(magTargetX, magTargetY);
+  magRAF = requestAnimationFrame(renderMagnifierLoop);
+}
+
 function startTargetInteraction(x, y) {
   targetTouchState.active = true;
   targetTouchState.startX = x;
@@ -2413,17 +2425,16 @@ function moveTargetInteraction(x, y, e) {
   targetTouchState.currentX = x;
   targetTouchState.currentY = y;
 
-  if (targetTouchState.magnifying) {
-    // Magnifier is active — block ALL scroll/pan immediately, no jitter
-    if (e && e.cancelable) e.preventDefault();
-    updateMagnifier(x, y);
-    return;
-  }
-
-  // Not yet magnifying — check if finger has moved far enough to count as a scroll
-  if (Math.hypot(x - targetTouchState.startX, y - targetTouchState.startY) > 10) {
-    targetTouchState.isScrolling = true;
-    clearTimeout(targetTouchState.timer);
+  if (!targetTouchState.magnifying) {
+    if (Math.hypot(x - targetTouchState.startX, y - targetTouchState.startY) > 15) {
+      targetTouchState.isScrolling = true;
+      clearTimeout(targetTouchState.timer);
+    }
+  } else {
+    // Lock screen scroll and update target tracking coords for the RAF loop
+    if (e && e.cancelable) e.preventDefault(); 
+    magTargetX = x;
+    magTargetY = y;
   }
 }
 
@@ -2454,14 +2465,12 @@ function cancelTargetInteraction() {
 // Pure Touch Listeners (Mobile)
 canvas.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
-    e.preventDefault(); // prevent long-press text selection / scroll initiation
     startTargetInteraction(e.touches[0].clientX, e.touches[0].clientY);
   }
 }, { passive: false });
 
 canvas.addEventListener('touchmove', e => {
   if (e.touches.length === 1) {
-    // Always call moveTargetInteraction with the event so it can preventDefault when magnifying
     moveTargetInteraction(e.touches[0].clientX, e.touches[0].clientY, e);
   }
 }, { passive: false });
@@ -2492,7 +2501,19 @@ window.addEventListener('mouseup', e => {
 
 function showMagnifier(clientX, clientY) {
   document.getElementById('magnifierWrap').style.display = 'block';
-  updateMagnifier(clientX, clientY);
+  magActive = true;
+  magTargetX = clientX;
+  magTargetY = clientY;
+  if (!magRAF) renderMagnifierLoop();
+}
+
+function hideMagnifier() {
+  document.getElementById('magnifierWrap').style.display = 'none';
+  magActive = false;
+  if (magRAF) {
+    cancelAnimationFrame(magRAF);
+    magRAF = null;
+  }
 }
 
 function updateMagnifier(clientX, clientY) {
@@ -2508,14 +2529,12 @@ function updateMagnifier(clientX, clientY) {
   const x = boundedX - rect.left;
   const y = boundedY - rect.top;
 
-  // Move the magnifier div (offset slightly above the finger so it isn't blocked)
-  wrap.style.left = boundedX + 'px';
-  wrap.style.top = boundedY + 'px';
+  // Move using hardware-accelerated transform instead of left/top CSS properties
+  wrap.style.transform = `translate3d(${boundedX}px, ${boundedY}px, 0) translate(-50%, -120%)`;
 
   // Draw scaled region
   const zoom = 2;
   const mw = magCanvas.width, mh = magCanvas.height;
-  mctx.clearRect(0, 0, mw, mh);
   
   // Calculate source rectangle
   const scaleX = W / rect.width;
@@ -2525,11 +2544,8 @@ function updateMagnifier(clientX, clientY) {
   const srcW = mw / zoom;
   const srcH = mh / zoom;
 
+  mctx.clearRect(0, 0, mw, mh);
   mctx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, mw, mh);
-}
-
-function hideMagnifier() {
-  document.getElementById('magnifierWrap').style.display = 'none';
 }
 
 function handleTargetClick(e) {
