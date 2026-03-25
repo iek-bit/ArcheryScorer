@@ -276,11 +276,9 @@
   }
   #targetCanvas {
     border-radius: 50%;
-    max-width: 500px;
-    max-height: calc(100dvh - 300px); /* Keeps target entirely visible above the nav bar */
     width: 100%;
+    max-width: min(500px, calc(100dvh - 300px)); /* Bounds the width so the 1:1 aspect ratio never distorts */
     aspect-ratio: 1 / 1;
-    object-fit: contain;
     cursor: crosshair;
     display: block;
     margin: 0 auto;
@@ -1289,7 +1287,16 @@ const PRACTICE_TARGET_OPTIONS = [
           <canvas id="heatmapCanvas" width="520" height="520"></canvas>
         </div>
       </div>
-      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:8px;">Pinch to zoom, drag to pan</div>
+      
+      <div id="heatmapLegend" style="display:none; margin-top: 14px; padding: 0 10px; max-width: 400px; margin-left: auto; margin-right: auto;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text); font-family:'DM Mono', monospace; margin-bottom: 6px;">
+          <span>Low Density (1)</span>
+          <span>High Density (<span id="heatmapLegendMax">Max</span>)</span>
+        </div>
+        <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
+      </div>
+
+      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:12px;">Pinch to zoom, drag to pan</div>
     </div>
   </div>
 
@@ -2358,10 +2365,16 @@ function drawTarget(arrows=[], mode='bullseye') { drawTargetOnCtx(ctx, W, arrows
 
 function getScoreAt(mode, nx, ny) {
   const d = Math.sqrt(nx*nx + ny*ny);
-  if (d >= 1) return 0;
+  
+  // Archery rules: if the arrow touches the line, it gets the higher score.
+  // We add a generous tolerance (0.04) for arrows cutting the outermost edge of the white ring
+  if (d > 1.04) return 0; // It's a true miss
+  
   const rings = getRingsForMode(mode);
-  const matched = rings.find(ring => d < ring.end);
-  return matched ? matched.score : 0;
+  const matched = rings.find(ring => d <= ring.end);
+  
+  // If it falls in the tolerance gap, award the lowest ring score
+  return matched ? matched.score : rings[rings.length - 1].score;
 }
 
 function normalizeRoundScore(mode, score) {
@@ -3121,8 +3134,9 @@ function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
     positions.forEach(angle => { const x = CX2 + Math.cos(angle) * labelR; const y = CY2 + Math.sin(angle) * labelR; c.fillText(rings[i].score, x, y); });
   }
   arrows.forEach((a,idx)=>{
-    // Ensure miss arrows are drawn appropriately out of bounds or not at all (they have nx/ny = 1.5)
-    if(a.score === 0 && (a.nx > 1 || a.ny > 1)) return; // Don't draw manual misses on the face
+    // Ensure manual miss button arrows are not drawn on the face (they have nx/ny = 1.5)
+    if(a.score === 0 && a.nx === 1.5 && a.ny === 1.5) return; 
+    
     const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
     c.beginPath(); c.arc(px+2,py+2,12,0,Math.PI*2); c.fillStyle='rgba(0,0,0,0.4)'; c.fill();
     c.beginPath(); c.arc(px,py,12,0,Math.PI*2); c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
@@ -3194,7 +3208,8 @@ function resetData() {
 // ═══════════════════════════════════════════════
 //  PAN/ZOOM UTILITIES
 // ═══════════════════════════════════════════════
-function attachPanZoom(containerId, wrapId, constrainHorizontal = false) {
+function attachPanZoom(containerId, wrapId, options = {}) {
+  const constrainHorizontal = options.constrainHorizontal || false;
   const container = document.getElementById(containerId);
   const wrap = document.getElementById(wrapId);
   let scale = 1, tx = 0, ty = 0;
@@ -3204,7 +3219,11 @@ function attachPanZoom(containerId, wrapId, constrainHorizontal = false) {
   let lastTouch = null;
 
   function updateTransform() {
-    wrap.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}${constrainHorizontal ? ', 1' : ''})`;
+    if (options.onUpdate) {
+      options.onUpdate();
+    } else {
+      wrap.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}${constrainHorizontal ? ', 1' : ''})`;
+    }
   }
 
   container.addEventListener('touchstart', e => {
@@ -3282,8 +3301,15 @@ function attachPanZoom(containerId, wrapId, constrainHorizontal = false) {
   };
 }
 
-window.timelinePanZoom = attachPanZoom('timelineContainer', 'timelineTransformWrap', true);
-window.heatmapPanZoom = attachPanZoom('heatmapContainer', 'heatmapTransformWrap', false);
+window.timelinePanZoom = attachPanZoom('timelineContainer', 'timelineTransformWrap', {
+  constrainHorizontal: true,
+  onUpdate: () => {
+    if (window.currentTimelineRounds) drawTimeline(window.currentTimelineRounds);
+  }
+});
+window.heatmapPanZoom = attachPanZoom('heatmapContainer', 'heatmapTransformWrap', {
+  constrainHorizontal: false
+});
 
 // ═══════════════════════════════════════════════
 //  DIAGNOSTICS / STATS
@@ -3319,6 +3345,7 @@ function getFilteredRounds() {
 
 function renderDiag() {
   const rounds = getFilteredRounds();
+  window.currentTimelineRounds = rounds; // Cache for panning
   const allArrows = rounds.flatMap(r=>r.arrows);
   const filteredSavedSessions = db.sessions.filter(sessionObj => sessionMatchesFilter(sessionObj, diagFilters, 'diag'));
   const currentSessionMatches = session && ( session.rounds.length > 0 || session.currentRound.arrows.length > 0 ) && sessionMatchesFilter(buildFinishedSession() || normalizeSessionData(session), diagFilters, 'diag');
@@ -3357,7 +3384,8 @@ function hslToRgb(h, s, l) {
 }
 
 function drawHeatmap(arrows) {
-  const hc = document.getElementById('heatmapCanvas'); const hx = hc.getContext('2d');
+  const hc = document.getElementById('heatmapCanvas'); 
+  const hx = hc.getContext('2d');
   const W2 = 520, CX2 = W2/2, R2 = W2/2-10; 
   hc.width = W2; hc.height = W2;
   hx.clearRect(0,0,W2,W2);
@@ -3369,50 +3397,98 @@ function drawHeatmap(arrows) {
     hx.strokeStyle='rgba(0,0,0,0.3)'; hx.lineWidth=1; hx.stroke();
   }
 
-  if(!arrows.length) return;
-
-  const heatCanvas = document.createElement('canvas'); heatCanvas.width = W2; heatCanvas.height = W2;
-  const heatCtx = heatCanvas.getContext('2d');
-
-  arrows.forEach(a=>{
-    if (a.nx > 1 || a.ny > 1) return; // skip misses from heatmap
-    const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
-    const grad=heatCtx.createRadialGradient(px,py,0,px,py,40);
-    grad.addColorStop(0,'rgba(255,255,255,1)');
-    grad.addColorStop(1,'rgba(255,255,255,0)');
-    heatCtx.beginPath(); heatCtx.arc(px,py,40,0,Math.PI*2);
-    heatCtx.fillStyle=grad; heatCtx.fill();
-  });
-
-  const heatData = heatCtx.getImageData(0,0,W2,W2);
-  let maxAlpha = 0;
-  for(let i=3;i<heatData.data.length;i+=4) { if(heatData.data[i] > maxAlpha) maxAlpha = heatData.data[i]; }
-  if(!maxAlpha) return;
-
-  const colored = hx.createImageData(W2,W2);
-  for(let i=0;i<heatData.data.length;i+=4){
-    const alpha = heatData.data[i+3];
-    if (!alpha) continue;
-    const density = alpha / maxAlpha; // 0.0 to 1.0
-    // Map 0 (Blue) to 1 (Red). Blue is hue 0.66, Red is hue 0.
-    const h = (1.0 - density) * 0.66;
-    const rgb = hslToRgb(h, 1.0, 0.5);
-    colored.data[i] = rgb[0];
-    colored.data[i+1] = rgb[1];
-    colored.data[i+2] = rgb[2];
-    colored.data[i+3] = Math.floor(density * 240); // Opacity scales smoothly with density so target shows through
+  const legendEl = document.getElementById('heatmapLegend');
+  if(!arrows.length) {
+    if(legendEl) legendEl.style.display = 'none';
+    return;
   }
 
-  const colorCanvas = document.createElement('canvas'); colorCanvas.width = W2; colorCanvas.height = W2;
-  colorCanvas.getContext('2d').putImageData(colored, 0, 0);
+  // Adaptive KDE (Kernel Density Estimation) Heatmap Generation
+  const scale = 2; // Compute at 260x260 for performance
+  const gridW = W2 / scale; 
+  const gridH = W2 / scale; 
+  const density = new Float32Array(gridW * gridH);
+  let maxDensity = 0;
+  
+  // Precompute a smooth Gaussian kernel
+  const kernelRadius = 16; 
+  const kernelSize = kernelRadius * 2 + 1;
+  const kernel = new Float32Array(kernelSize * kernelSize);
+  const sigma = kernelRadius / 2.5; 
+  for(let ky = -kernelRadius; ky <= kernelRadius; ky++) {
+    for(let kx = -kernelRadius; kx <= kernelRadius; kx++) {
+      const val = Math.exp(-(kx*kx + ky*ky) / (2 * sigma * sigma));
+      kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)] = val;
+    }
+  }
 
-  hx.save(); hx.beginPath(); hx.arc(CX2, CX2, R2, 0, Math.PI*2); hx.clip();
-  hx.drawImage(colorCanvas, 0, 0); hx.restore();
+  // Splat each arrow onto the density grid mathematically
+  arrows.forEach(a => {
+    // Skip manual button misses, but include true tapped misses just off the edge of the paper
+    if (a.score === 0 && a.nx === 1.5 && a.ny === 1.5) return; 
+    
+    const px = (CX2 + a.nx * R2) / scale;
+    const py = (CX2 + a.ny * R2) / scale;
+    const cx = Math.round(px);
+    const cy = Math.round(py);
+    
+    for(let ky = -kernelRadius; ky <= kernelRadius; ky++) {
+      const y = cy + ky;
+      if (y < 0 || y >= gridH) continue;
+      for(let kx = -kernelRadius; kx <= kernelRadius; kx++) {
+        const x = cx + kx;
+        if (x < 0 || x >= gridW) continue;
+        
+        const w = kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)];
+        const idx = y * gridW + x;
+        density[idx] += w;
+        if (density[idx] > maxDensity) maxDensity = density[idx];
+      }
+    }
+  });
 
-  // redraw faint rings on top of heatmap overlay for better reference
+  if(maxDensity === 0) return;
+
+  // Map true density values to the blue->red color spectrum
+  const heatCanvas = document.createElement('canvas'); 
+  heatCanvas.width = gridW; 
+  heatCanvas.height = gridH;
+  const heatCtx = heatCanvas.getContext('2d');
+  const imgData = heatCtx.createImageData(gridW, gridH);
+  
+  for(let i=0; i<density.length; i++) {
+    const d = density[i];
+    if (d < 0.02) continue; // Ignore empty/noise space
+    
+    const norm = Math.min(1, d / maxDensity);
+    const h = (1.0 - norm) * 0.66; // 0.66 is blue, 0 is red
+    const rgb = hslToRgb(h, 1.0, 0.5);
+    
+    const p = i * 4;
+    imgData.data[p] = rgb[0];
+    imgData.data[p+1] = rgb[1];
+    imgData.data[p+2] = rgb[2];
+    imgData.data[p+3] = Math.floor(Math.min(1, norm * 2.5) * 210); // Adaptive opacity fade
+  }
+  heatCtx.putImageData(imgData, 0, 0);
+
+  // Draw the fluid heatmap onto the main canvas with clipping
+  hx.save(); 
+  hx.beginPath(); hx.arc(CX2, CX2, R2, 0, Math.PI*2); hx.clip();
+  hx.imageSmoothingEnabled = true;
+  hx.drawImage(heatCanvas, 0, 0, W2, W2); 
+  hx.restore();
+
+  // Redraw faint rings on top of heatmap overlay for better reference
   for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
     const r=R2*BULLSEYE_RINGS[i].end;
     hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2); hx.strokeStyle='rgba(0,0,0,0.15)'; hx.lineWidth=1; hx.stroke();
+  }
+
+  // Update Legend max density text
+  if (legendEl) {
+    legendEl.style.display = 'block';
+    document.getElementById('heatmapLegendMax').textContent = Math.max(2, Math.round(maxDensity));
   }
 }
 
@@ -3420,60 +3496,75 @@ function drawHeatmap(arrows) {
 let timelineDataPoints = []; // Track mapped coordinates for tooltips
 
 function drawTimeline(rounds) {
-  const tc = document.getElementById('timelineCanvas'); const tx = tc.getContext('2d');
-  const W3=800, H3=250; tc.style.width='100%'; tx.clearRect(0,0,W3,H3);
-  tx.fillStyle='#111827'; tx.fillRect(0,0,W3,H3);
+  const tc = document.getElementById('timelineCanvas'); const c = tc.getContext('2d');
+  const W3=800, H3=250; tc.style.width='100%'; c.clearRect(0,0,W3,H3);
+  c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
   timelineDataPoints = []; // reset
 
   if(rounds.length < 2) {
-    tx.fillStyle='#6b7a99'; tx.font='20px DM Mono, monospace'; tx.textAlign='center'; tx.textBaseline='middle';
-    tx.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
+    c.fillStyle='#6b7a99'; c.font='20px DM Mono, monospace'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
   }
 
-  const scores=rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
+  const transformData = window.timelinePanZoom ? window.timelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
+  const scale = transformData.scale;
+  const screenTx = transformData.tx;
+  const rect = transformData.rect;
+  const canvasTx = rect.width ? screenTx * (W3 / rect.width) : 0;
+
+  const scores=rounds.map(r=>r.arrows.reduce((sum,a)=>sum+a.score,0));
   const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
   const pad=40; // extra padding for text
 
-  const px=i=>(pad + (i/(scores.length-1))*(W3-pad*2));
+  // Calculate position iteratively taking true panning/scaling into account
+  const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * scale + canvasTx);
   const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
 
-  // Horizontal Grid Lines (Scores)
-  tx.strokeStyle='rgba(255,255,255,0.08)'; tx.lineWidth=1;
-  tx.fillStyle='#6b7a99'; tx.font='10px "DM Mono", monospace'; tx.textAlign='right'; tx.textBaseline='middle';
+  // Horizontal Grid Lines (Scores) - Static
+  c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
+  c.fillStyle='#6b7a99'; c.font='10px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
   for(let g=0;g<=4;g++){
     const val = minS + (g/4)*(maxS-minS);
     const y=py(val);
-    tx.beginPath(); tx.moveTo(pad,y); tx.lineTo(W3-pad,y); tx.stroke();
-    tx.fillText(Math.round(val), pad - 8, y);
+    c.beginPath(); c.moveTo(pad,y); c.lineTo(W3,y); c.stroke();
+    c.fillText(Math.round(val), pad - 8, y);
   }
 
-  // Vertical Grid Lines (Dates)
+  // Clip region for timeline data to prevent bleeding into Y-axis labels
+  c.save();
+  c.beginPath();
+  c.rect(pad, 0, W3 - pad, H3);
+  c.clip();
+
+  // Vertical Grid Lines (Dates) - Dynamic panning
   const step = Math.max(1, Math.ceil(rounds.length / 5));
-  tx.textAlign='center'; tx.textBaseline='top';
+  c.textAlign='center'; c.textBaseline='top';
   for(let i=0; i<rounds.length; i+=step) {
     const x = px(i);
-    tx.beginPath(); tx.moveTo(x, pad); tx.lineTo(x, H3-pad); tx.stroke();
-    tx.fillText(new Date(rounds[i].sessionDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}), x, H3-pad + 8);
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H3-pad); c.stroke();
+    c.fillText(new Date(rounds[i].sessionDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}), x, H3-pad + 8);
   }
 
-  // area fill
-  tx.beginPath(); tx.moveTo(px(0),H3-pad);
-  scores.forEach((s,i)=>tx.lineTo(px(i),py(s)));
-  tx.lineTo(px(scores.length-1),H3-pad); tx.closePath();
-  const grad=tx.createLinearGradient(0,0,0,H3); grad.addColorStop(0,'rgba(232,197,71,0.3)'); grad.addColorStop(1,'rgba(232,197,71,0)');
-  tx.fillStyle=grad; tx.fill();
+  // Area fill
+  c.beginPath(); c.moveTo(px(0),H3-pad);
+  scores.forEach((s,i)=>c.lineTo(px(i),py(s)));
+  c.lineTo(px(scores.length-1),H3-pad); c.closePath();
+  const grad=c.createLinearGradient(0,0,0,H3); grad.addColorStop(0,'rgba(232,197,71,0.3)'); grad.addColorStop(1,'rgba(232,197,71,0)');
+  c.fillStyle=grad; c.fill();
 
-  // line
-  tx.beginPath(); tx.moveTo(px(0),py(scores[0]));
-  scores.forEach((s,i)=>{if(i>0)tx.lineTo(px(i),py(s));});
-  tx.strokeStyle='#e8c547'; tx.lineWidth=2.5; tx.lineJoin='round'; tx.stroke();
+  // Line
+  c.beginPath(); c.moveTo(px(0),py(scores[0]));
+  scores.forEach((s,i)=>{if(i>0)c.lineTo(px(i),py(s));});
+  c.strokeStyle='#e8c547'; c.lineWidth=2.5; c.lineJoin='round'; c.stroke();
 
-  // dots & save data points
+  // Circular Dots & save data points
   scores.forEach((s,i)=>{
     const x = px(i), y = py(s);
-    tx.beginPath(); tx.arc(x,y,4,0,Math.PI*2); tx.fillStyle='#e8c547'; tx.fill();
+    c.beginPath(); c.arc(x,y,4,0,Math.PI*2); c.fillStyle='#e8c547'; c.fill();
     timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i });
   });
+
+  c.restore(); // remove clip so we don't interfere with next draw cycle
 }
 
 // Handle Timeline Taps for Details
@@ -3483,17 +3574,19 @@ let tooltipHideTimer;
 tcContainer.addEventListener('touchend', e => {
   if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
-  const { scale, tx, rect } = window.timelinePanZoom.getTransform();
+  const { rect } = window.timelinePanZoom.getTransform();
+  const W3=800, H3=250;
   
-  // Untransform the coordinate
-  const xUntransformed = ((t.clientX - rect.left) - tx) / scale;
+  // Untransform the screen tap back to internal canvas coordinates
+  const canvasX = (t.clientX - rect.left) * (W3 / rect.width);
   
   // Find nearest point along the X axis
   let nearest = null;
   let minDist = Infinity;
   timelineDataPoints.forEach(pt => {
-    const dist = Math.abs(pt.x - xUntransformed);
-    if (dist < minDist && dist < 30) { // must be relatively close
+    if (pt.x < 40 || pt.x > W3) return; // Ignore points that are clipped/panned out of view
+    const dist = Math.abs(pt.x - canvasX);
+    if (dist < minDist && dist < 40) { 
       minDist = dist;
       nearest = pt;
     }
@@ -3503,9 +3596,11 @@ tcContainer.addEventListener('touchend', e => {
   if (nearest) {
     document.getElementById('ttScore').textContent = nearest.score;
     document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
-    // Position tooltip using transformed coordinates correctly over the whole screen
-    const displayX = rect.left + (nearest.x * scale) + tx;
-    const displayY = rect.top + nearest.y;
+    
+    // Position tooltip translating canvas coordinates precisely to fixed screen position
+    const displayX = rect.left + (nearest.x * (rect.width / W3));
+    const displayY = rect.top + (nearest.y * (rect.height / H3));
+    
     tooltip.style.left = displayX + 'px';
     tooltip.style.top = displayY + 'px';
     tooltip.style.display = 'block';
