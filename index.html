@@ -2413,16 +2413,17 @@ function moveTargetInteraction(x, y, e) {
   targetTouchState.currentX = x;
   targetTouchState.currentY = y;
 
-  if (!targetTouchState.magnifying) {
-    // If they move significantly before the timer pops, it's a scroll attempt
-    if (Math.hypot(x - targetTouchState.startX, y - targetTouchState.startY) > 15) {
-      targetTouchState.isScrolling = true;
-      clearTimeout(targetTouchState.timer);
-    }
-  } else {
-    // Magnifier is active! Lock the screen scroll and track the finger indefinitely.
-    if (e && e.cancelable) e.preventDefault(); 
+  if (targetTouchState.magnifying) {
+    // Magnifier is active — block ALL scroll/pan immediately, no jitter
+    if (e && e.cancelable) e.preventDefault();
     updateMagnifier(x, y);
+    return;
+  }
+
+  // Not yet magnifying — check if finger has moved far enough to count as a scroll
+  if (Math.hypot(x - targetTouchState.startX, y - targetTouchState.startY) > 10) {
+    targetTouchState.isScrolling = true;
+    clearTimeout(targetTouchState.timer);
   }
 }
 
@@ -2453,12 +2454,14 @@ function cancelTargetInteraction() {
 // Pure Touch Listeners (Mobile)
 canvas.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
+    e.preventDefault(); // prevent long-press text selection / scroll initiation
     startTargetInteraction(e.touches[0].clientX, e.touches[0].clientY);
   }
 }, { passive: false });
 
 canvas.addEventListener('touchmove', e => {
   if (e.touches.length === 1) {
+    // Always call moveTargetInteraction with the event so it can preventDefault when magnifying
     moveTargetInteraction(e.touches[0].clientX, e.touches[0].clientY, e);
   }
 }, { passive: false });
