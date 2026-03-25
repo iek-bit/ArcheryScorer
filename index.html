@@ -573,7 +573,7 @@
   
   /* Timeline Tooltip */
   .timeline-tooltip {
-    position: absolute;
+    position: fixed;
     background: var(--bg2);
     border: 1px solid var(--border);
     color: var(--text);
@@ -582,14 +582,12 @@
     font-size: 12px;
     pointer-events: none;
     display: none;
-    z-index: 10;
+    z-index: 9999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     white-space: nowrap;
     transform: translate(-50%, -100%);
     margin-top: -10px;
   }
-  .timeline-tooltip .tt-score { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
-  .timeline-tooltip .tt-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
 
   .zone-bars { display: flex; flex-direction: column; gap: 6px; }
   .zone-bar-row { display: flex; align-items: center; gap: 10px; }
@@ -1305,10 +1303,6 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="interactive-transform-wrap" id="timelineTransformWrap">
           <canvas id="timelineCanvas" width="800" height="250"></canvas>
         </div>
-        <div class="timeline-tooltip" id="timelineTooltip">
-          <div class="tt-score" id="ttScore"></div>
-          <div class="tt-date" id="ttDate"></div>
-        </div>
       </div>
       <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:8px;">Pinch/drag to explore, tap a point for details</div>
     </div>
@@ -1644,6 +1638,11 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 
+<div class="timeline-tooltip" id="timelineTooltip">
+  <div class="tt-score" id="ttScore"></div>
+  <div class="tt-date" id="ttDate"></div>
+</div>
+
 <!-- End session overlay -->
 <div class="overlay" id="endOverlay">
   <div class="modal">
@@ -1776,7 +1775,7 @@ db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
 // Location Filter States
-let activeLocationFilters = { home: 'all', diag: 'all', coach: 'all' };
+let activeLocationFilters = { home: new Set(), diag: new Set(), coach: new Set() };
 
 const THEME_KEY = 'achery_scorer_theme_v1';
 const THEME_PRESETS = {
@@ -2158,6 +2157,8 @@ function buildFinishedSession() {
 function resetActiveSessionUI() {
   document.getElementById('scorePicker').style.display = 'block';
   document.getElementById('scoreActive').style.display = 'none';
+  if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
+  if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
 
 function syncFinishLocationInput() {
@@ -2384,8 +2385,9 @@ function handlePointerDown(e) {
   targetTouchState.magnifying = false;
 
   targetTouchState.timer = setTimeout(() => {
-    if (!targetTouchState.isScrolling && session && !session.currentRound.locked && session.currentRound.arrows.length < 5) {
+    if (session && !session.currentRound.locked && session.currentRound.arrows.length < 5) {
       targetTouchState.magnifying = true;
+      targetTouchState.isScrolling = false; // Override scrolling so letting go properly places an arrow
       showMagnifier(targetTouchState.currentX, targetTouchState.currentY);
     }
   }, 350); // Hold delay
@@ -2395,10 +2397,10 @@ function handlePointerMove(e) {
   targetTouchState.currentX = e.clientX;
   targetTouchState.currentY = e.clientY;
 
-  if (Math.hypot(e.clientX - targetTouchState.startX, e.clientY - targetTouchState.startY) > 10) {
+  if (Math.hypot(e.clientX - targetTouchState.startX, e.clientY - targetTouchState.startY) > 15) {
     if (!targetTouchState.magnifying) {
       targetTouchState.isScrolling = true;
-      clearTimeout(targetTouchState.timer);
+      // Do not cancel the timer here. Let them hold to magnify!
     }
   }
 
@@ -2631,6 +2633,8 @@ function nextRound() {
   if (isTournamentSession(session)) session.currentRound = getCurrentTournamentRoundConfig(session);
   else session.currentRound = createRound(cr.mode, cr.mode === '3d' ? cr.animal : cr.distance);
   renderScorePage(); window.scrollTo(0,0);
+  if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
+  if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
 
 // ═══════════════════════════════════════════════
@@ -2760,11 +2764,11 @@ function openLocationOverlay(context) {
   activeLocationContext = context;
   const container = document.getElementById('locationOptionsContainer');
   const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
-  const activeLoc = activeLocationFilters[context];
+  const activeLocSet = activeLocationFilters[context];
   
-  let html = `<button class="sort-option ${activeLoc === 'all' ? 'active' : ''}" onclick="setLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
+  let html = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
   uniqueLocations.forEach(loc => {
-    html += `<button class="sort-option ${activeLoc === loc ? 'active' : ''}" onclick="setLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+    html += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
   });
   
   if (uniqueLocations.length === 0) {
@@ -2776,10 +2780,22 @@ function openLocationOverlay(context) {
 }
 
 function setLocationFilter(locLabel) {
-  activeLocationFilters[activeLocationContext] = locLabel;
+  const activeLocSet = activeLocationFilters[activeLocationContext];
+  if (locLabel === 'all') {
+    activeLocSet.clear();
+  } else {
+    if (activeLocSet.has(locLabel)) {
+      activeLocSet.delete(locLabel);
+    } else {
+      activeLocSet.add(locLabel);
+    }
+  }
+  
   const btn = document.getElementById(`${activeLocationContext}LocationBtn`);
-  if (btn) btn.classList.toggle('active', locLabel !== 'all');
-  closeOverlay('locationOverlay');
+  if (btn) btn.classList.toggle('active', activeLocSet.size > 0);
+  
+  // Update overlay UI to show multiple checks without closing it
+  openLocationOverlay(activeLocationContext);
   
   if (activeLocationContext === 'home') renderHome();
   else if (activeLocationContext === 'diag') renderDiag();
@@ -2811,41 +2827,34 @@ function applySortToSessions(sessions, sortKey) {
 
 function getFilterDefinition(key) { return FILTER_DEFS.find(def => def.key === key); }
 
-function getSelectedFilterMap(filters) {
-  const selected = [...filters];
-  return { scope: selected.find(key => getFilterDefinition(key)?.group === 'scope') || null, family: selected.find(key => getFilterDefinition(key)?.group === 'family') || null, value: selected.find(key => getFilterDefinition(key)?.group === 'value') || null };
-}
-
 function getVisibleFilters(filters) {
-  const selected = getSelectedFilterMap(filters); const visible = ['all'];
-  if (!selected.scope) visible.push('practice', 'tournament'); else visible.push(selected.scope);
-  if (!selected.family) visible.push('bullseye', '3d'); else visible.push(selected.family);
-  if (selected.family === 'bullseye') { visible.push(selected.value && ['10m', '15m'].includes(selected.value) ? selected.value : '10m', selected.value && ['10m', '15m'].includes(selected.value) ? null : '15m'); }
-  if (selected.family === '3d') {
-    if (selected.value && THREE_D_TARGET_LOOKUP[selected.value]) visible.push(selected.value);
-    else visible.push(...THREE_D_TARGETS.map(target => target.key));
-  }
-  return [...new Set(visible.filter(Boolean))];
+  const visible = ['all', 'practice', 'tournament', 'bullseye', '3d'];
+  if (filters.has('bullseye')) visible.push('10m', '15m');
+  if (filters.has('3d')) visible.push(...THREE_D_TARGETS.map(target => target.key));
+  return visible;
 }
 
 function toggleFilter(filters, key) {
-  if (key === 'all') { filters.clear(); return; }
-  const def = getFilterDefinition(key); if (!def) return;
+  if (key === 'all') { 
+    filters.clear(); 
+    return; 
+  }
   if (filters.has(key)) {
     filters.delete(key);
-    if (def.group === 'family') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'value') filters.delete(selectedKey); }); }
-    return;
-  }
-  if (def.group !== 'meta') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === def.group) filters.delete(selectedKey); }); }
-  if (def.group === 'family') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'value') filters.delete(selectedKey); }); }
-  if (def.group === 'value') {
-    const current = getSelectedFilterMap(filters);
-    if (current.family !== def.family) {
-      [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'family' || selectedDef?.group === 'value') filters.delete(selectedKey); });
+    const def = getFilterDefinition(key);
+    if (def.group === 'family') {
+      [...filters].forEach(k => {
+        const kDef = getFilterDefinition(k);
+        if (kDef.group === 'value' && kDef.family === key) filters.delete(k);
+      });
+    }
+  } else {
+    filters.add(key);
+    const def = getFilterDefinition(key);
+    if (def.group === 'value') {
       filters.add(def.family);
     }
   }
-  filters.add(key);
 }
 
 function renderFilters(rowId, filters, toggleFn) {
@@ -2868,26 +2877,37 @@ function renderDiagFilters() { renderFilters('diagFilterRow', diagFilters, 'togg
 function renderCoachFilters() { renderFilters('coachFilterRow', coachFilters, 'toggleCoachFilter'); }
 
 function roundMatchesFilters(round, filters) {
-  const selected = getSelectedFilterMap(filters);
-  if (selected.family && roundDescriptor(round).mode !== selected.family) return false;
-  if (selected.value) {
-    if (round.mode === '3d' && round.animal !== selected.value) return false;
-    if (round.mode === 'bullseye' && `${round.distance}m` !== selected.value) return false;
+  if (filters.size === 0) return true;
+  const selectedFamilies = [...filters].filter(k => getFilterDefinition(k).group === 'family');
+  const selectedValues = [...filters].filter(k => getFilterDefinition(k).group === 'value');
+  
+  if (selectedFamilies.length > 0 && !selectedFamilies.includes(round.mode)) return false;
+  if (selectedValues.length > 0) {
+    const rVal = round.mode === '3d' ? round.animal : `${round.distance}m`;
+    if (!selectedValues.includes(rVal)) return false;
   }
   return true;
 }
 
 function sessionMatchesFilter(sessionObj, filters, context) {
-  // Check location first
-  const activeLoc = activeLocationFilters[context];
-  if (activeLoc && activeLoc !== 'all') {
-    if (formatLocation(sessionObj.location) !== activeLoc) return false;
+  const activeLocSet = activeLocationFilters[context];
+  if (activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) {
+    return false;
   }
   
-  const selected = getSelectedFilterMap(filters);
-  if (selected.scope === 'practice' && sessionObj.type !== 'practice') return false;
-  if (selected.scope === 'tournament' && !isTournamentSession(sessionObj)) return false;
-  if (!selected.family && !selected.value) return true;
+  if (filters.size === 0) return true;
+
+  const selectedScopes = [...filters].filter(k => getFilterDefinition(k).group === 'scope');
+  const selectedFamilies = [...filters].filter(k => getFilterDefinition(k).group === 'family');
+  const selectedValues = [...filters].filter(k => getFilterDefinition(k).group === 'value');
+  
+  if (selectedScopes.length > 0) {
+    const sScope = isTournamentSession(sessionObj) ? 'tournament' : 'practice';
+    if (!selectedScopes.includes(sScope)) return false;
+  }
+
+  if (selectedFamilies.length === 0 && selectedValues.length === 0) return true;
+
   return sessionObj.rounds.some(round => roundMatchesFilters(round, filters));
 }
 
@@ -3097,6 +3117,8 @@ function goPage(name, btn) {
   if(name==='coach') renderCoach();
   if(name==='settings') updateDeviceNameSummary();
   window.scrollTo(0,0);
+  if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
+  if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
 
 // ═══════════════════════════════════════════════
@@ -3141,66 +3163,96 @@ function resetData() {
 // ═══════════════════════════════════════════════
 //  PAN/ZOOM UTILITIES
 // ═══════════════════════════════════════════════
-function attachPanZoom(containerId, wrapId) {
+function attachPanZoom(containerId, wrapId, constrainHorizontal = false) {
   const container = document.getElementById(containerId);
   const wrap = document.getElementById(wrapId);
   let scale = 1, tx = 0, ty = 0;
-  let startScale = 1, startTx = 0, startTy = 0;
-  let startTouches = [];
+  let initialScale = 1;
+  let initialPinchDist = null;
+  let lastPinchCenter = null;
+  let lastTouch = null;
+
+  function updateTransform() {
+    wrap.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}${constrainHorizontal ? ', 1' : ''})`;
+  }
 
   container.addEventListener('touchstart', e => {
-    startTouches = Array.from(e.touches).map(t => ({x: t.clientX, y: t.clientY}));
-    startScale = scale; startTx = tx; startTy = ty;
+    if (e.touches.length === 2) {
+      initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      initialScale = scale;
+      lastPinchCenter = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - container.getBoundingClientRect().left,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - container.getBoundingClientRect().top
+      };
+    } else if (e.touches.length === 1) {
+      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
   }, {passive: false});
 
   container.addEventListener('touchmove', e => {
+    e.preventDefault(); // Prevent scroll while pinching/panning
     if (e.touches.length === 2) {
-      e.preventDefault(); // Prevent scroll while pinching
-      const currentTouches = Array.from(e.touches).map(t => ({x: t.clientX, y: t.clientY}));
-      const startDist = Math.hypot(startTouches[0].x - startTouches[1].x, startTouches[0].y - startTouches[1].y);
-      const currentDist = Math.hypot(currentTouches[0].x - currentTouches[1].x, currentTouches[0].y - currentTouches[1].y);
-      if (startDist > 0) scale = Math.max(1, Math.min(5, startScale * (currentDist / startDist)));
+      const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const currentCenter = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - container.getBoundingClientRect().left,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - container.getBoundingClientRect().top
+      };
 
-      const startCX = (startTouches[0].x + startTouches[1].x) / 2;
-      const startCY = (startTouches[0].y + startTouches[1].y) / 2;
-      const currentCX = (currentTouches[0].x + currentTouches[1].x) / 2;
-      const currentCY = (currentTouches[0].y + currentTouches[1].y) / 2;
-      tx = startTx + (currentCX - startCX);
-      ty = startTy + (currentCY - startCY);
-      updateTransform();
+      if (initialPinchDist) {
+        const newScale = Math.max(1, Math.min(10, initialScale * (currentDist / initialPinchDist)));
+        const scaleRatio = newScale / scale;
+
+        tx = currentCenter.x - (lastPinchCenter.x - tx) * scaleRatio;
+        if (!constrainHorizontal) {
+          ty = currentCenter.y - (lastPinchCenter.y - ty) * scaleRatio;
+        }
+
+        scale = newScale;
+        lastPinchCenter = currentCenter;
+      }
     } else if (e.touches.length === 1 && scale > 1) {
-      e.preventDefault(); // Prevent scroll while panning
-      const t = e.touches[0];
-      tx = startTx + (t.clientX - startTouches[0].x);
-      ty = startTy + (t.clientY - startTouches[0].y);
-      updateTransform();
+      const currentTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      if (lastTouch) {
+        tx += (currentTouch.x - lastTouch.x);
+        if (!constrainHorizontal) ty += (currentTouch.y - lastTouch.y);
+      }
+      lastTouch = currentTouch;
     }
+
+    // Boundaries
+    const maxTx = 0;
+    const minTx = -container.clientWidth * (scale - 1);
+    tx = Math.max(minTx, Math.min(maxTx, tx));
+
+    if (!constrainHorizontal) {
+      const maxTy = 0;
+      const minTy = -container.clientHeight * (scale - 1);
+      ty = Math.max(minTy, Math.min(maxTy, ty));
+    } else {
+      ty = 0;
+    }
+
+    updateTransform();
   }, {passive: false});
 
-  function updateTransform() {
-    const maxTx = (scale - 1) * container.clientWidth / 2;
-    const maxTy = (scale - 1) * container.clientHeight / 2;
-    tx = Math.max(-maxTx, Math.min(maxTx, tx));
-    ty = Math.max(-maxTy, Math.min(maxTy, ty));
-    wrap.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-  }
-
-  // Double tap to reset
-  let lastTap = 0;
   container.addEventListener('touchend', e => {
-    const now = Date.now();
-    if (now - lastTap < 300 && e.touches.length === 0) {
-      scale = 1; tx = 0; ty = 0;
-      updateTransform();
+    if (e.touches.length === 1) {
+      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      initialPinchDist = null;
+    } else if (e.touches.length === 0) {
+      lastTouch = null;
+      initialPinchDist = null;
     }
-    lastTap = now;
   });
 
-  return () => ({scale, tx, ty, rect: container.getBoundingClientRect()});
+  return {
+    getTransform: () => ({scale, tx, ty, rect: container.getBoundingClientRect()}),
+    reset: () => { scale = 1; tx = 0; ty = 0; updateTransform(); }
+  };
 }
 
-const getTimelineTransform = attachPanZoom('timelineContainer', 'timelineTransformWrap');
-attachPanZoom('heatmapContainer', 'heatmapTransformWrap');
+window.timelinePanZoom = attachPanZoom('timelineContainer', 'timelineTransformWrap', true);
+window.heatmapPanZoom = attachPanZoom('heatmapContainer', 'heatmapTransformWrap', false);
 
 // ═══════════════════════════════════════════════
 //  DIAGNOSTICS / STATS
@@ -3212,16 +3264,23 @@ function getFilteredRounds() {
     session.rounds.forEach(r => rounds.push({...normalizeRound(r), sessionType: session.type, sessionDate: session.date}));
     if(session.currentRound.arrows.length) rounds.push({...normalizeRound(session.currentRound), sessionType: session.type, sessionDate: session.date});
   }
-  const selected = getSelectedFilterMap(diagFilters);
+  
+  const selectedScopes = [...diagFilters].filter(k => getFilterDefinition(k).group === 'scope');
+
   return rounds.filter(round => {
-    if (selected.scope === 'practice' && round.sessionType !== 'practice') return false;
-    if (selected.scope === 'tournament' && !isTournamentSession({type: round.sessionType})) return false;
-    return roundMatchesFilters(round, diagFilters);
+    if (selectedScopes.length > 0) {
+      const rScope = isTournamentSession({type: round.sessionType}) ? 'tournament' : 'practice';
+      if (!selectedScopes.includes(rScope)) return false;
+    }
+    if (diagFilters.size > 0 && !roundMatchesFilters(round, diagFilters)) {
+      return false;
+    }
+    return true;
   }).filter(round => {
-    const activeLoc = activeLocationFilters.diag;
-    if (activeLoc && activeLoc !== 'all') {
+    const activeLocSet = activeLocationFilters.diag;
+    if (activeLocSet.size > 0) {
       const sess = db.sessions.find(s => s.date === round.sessionDate) || session;
-      if (sess && formatLocation(sess.location) !== activeLoc) return false;
+      if (sess && !activeLocSet.has(formatLocation(sess.location))) return false;
     }
     return true;
   });
@@ -3393,7 +3452,7 @@ let tooltipHideTimer;
 tcContainer.addEventListener('touchend', e => {
   if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
-  const { scale, tx, rect } = getTimelineTransform();
+  const { scale, tx, rect } = window.timelinePanZoom.getTransform();
   
   // Untransform the coordinate
   const xUntransformed = ((t.clientX - rect.left) - tx) / scale;
@@ -3413,9 +3472,9 @@ tcContainer.addEventListener('touchend', e => {
   if (nearest) {
     document.getElementById('ttScore').textContent = nearest.score;
     document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
-    // Position tooltip using transformed coordinates
-    const displayX = (nearest.x * scale) + tx;
-    const displayY = (nearest.y * scale);
+    // Position tooltip using transformed coordinates correctly over the whole screen
+    const displayX = rect.left + (nearest.x * scale) + tx;
+    const displayY = rect.top + nearest.y;
     tooltip.style.left = displayX + 'px';
     tooltip.style.top = displayY + 'px';
     tooltip.style.display = 'block';
