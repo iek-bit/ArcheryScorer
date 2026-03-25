@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
 <meta name="theme-color" content="#0a0f1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -43,13 +43,14 @@
   /* ── NAV ── */
   nav {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--bg2);
+    background: color-mix(in srgb, var(--bg2) 85%, transparent);
     border-top: 1px solid var(--border);
     display: flex;
     z-index: 100;
     padding-bottom: max(8px, env(safe-area-inset-bottom));
     min-height: calc(64px + env(safe-area-inset-bottom));
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
   nav button {
     flex: 1; min-width: 0; padding: 10px 0 6px;
@@ -161,12 +162,6 @@
   .session-card.tournament h2 { color: var(--gold); }
   .session-card.practice h2 { color: var(--green); }
   .session-card p { color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.5; }
-  .card-badge {
-    position: absolute; top: 16px; right: 16px;
-    font-family: 'DM Mono', monospace; font-size: 10px;
-    padding: 4px 10px; border-radius: 20px;
-    background: rgba(255,255,255,.06); color: var(--muted);
-  }
 
   .recent-header {
     padding: 8px 20px 12px;
@@ -275,16 +270,69 @@
   /* Target */
   .target-wrap {
     display: flex; justify-content: center;
-    padding: 4px 4px 0;
+    padding: 4px 16px 0;
     position: relative;
+    width: 100%;
   }
   #targetCanvas {
     border-radius: 50%;
-    touch-action: manipulation;
-    max-width: min(500px, 100vw);
+    max-width: 500px;
+    max-height: calc(100dvh - 300px); /* Keeps target entirely visible above the nav bar */
     width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
     cursor: crosshair;
     display: block;
+    margin: 0 auto;
+  }
+
+  /* Magnifier Tool */
+  #magnifierWrap {
+    position: fixed; /* Fix to viewport to follow finger smoothly */
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: var(--bg);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    pointer-events: none;
+    display: none;
+    overflow: hidden;
+    z-index: 500;
+    transform: translate(-50%, -120%); /* Offset significantly above the finger */
+  }
+  #magnifierCanvas { width: 100%; height: 100%; }
+  .magnifier-crosshair {
+    position: absolute; top: 50%; left: 50%;
+    width: 20px; height: 20px;
+    transform: translate(-50%, -50%);
+  }
+  .magnifier-crosshair::before, .magnifier-crosshair::after {
+    content: ''; position: absolute; background: var(--red);
+  }
+  .magnifier-crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+  .magnifier-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+
+  /* Miss Button */
+  .miss-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all .15s;
+  }
+  .miss-btn:active {
+    background: rgba(224, 82, 82, 0.15);
+    color: var(--red);
+    border-color: var(--red);
+    transform: scale(0.95);
   }
 
   .arrows-row {
@@ -372,7 +420,7 @@
   .round-score-row .rsr-score { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
   .round-score-row .rsr-arrows { font-size: 11px; color: var(--muted); }
 
-  /* ── DIAGNOSTICS ── */
+  /* ── STATS / DIAGNOSTICS ── */
   .diag-header {
     padding: 16px 20px 16px;
     padding-top: max(16px, env(safe-area-inset-top));
@@ -387,15 +435,9 @@
     padding: 9px 16px; border-radius: 20px;
     border: 1px solid var(--border); background: none;
     color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
-    cursor: pointer; transition: all .2s;
+    cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
   }
   .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
-  .filter-help {
-    padding: 0 16px 8px;
-    color: var(--muted);
-    font-size: 11px;
-    font-family: 'DM Mono', monospace;
-  }
 
   .filter-bar {
     display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 0;
@@ -414,6 +456,26 @@
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
 
+  /* Accordions for Stats UI to save mobile space */
+  .accordion-header {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; padding: 14px 16px;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+    margin: 12px 16px; transition: background .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .accordion-header:active { background: var(--bg3); }
+  .accordion-header h3 {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--text); text-transform: uppercase; letter-spacing: 1px;
+    margin: 0;
+  }
+  .accordion-header .ui-icon { transition: transform 0.2s; color: var(--muted); }
+  .accordion-content { display: none; padding: 4px 16px 16px; }
+  .diag-section.open .accordion-content { display: block; }
+  .diag-section.open .accordion-header { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; margin-bottom: 0;}
+  .diag-section.open .accordion-header .ui-icon { transform: rotate(180deg); color: var(--accent); }
+
   .sort-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.6);
     display: flex; align-items: flex-end; justify-content: center;
@@ -422,7 +484,7 @@
   .sort-overlay.open { opacity: 1; pointer-events: all; }
   .sort-sheet {
     background: var(--bg2); border-radius: 20px 20px 0 0;
-    width: 100%; max-width: 480px;
+    width: 100%; max-width: 480px; max-height: 80dvh; overflow-y: auto;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     transform: translateY(30px); transition: transform .25s;
   }
@@ -488,23 +550,46 @@
   .stat-card .sc-val { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--accent); line-height: 1.1; margin-top: 4px; }
   .stat-card .sc-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-  .diag-section { padding: 8px 16px; }
-  .diag-section h3 {
-    font-family: 'DM Mono', monospace; font-size: 11px;
-    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
-    margin-bottom: 12px;
+  /* Interactive Canvas Containers */
+  .interactive-canvas-container {
+    width: 100%; overflow: hidden; touch-action: none;
+    position: relative; display: flex; justify-content: center; align-items: center;
+    border: 1px solid var(--border); background: var(--bg); border-radius: 14px;
   }
+  .interactive-transform-wrap { transform-origin: top left; width: 100%; display: flex; justify-content: center; }
 
   #heatmapCanvas {
-    border-radius: 50%; display: block; margin: 0 auto;
-    max-width: 260px; width: 100%;
+    border-radius: 50%; display: block;
+    width: 100%; max-width: 520px; height: auto; aspect-ratio: 1 / 1;
   }
 
   .score-timeline {
+    width: 100%;
     background: var(--bg2); border: 1px solid var(--border);
     border-radius: 14px; overflow: hidden;
+    position: relative; touch-action: none;
   }
   #timelineCanvas { display: block; width: 100%; }
+  
+  /* Timeline Tooltip */
+  .timeline-tooltip {
+    position: absolute;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    margin-top: -10px;
+  }
+  .timeline-tooltip .tt-score { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
+  .timeline-tooltip .tt-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
 
   .zone-bars { display: flex; flex-direction: column; gap: 6px; }
   .zone-bar-row { display: flex; align-items: center; gap: 10px; }
@@ -738,6 +823,19 @@
   }
   .detail-pip.dark-text { color: #ccc; }
 
+  /* Help Guide Styling */
+  .help-section {
+    margin-bottom: 24px;
+  }
+  .help-section h4 {
+    font-family: 'DM Mono', monospace; font-size: 14px; color: var(--accent);
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .help-section p, .help-section li {
+    font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 8px;
+  }
+  .help-section ul { padding-left: 20px; }
+
   /* ── SETTINGS ── */
   .settings-section {
     margin: 16px 16px 0;
@@ -956,7 +1054,7 @@
       padding: 8px 12px;
     }
     .round-scores-list,
-    .diag-section,
+    .accordion-header,
     .coach-group {
       padding-left: 12px;
       padding-right: 12px;
@@ -1020,7 +1118,7 @@ const ICONS = {
   target: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="2"></circle></svg>',
   history: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>',
   pulse: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>',
-  settings: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>',
+  settings: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
   stop: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>',
   close: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
   download: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg>',
@@ -1033,7 +1131,9 @@ const ICONS = {
   search: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>',
   undo: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7L4 12l5 5"></path><path d="M5 12h8a6 6 0 1 1 0 12h-2"></path></svg>',
   users: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg>',
-  edit: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>'
+  edit: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
+  chevronDown: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>',
+  help: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
 };
 
 function icon(name, extraClass = '') {
@@ -1045,8 +1145,8 @@ const THREE_D_TARGETS = [
   {key: 'turkey', label: 'Turkey'},
   {key: 'coyote', label: 'Coyote'},
   {key: 'bear', label: 'Bear'},
+  {key: 'deer', label: 'Deer'}, // Swapped Deer and Antelope
   {key: 'antelope', label: 'Antelope'},
-  {key: 'deer', label: 'Deer'},
   {key: 'ram', label: 'Ram'}
 ];
 const THREE_D_TARGET_LOOKUP = Object.fromEntries(THREE_D_TARGETS.map(target => [target.key, target.label]));
@@ -1073,7 +1173,6 @@ const PRACTICE_TARGET_OPTIONS = [
         <h2>Practice</h2>
       </div>
       <div class="session-card" onclick="launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
-        <div class="card-badge">Not saved</div>
         <h2 style="color:var(--muted)">Quick Score</h2>
       </div>
     </div>
@@ -1111,6 +1210,11 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="target-wrap">
       <canvas id="targetCanvas" width="600" height="600"></canvas>
+      <div id="magnifierWrap">
+        <canvas id="magnifierCanvas" width="130" height="130"></canvas>
+        <div class="magnifier-crosshair"></div>
+      </div>
+      <button id="missBtn" class="miss-btn" onclick="scoreMiss()">M</button>
     </div>
 
     <div class="arrows-row" id="arrowDots"></div>
@@ -1145,21 +1249,30 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
   <div class="filter-bar">
     <div class="filter-row" id="homeFilterRow"></div>
+    <button class="sort-btn" id="homeLocationBtn" onclick="openLocationOverlay('home')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
+      Location
+    </button>
     <button class="sort-btn" id="homeSortBtn" onclick="openSortOverlay('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
       Sort
     </button>
   </div>
-  <div class="filter-help" id="homeFilterHelp">Tap filters to narrow history. Tap again to remove.</div>
   <div id="recentList"></div>
 </div>
 
 <div id="page-diag" class="page">
   <div class="diag-header">
-    <h2>DIAGNOSTICS</h2>
+    <h2>STATS</h2>
   </div>
-  <div class="filter-row" id="diagFilterRow"></div>
-  <div class="filter-help" id="diagFilterHelp">Mix compatible filters like tournament + 3D + ram.</div>
+  <div class="filter-bar" style="padding-top:8px;">
+    <div class="filter-row" id="diagFilterRow" style="padding-top:0"></div>
+    <button class="sort-btn" id="diagLocationBtn" onclick="openLocationOverlay('diag')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
+      Location
+    </button>
+  </div>
+
   <div class="stat-grid">
     <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val" id="dAvg">—</div></div>
     <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val" id="dArrows">—</div></div>
@@ -1168,20 +1281,47 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 
   <div class="diag-section">
-    <h3>Arrow Grouping Heatmap</h3>
-    <canvas id="heatmapCanvas" width="520" height="520"></canvas>
-  </div>
-
-  <div class="diag-section" style="margin-top:16px">
-    <h3>Score Over Time (per round)</h3>
-    <div class="score-timeline">
-      <canvas id="timelineCanvas" width="800" height="200"></canvas>
+    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+      <h3>Arrow Grouping Heatmap</h3>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </div>
+    <div class="accordion-content">
+      <div class="interactive-canvas-container" id="heatmapContainer">
+        <div class="interactive-transform-wrap" id="heatmapTransformWrap">
+          <canvas id="heatmapCanvas" width="520" height="520"></canvas>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:8px;">Pinch to zoom, drag to pan</div>
     </div>
   </div>
 
-  <div class="diag-section" style="margin-top:16px; margin-bottom: 20px">
-    <h3>Score Zone Distribution</h3>
-    <div class="zone-bars" id="zoneBars"></div>
+  <div class="diag-section">
+    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+      <h3>Score Over Time (per round)</h3>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </div>
+    <div class="accordion-content">
+      <div class="score-timeline" id="timelineContainer">
+        <div class="interactive-transform-wrap" id="timelineTransformWrap">
+          <canvas id="timelineCanvas" width="800" height="250"></canvas>
+        </div>
+        <div class="timeline-tooltip" id="timelineTooltip">
+          <div class="tt-score" id="ttScore"></div>
+          <div class="tt-date" id="ttDate"></div>
+        </div>
+      </div>
+      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:8px;">Pinch/drag to explore, tap a point for details</div>
+    </div>
+  </div>
+
+  <div class="diag-section" style="margin-bottom: 20px">
+    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+      <h3>Score Zone Distribution</h3>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </div>
+    <div class="accordion-content">
+      <div class="zone-bars" id="zoneBars"></div>
+    </div>
   </div>
 </div>
 
@@ -1201,12 +1341,15 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
   <div class="filter-bar" style="padding-top:8px;">
     <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
+    <button class="sort-btn" id="coachLocationBtn" onclick="openLocationOverlay('coach')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
+      Location
+    </button>
     <button class="sort-btn" id="coachSortBtn" onclick="openSortOverlay('coach')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
       Sort
     </button>
   </div>
-  <div class="filter-help" id="coachFilterHelp">Search by archer, then use filters to narrow their sessions.</div>
   <div id="coachList"></div>
 </div>
 
@@ -1294,11 +1437,19 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <div class="settings-section">
     <div class="settings-label">ABOUT</div>
+    <div class="settings-row" onclick="openHelpOverlay()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Help Guide</div>
+        <div class="settings-row-sub">Learn how to use Achery Scorer</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
     <div class="settings-row" onclick="openAboutOverlay()">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
       <div class="settings-row-text">
         <div class="settings-row-title">Achery Scorer</div>
-        <div class="settings-row-sub">Archery scoring & diagnostics PWA</div>
+        <div class="settings-row-sub">Archery scoring & stats PWA</div>
       </div>
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
@@ -1344,11 +1495,53 @@ const PRACTICE_TARGET_OPTIONS = [
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px 16px">
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Highlights</div>
       <div style="font-size:14px;line-height:1.7;color:var(--text)">
-        Manual and tournament scoring, saved session history, grouping heatmaps, theme customization, and location-aware session logging.
+        Manual and tournament scoring, saved session history, true grouping heatmaps, theme customization, and location-aware session logging.
       </div>
     </div>
   </div>
 </div>
+
+<!-- Help Guide Overlay -->
+<div class="detail-overlay" id="helpOverlay">
+  <div class="detail-modal" style="height: 90dvh; display: flex; flex-direction: column;">
+    <div class="detail-modal-header" style="flex-shrink: 0;">
+      <h3>Help Guide</h3>
+      <button class="detail-close" onclick="closeOverlay('helpOverlay')" aria-label="Close help guide">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div style="overflow-y: auto; flex: 1; padding-right: 4px;">
+      <div class="help-section">
+        <h4>Scoring Basics</h4>
+        <p>To score an arrow, tap directly on the target exactly where your real arrow landed. The app calculates the ring score automatically.</p>
+        <ul>
+          <li><strong>Magnify Tool:</strong> Tap and hold on the target to pop up a magnifying lens. Drag your finger to aim the crosshair precisely, then release to place the arrow.</li>
+          <li><strong>Misses:</strong> If you miss the target completely, tap the "M" button in the top right corner.</li>
+          <li><strong>Undo:</strong> Use the undo button in the top navigation to remove the last placed arrow.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h4>Tournaments vs Practice</h4>
+        <p><strong>Practice:</strong> You have full control. Change target faces and distances at any time between rounds. Sessions can be saved at any length.</p>
+        <p><strong>Tournaments:</strong> Follow a strict 6-round sequence. The target face and distance change automatically depending on your starting animal and direction.</p>
+        <p><strong>Quick Score:</strong> Useful for a fast round you don't care to save to your history.</p>
+      </div>
+      <div class="help-section">
+        <h4>Stats & Visuals</h4>
+        <p>Your stats aggregate based on your currently active filters. Use the "Location" button to only view stats from specific ranges.</p>
+        <ul>
+          <li><strong>True Heatmap:</strong> A visual mapping of where your arrows tend to group. Deep red indicates your tightest clusters, while blue indicates sparse outliers. Pinch to zoom and drag to pan the heatmap.</li>
+          <li><strong>Timeline:</strong> Pinch to zoom and pan along the timeline. Tap on specific points to see the date and score of that exact session.</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <h4>Data Management</h4>
+        <p>If you get a new device, use the "Download Save File" option in Settings to export your history, and "Upload Save File" on the new device.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="detail-overlay" id="detailOverlay">
   <div class="detail-modal">
     <div class="detail-modal-header">
@@ -1422,10 +1615,18 @@ const PRACTICE_TARGET_OPTIONS = [
     <span>Coach</span>
   </button>
   <button onclick="goPage('settings',this)" id="nav-settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     <span>Settings</span>
   </button>
 </nav>
+
+<!-- Location overlay -->
+<div class="sort-overlay" id="locationOverlay" onclick="closeOverlay('locationOverlay')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Filter by Location</h4>
+    <div id="locationOptionsContainer"></div>
+  </div>
+</div>
 
 <!-- Sort overlay -->
 <div class="sort-overlay" id="sortOverlay" onclick="closeSortOverlay(event)">
@@ -1477,7 +1678,6 @@ const PRACTICE_TARGET_OPTIONS = [
       oninput="locationInputDirty = true"
     >
     <datalist id="savedLocationOptions"></datalist>
-    <!-- <div class="modal-help" id="finishLocationHint">City name only.</div> -->
     <button class="modal-btn primary" onclick="saveFinishedSession()">SAVE SESSION</button>
     <button class="modal-btn" onclick="saveFinishedSession(false)">SAVE WITHOUT LOCATION</button>
   </div>
@@ -1562,7 +1762,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <script>
 // ═══════════════════════════════════════════════
-//  DATA LAYER
+//  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
 const APP_VERSION = '1.0.0';
@@ -1574,68 +1774,17 @@ db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
 db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db.deviceProfile : {name: ''};
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
+
+// Location Filter States
+let activeLocationFilters = { home: 'all', diag: 'all', coach: 'all' };
+
 const THEME_KEY = 'achery_scorer_theme_v1';
 const THEME_PRESETS = {
-  auto: {
-    name: 'Auto',
-    followsSystem: true
-  },
-  dark: {
-    name: 'Dark',
-    bg: '#0a0f1a',
-    bg2: '#111827',
-    bg3: '#1e2a3a',
-    accent: '#e8c547',
-    accent2: '#f0a04b',
-    accent3: '#f7d978',
-    text: '#e8eaf0',
-    muted: '#6b7a99',
-    border: '#2a3a50',
-    gold: '#e8c547',
-    silver: '#9daab8'
-  },
-  white: {
-    name: 'White',
-    bg: '#f7f7f2',
-    bg2: '#ffffff',
-    bg3: '#edf0e8',
-    accent: '#1f2937',
-    accent2: '#64748b',
-    accent3: '#94a3b8',
-    text: '#0f172a',
-    muted: '#5f6c80',
-    border: '#d0d5dd',
-    gold: '#1f2937',
-    silver: '#98a2b3'
-  },
-  forest: {
-    name: 'Dark Green / White',
-    bg: '#102019',
-    bg2: '#163126',
-    bg3: '#214536',
-    accent: '#f6f7f2',
-    accent2: '#9ed3b0',
-    accent3: '#d8e7dc',
-    text: '#fbfdf8',
-    muted: '#a2bcaf',
-    border: '#335c49',
-    gold: '#f6f7f2',
-    silver: '#b5c7bd'
-  },
-  moss: {
-    name: 'Green / Black',
-    bg: '#0f1511',
-    bg2: '#18211b',
-    bg3: '#243229',
-    accent: '#79c08f',
-    accent2: '#aed7a4',
-    accent3: '#5f8f6c',
-    text: '#f2f7f2',
-    muted: '#9cb0a5',
-    border: '#33463b',
-    gold: '#79c08f',
-    silver: '#a4b7ad'
-  }
+  auto: { name: 'Auto', followsSystem: true },
+  dark: { name: 'Dark', bg: '#0a0f1a', bg2: '#111827', bg3: '#1e2a3a', accent: '#e8c547', accent2: '#f0a04b', accent3: '#f7d978', text: '#e8eaf0', muted: '#6b7a99', border: '#2a3a50', gold: '#e8c547', silver: '#9daab8' },
+  white: { name: 'White', bg: '#f7f7f2', bg2: '#ffffff', bg3: '#edf0e8', accent: '#1f2937', accent2: '#64748b', accent3: '#94a3b8', text: '#0f172a', muted: '#5f6c80', border: '#d0d5dd', gold: '#1f2937', silver: '#98a2b3' },
+  forest: { name: 'Dark Green / White', bg: '#102019', bg2: '#163126', bg3: '#214536', accent: '#f6f7f2', accent2: '#9ed3b0', accent3: '#d8e7dc', text: '#fbfdf8', muted: '#a2bcaf', border: '#335c49', gold: '#f6f7f2', silver: '#b5c7bd' },
+  moss: { name: 'Green / Black', bg: '#0f1511', bg2: '#18211b', bg3: '#243229', accent: '#79c08f', accent2: '#aed7a4', accent3: '#5f8f6c', text: '#f2f7f2', muted: '#9cb0a5', border: '#33463b', gold: '#79c08f', silver: '#a4b7ad' }
 };
 const THEME_SWATCH_KEYS = ['accent', 'accent2', 'accent3', 'text'];
 const THEME_COLOR_OPTIONS = {
@@ -1647,24 +1796,13 @@ const THEME_COLOR_OPTIONS = {
 let themeState = (() => {
   try {
     const parsed = JSON.parse(localStorage.getItem(THEME_KEY) || '');
-    return parsed && typeof parsed === 'object'
-      ? parsed
-      : {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
-  } catch {
-    return {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
-  }
+    return parsed && typeof parsed === 'object' ? parsed : {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text};
+  } catch { return {preset: 'auto', accent: THEME_PRESETS.dark.accent, accent2: THEME_PRESETS.dark.accent2, accent3: THEME_PRESETS.dark.accent3, text: THEME_PRESETS.dark.text}; }
 })();
 let activeThemeColorKey = 'accent';
 
-function normalizePersonName(value) {
-  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : '';
-}
-
-function normalizeDeviceProfile(raw = {}) {
-  return {
-    name: normalizePersonName(raw.name)
-  };
-}
+function normalizePersonName(value) { return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : ''; }
+function normalizeDeviceProfile(raw = {}) { return { name: normalizePersonName(raw.name) }; }
 
 function normalizeRound(round = {}) {
   const mode = round.mode || (round.animal ? '3d' : 'bullseye');
@@ -1716,7 +1854,7 @@ db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
 // ═══════════════════════════════════════════════
 //  SESSION STATE
 // ═══════════════════════════════════════════════
-let session = null; // current in-progress session
+let session = null;
 let finishingSession = null;
 let pendingLocationSessionId = null;
 let medianIOSGeoReady = !/MedianIOS/i.test(navigator.userAgent);
@@ -1728,13 +1866,8 @@ let coachSearch = '';
 let coachUnlocked = localStorage.getItem(COACH_UNLOCK_KEY) === 'true';
 let activeSessionViewMode = 'default';
 
-function isTournamentSession(sessionObj) {
-  return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament';
-}
-
-function isThreeDSession(sessionObj) {
-  return sessionObj?.type === '3d_tournament';
-}
+function isTournamentSession(sessionObj) { return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament'; }
+function isThreeDSession(sessionObj) { return sessionObj?.type === '3d_tournament'; }
 
 function createRound(mode = 'bullseye', value = 10) {
   return normalizeRound(mode === '3d'
@@ -1744,9 +1877,7 @@ function createRound(mode = 'bullseye', value = 10) {
 
 function roundDescriptor(round) {
   const normalized = normalizeRound(round);
-  if (normalized.mode === '3d') {
-    return {mode: '3d', label: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey', shortLabel: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey'};
-  }
+  if (normalized.mode === '3d') return {mode: '3d', label: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey', shortLabel: THREE_D_TARGET_LOOKUP[normalized.animal] || 'Turkey'};
   return {mode: 'bullseye', label: `${normalized.distance}m`, shortLabel: `${normalized.distance}m`};
 }
 
@@ -1782,32 +1913,19 @@ function getCurrentTournamentRoundConfig(sessionObj = session) {
   return createRound('bullseye', roundNumber < 3 ? 10 : 15);
 }
 
-function isMedianAndroidAvailable() {
-  return !!window.median?.android?.geoLocation;
-}
+function isMedianAndroidAvailable() { return !!window.median?.android?.geoLocation; }
 
-function persistTheme() {
-  localStorage.setItem(THEME_KEY, JSON.stringify(themeState));
-}
+function persistTheme() { localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }
 
 function resolveThemePreset(name) {
-  if (name === 'auto') {
-    return systemThemeQuery?.matches ? THEME_PRESETS.dark : THEME_PRESETS.white;
-  }
+  if (name === 'auto') return systemThemeQuery?.matches ? THEME_PRESETS.dark : THEME_PRESETS.white;
   return THEME_PRESETS[name] || THEME_PRESETS.dark;
 }
 
 function getActiveTheme() {
   const preset = resolveThemePreset(themeState.preset);
   if (themeState.preset === 'auto') return {...preset};
-  return {
-    ...preset,
-    accent: themeState.accent || preset.accent,
-    accent2: themeState.accent2 || preset.accent2,
-    accent3: themeState.accent3 || preset.accent3,
-    text: themeState.text || preset.text,
-    gold: themeState.accent || preset.gold
-  };
+  return { ...preset, accent: themeState.accent || preset.accent, accent2: themeState.accent2 || preset.accent2, accent3: themeState.accent3 || preset.accent3, text: themeState.text || preset.text, gold: themeState.accent || preset.gold };
 }
 
 function renderThemePresets() {
@@ -1893,19 +2011,10 @@ function applyPresetTheme(name) {
   if (!preset) return;
   if (name === 'auto') {
     themeState = {preset: 'auto'};
-    persistTheme();
-    applyTheme();
-    return;
+    persistTheme(); applyTheme(); return;
   }
-  themeState = {
-    preset: name,
-    accent: preset.accent,
-    accent2: preset.accent2,
-    accent3: preset.accent3,
-    text: preset.text
-  };
-  persistTheme();
-  applyTheme();
+  themeState = { preset: name, accent: preset.accent, accent2: preset.accent2, accent3: preset.accent3, text: preset.text };
+  persistTheme(); applyTheme();
 }
 
 function updateCustomTheme(key, value) {
@@ -1921,8 +2030,7 @@ function updateCustomTheme(key, value) {
     };
   }
   themeState[key] = value;
-  persistTheme();
-  applyTheme();
+  persistTheme(); applyTheme();
 }
 
 function openAboutOverlay() {
@@ -1930,34 +2038,28 @@ function openAboutOverlay() {
   document.getElementById('aboutOverlay').classList.add('open');
 }
 
+function openHelpOverlay() {
+  document.getElementById('helpOverlay').classList.add('open');
+}
+
 if (systemThemeQuery) {
-  const handleSystemThemeChange = () => {
-    if (themeState.preset === 'auto') applyTheme();
-  };
-  if (typeof systemThemeQuery.addEventListener === 'function') {
-    systemThemeQuery.addEventListener('change', handleSystemThemeChange);
-  } else if (typeof systemThemeQuery.addListener === 'function') {
-    systemThemeQuery.addListener(handleSystemThemeChange);
-  }
+  const handleSystemThemeChange = () => { if (themeState.preset === 'auto') applyTheme(); };
+  if (typeof systemThemeQuery.addEventListener === 'function') { systemThemeQuery.addEventListener('change', handleSystemThemeChange); } 
+  else if (typeof systemThemeQuery.addListener === 'function') { systemThemeQuery.addListener(handleSystemThemeChange); }
 }
 
 function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
-  const dx = aLat - bLat;
-  const dy = aLng - bLng;
+  const dx = aLat - bLat; const dy = aLng - bLng;
   return dx * dx + dy * dy;
 }
 
 function getNearestSavedLocation(lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-  let best = null;
-  let bestDistance = Infinity;
+  let best = null, bestDistance = Infinity;
   db.savedLocations.forEach(loc => {
     if (!loc?.label || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
     const dist = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
-    if (dist < bestDistance) {
-      bestDistance = dist;
-      best = loc;
-    }
+    if (dist < bestDistance) { bestDistance = dist; best = loc; }
   });
   return best;
 }
@@ -1973,41 +2075,27 @@ function saveChosenLocation(location) {
   const label = location?.label?.trim();
   if (!label) return;
   const existing = db.savedLocations.find(loc => loc.label.toLowerCase() === label.toLowerCase());
-  const next = {
-    label,
-    lat: typeof location.lat === 'number' ? location.lat : existing?.lat,
-    lng: typeof location.lng === 'number' ? location.lng : existing?.lng,
-    updatedAt: new Date().toISOString()
-  };
-  if (existing) {
-    Object.assign(existing, next);
-  } else {
-    db.savedLocations.push(next);
-  }
+  const next = { label, lat: typeof location.lat === 'number' ? location.lat : existing?.lat, lng: typeof location.lng === 'number' ? location.lng : existing?.lng, updatedAt: new Date().toISOString() };
+  if (existing) Object.assign(existing, next);
+  else db.savedLocations.push(next);
 }
 
 function assignLocationToSession(sessionId, location) {
   if (session?.id === sessionId) {
     if (session.location?.manual && !location.manual) return;
-    session.location = {...session.location, ...location};
-    return;
+    session.location = {...session.location, ...location}; return;
   }
   if (finishingSession?.id === sessionId) {
     if (finishingSession.location?.manual && !location.manual) return;
     finishingSession.location = {...finishingSession.location, ...location};
-    syncFinishLocationInput();
-    return;
+    syncFinishLocationInput(); return;
   }
   const savedSession = db.sessions.find(s => s.id === sessionId);
   if (savedSession) {
     if (savedSession.location?.manual && !location.manual) return;
     savedSession.location = {...savedSession.location, ...location};
-    save();
-    renderHome();
-    renderCoach();
-    if (activeSessionIdx !== null && db.sessions[activeSessionIdx]?.id === sessionId) {
-      openSessionOverlay(activeSessionIdx);
-    }
+    save(); renderHome(); renderCoach();
+    if (activeSessionIdx !== null && db.sessions[activeSessionIdx]?.id === sessionId) openSessionOverlay(activeSessionIdx);
   }
 }
 
@@ -2019,14 +2107,7 @@ function formatLocation(sessionLocation) {
 
 function summarizeReverseGeocode(data) {
   if (!data || typeof data !== 'object') return '';
-  return (
-    data.city ||
-    data.locality ||
-    data.localityName ||
-    data.principalSubdivision ||
-    data.localityInfo?.administrative?.find(a => a.adminLevel === 6 || a.adminLevel === 5)?.name ||
-    ''
-  );
+  return data.city || data.locality || data.localityName || data.principalSubdivision || data.localityInfo?.administrative?.find(a => a.adminLevel === 6 || a.adminLevel === 5)?.name || '';
 }
 
 async function reverseGeocodeLocation(sessionId, lat, lng) {
@@ -2038,9 +2119,7 @@ async function reverseGeocodeLocation(sessionId, lat, lng) {
     const label = summarizeReverseGeocode(data);
     if (!label) return;
     assignLocationToSession(sessionId, {label});
-  } catch {
-    // Leave coordinates as the fallback when reverse geocoding fails.
-  }
+  } catch { /* Fallback */ }
 }
 
 function sessionMetaText(sessionObj) {
@@ -2063,21 +2142,16 @@ function sessionMetaText(sessionObj) {
 function buildFinishedSession() {
   if (!session) return null;
   const finished = {
-    id: session.id,
-    type: session.type,
-    date: session.date,
+    id: session.id, type: session.type, date: session.date,
     location: session.location ? {...session.location} : null,
     archerName: session.archerName || '',
     rounds: session.rounds.map(r => ({...r, arrows: [...r.arrows]})),
   };
   if (session.type === '3d_tournament') {
-    finished.startAnimal = session.startAnimal;
-    finished.direction = session.direction;
+    finished.startAnimal = session.startAnimal; finished.direction = session.direction;
     finished.tournamentSequence = [...(session.tournamentSequence || [])];
   }
-  if (session.currentRound.arrows.length > 0) {
-    finished.rounds.push({...session.currentRound, arrows: [...session.currentRound.arrows]});
-  }
+  if (session.currentRound.arrows.length > 0) finished.rounds.push({...session.currentRound, arrows: [...session.currentRound.arrows]});
   return finished;
 }
 
@@ -2092,9 +2166,7 @@ function syncFinishLocationInput() {
   input.value = formatLocation(finishingSession.location) || '';
 }
 
-function getDeviceArcherName() {
-  return normalizePersonName(db.deviceProfile?.name);
-}
+function getDeviceArcherName() { return normalizePersonName(db.deviceProfile?.name); }
 
 function updateDeviceNameSummary() {
   const summary = document.getElementById('deviceNameSummary');
@@ -2109,10 +2181,7 @@ function updateCoachModeUI() {
   if (summary) summary.textContent = coachUnlocked ? 'Enabled on this device' : 'Disabled on this device';
 }
 
-function closeDeviceNameOverlay() {
-  pendingSessionType = null;
-  closeOverlay('deviceNameOverlay');
-}
+function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
 
 function openDeviceNameOverlay(context = 'launch') {
   deviceNameOverlayContext = context;
@@ -2124,154 +2193,80 @@ function openDeviceNameOverlay(context = 'launch') {
   const input = document.getElementById('deviceNameInput');
   input.value = existing;
   document.getElementById('deviceNameOverlay').classList.add('open');
-  setTimeout(() => {
-    input.focus();
-    input.select();
-  }, 60);
+  setTimeout(() => { input.focus(); input.select(); }, 60);
 }
 
 function submitDeviceName() {
   const input = document.getElementById('deviceNameInput');
   const nextName = normalizePersonName(input.value);
-  if (!nextName) {
-    alert('Please enter an archer name.');
-    input.focus();
-    return;
-  }
+  if (!nextName) { alert('Please enter an archer name.'); input.focus(); return; }
   const currentName = getDeviceArcherName();
   if (nextName.toLowerCase() !== (currentName || '').toLowerCase()) {
-    const duplicate = db.sessions.some(s =>
-      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
-    );
-    if (duplicate) {
-      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
-      input.focus();
-      return;
-    }
+    const duplicate = db.sessions.some(s => normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase());
+    if (duplicate) { alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
   }
-  db.deviceProfile = normalizeDeviceProfile({name: nextName});
-  save();
-  updateDeviceNameSummary();
-  closeOverlay('deviceNameOverlay');
+  db.deviceProfile = normalizeDeviceProfile({name: nextName}); save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
   if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
-    const nextType = pendingSessionType;
-    pendingSessionType = null;
-    startSession(nextType);
-    return;
+    const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
   }
-  pendingSessionType = null;
-  renderCoach();
+  pendingSessionType = null; renderCoach();
 }
 
 function ensureDeviceNameForScoring(type) {
   if (getDeviceArcherName()) return true;
-  pendingSessionType = type;
-  openDeviceNameOverlay('launch');
-  return false;
+  pendingSessionType = type; openDeviceNameOverlay('launch'); return false;
 }
 
-function launchSession(type) {
-  if (!ensureDeviceNameForScoring(type)) return;
-  startSession(type);
-}
-
-function launchEphemeralSession() {
-  startSession('practice', { ephemeral: true });
-}
+function launchSession(type) { if (!ensureDeviceNameForScoring(type)) return; startSession(type); }
+function launchEphemeralSession() { startSession('practice', { ephemeral: true }); }
 
 function openCoachActivation() {
-  if (coachUnlocked) {
-    document.getElementById('disableCoachOverlay').classList.add('open');
-    return;
-  }
+  if (coachUnlocked) { document.getElementById('disableCoachOverlay').classList.add('open'); return; }
   const input = document.getElementById('coachPasswordInput');
   const hint = document.getElementById('coachPasswordHint');
-  input.value = '';
-  hint.textContent = 'Enter the coach password to enable coach mode on this device.';
+  input.value = ''; hint.textContent = 'Enter the coach password to enable coach mode on this device.';
   document.getElementById('coachPasswordOverlay').classList.add('open');
   setTimeout(() => input.focus(), 60);
 }
 
 function confirmDisableCoach() {
-  coachUnlocked = false;
-  localStorage.removeItem(COACH_UNLOCK_KEY);
-  closeOverlay('disableCoachOverlay');
-  updateCoachModeUI();
-  // if currently on coach page, navigate away
-  if (document.getElementById('page-coach')?.classList.contains('active')) {
-    goPage('score', document.getElementById('nav-score'));
-  }
+  coachUnlocked = false; localStorage.removeItem(COACH_UNLOCK_KEY); closeOverlay('disableCoachOverlay'); updateCoachModeUI();
+  if (document.getElementById('page-coach')?.classList.contains('active')) goPage('score', document.getElementById('nav-score'));
 }
 
 function openFinishOverlay() {
   locationInputDirty = false;
   const nearest = getNearestSavedLocation(finishingSession?.location?.lat, finishingSession?.location?.lng);
-  if (finishingSession && !finishingSession.location?.label && nearest) {
-    finishingSession.location = {...(finishingSession.location || {}), label: nearest.label};
-  }
-  refreshSavedLocationOptions();
-  syncFinishLocationInput();
+  if (finishingSession && !finishingSession.location?.label && nearest) finishingSession.location = {...(finishingSession.location || {}), label: nearest.label};
+  refreshSavedLocationOptions(); syncFinishLocationInput();
   document.getElementById('finishOverlay').classList.add('open');
 }
 
 function saveFinishedSession(withLocation = true) {
-  if (!finishingSession) {
-    closeOverlay('finishOverlay');
-    goPage('score', document.getElementById('nav-score'));
-    return;
-  }
+  if (!finishingSession) { closeOverlay('finishOverlay'); goPage('score', document.getElementById('nav-score')); return; }
   const input = document.getElementById('finishLocationInput');
   const typedLocation = input.value.trim();
-  if (withLocation && typedLocation) {
-    finishingSession.location = {...(finishingSession.location || {}), label: typedLocation, manual: true};
-  } else if (!withLocation) {
-    finishingSession.location = {manual: true};
-  } else if (finishingSession.location?.label) {
-    finishingSession.location = {...finishingSession.location, label: finishingSession.location.label.trim()};
-  } else {
-    finishingSession.location = {manual: true};
-  }
-  if (finishingSession.location?.label) {
-    saveChosenLocation(finishingSession.location);
-  }
-  db.sessions.push(finishingSession);
-  save();
-  refreshSavedLocationOptions();
-  finishingSession = null;
-  closeOverlay('finishOverlay');
-  renderHome();
-  renderCoach();
-  renderDiag();
-  goPage('score', document.getElementById('nav-score'));
+  if (withLocation && typedLocation) finishingSession.location = {...(finishingSession.location || {}), label: typedLocation, manual: true};
+  else if (!withLocation) finishingSession.location = {manual: true};
+  else if (finishingSession.location?.label) finishingSession.location = {...finishingSession.location, label: finishingSession.location.label.trim()};
+  else finishingSession.location = {manual: true};
+  if (finishingSession.location?.label) saveChosenLocation(finishingSession.location);
+  db.sessions.push(finishingSession); save(); refreshSavedLocationOptions(); finishingSession = null;
+  closeOverlay('finishOverlay'); renderHome(); renderCoach(); renderDiag(); goPage('score', document.getElementById('nav-score'));
 }
 
 function checkMedianAndroidLocationReady(sessionId) {
   try {
     const status = window.median?.android?.geoLocation?.isLocationServicesEnabled;
-    if (typeof status !== 'function') {
-      requestBrowserLocation(sessionId);
-      return;
-    }
+    if (typeof status !== 'function') { requestBrowserLocation(sessionId); return; }
     status({
       callback: result => {
-        if (result?.enabled) {
-          requestBrowserLocation(sessionId);
-          return;
-        }
-        try {
-          window.median.android.geoLocation.promptLocationServices();
-        } catch {
-          requestBrowserLocation(sessionId);
-          return;
-        }
-        setTimeout(() => {
-          if (pendingLocationSessionId === sessionId) checkMedianAndroidLocationReady(sessionId);
-        }, 1500);
+        if (result?.enabled) { requestBrowserLocation(sessionId); return; }
+        try { window.median.android.geoLocation.promptLocationServices(); } catch { requestBrowserLocation(sessionId); return; }
+        setTimeout(() => { if (pendingLocationSessionId === sessionId) checkMedianAndroidLocationReady(sessionId); }, 1500);
       }
     });
-  } catch {
-    requestBrowserLocation(sessionId);
-  }
+  } catch { requestBrowserLocation(sessionId); }
 }
 
 function requestBrowserLocation(sessionId) {
@@ -2279,22 +2274,11 @@ function requestBrowserLocation(sessionId) {
   navigator.geolocation.getCurrentPosition(
     pos => {
       pendingLocationSessionId = null;
-      assignLocationToSession(sessionId, {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-        timestamp: new Date(pos.timestamp).toISOString()
-      });
+      assignLocationToSession(sessionId, { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, timestamp: new Date(pos.timestamp).toISOString() });
       reverseGeocodeLocation(sessionId, pos.coords.latitude, pos.coords.longitude);
     },
-    () => {
-      pendingLocationSessionId = null;
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 300000
-    }
+    () => { pendingLocationSessionId = null; },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
   );
 }
 
@@ -2302,10 +2286,7 @@ function requestSessionLocation(sessionId) {
   if (!navigator.geolocation) return;
   pendingLocationSessionId = sessionId;
   if (!medianIOSGeoReady) return;
-  if (isMedianAndroidAvailable()) {
-    checkMedianAndroidLocationReady(sessionId);
-    return;
-  }
+  if (isMedianAndroidAvailable()) { checkMedianAndroidLocationReady(sessionId); return; }
   requestBrowserLocation(sessionId);
 }
 
@@ -2317,104 +2298,62 @@ window.median_geolocation_ready = function medianGeolocationReady() {
 function startSession(type, options = {}) {
   const normalizedType = normalizeSessionType(type);
   session = {
-    id: Date.now(),
-    type: normalizedType,
-    date: new Date().toISOString(),
-    location: null,
-    archerName: options.ephemeral ? '' : getDeviceArcherName(),
-    ephemeral: options.ephemeral || false,
-    rounds: [],
-    currentRound: createRound('bullseye', 10)
+    id: Date.now(), type: normalizedType, date: new Date().toISOString(), location: null,
+    archerName: options.ephemeral ? '' : getDeviceArcherName(), ephemeral: options.ephemeral || false,
+    rounds: [], currentRound: createRound('bullseye', 10)
   };
   if (normalizedType === '3d_tournament') {
-    session.startAnimal = threeDTournamentSetup.startAnimal;
-    session.direction = threeDTournamentSetup.direction;
+    session.startAnimal = threeDTournamentSetup.startAnimal; session.direction = threeDTournamentSetup.direction;
     session.tournamentSequence = getThreeDTournamentSequence(threeDTournamentSetup.startAnimal, threeDTournamentSetup.direction);
     session.currentRound = getCurrentTournamentRoundConfig(session);
   }
-  document.getElementById('scorePicker').style.display = 'none';
-  document.getElementById('scoreActive').style.display = 'block';
-  goPage('score', document.getElementById('nav-score'));
-  renderScorePage();
-  requestSessionLocation(session.id);
+  document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block';
+  goPage('score', document.getElementById('nav-score')); renderScorePage(); requestSessionLocation(session.id);
 }
 
-function sessionRoundNumber() {
-  return session.rounds.length + 1;
-}
+function sessionRoundNumber() { return session.rounds.length + 1; }
 
-function openThreeDTournamentSetup() {
-  renderThreeDTournamentSetup();
-  document.getElementById('threeDTournamentOverlay').classList.add('open');
-}
+function openThreeDTournamentSetup() { renderThreeDTournamentSetup(); document.getElementById('threeDTournamentOverlay').classList.add('open'); }
 
 function renderThreeDTournamentSetup() {
-  const startContainer = document.getElementById('threeDStartOptions');
-  const directionContainer = document.getElementById('threeDDirectionOptions');
+  const startContainer = document.getElementById('threeDStartOptions'); const directionContainer = document.getElementById('threeDDirectionOptions');
   if (!startContainer || !directionContainer) return;
   startContainer.innerHTML = THREE_D_TARGETS.map(target => {
     const active = threeDTournamentSetup.startAnimal === target.key ? ' active' : '';
     return `<button class="setup-option${active}" onclick="selectThreeDStartAnimal('${target.key}')">${target.label}</button>`;
   }).join('');
-  directionContainer.innerHTML = [
-    {value: 1, label: 'Toward Farther'},
-    {value: -1, label: 'Toward Closer'}
-  ].map(option => {
+  directionContainer.innerHTML = [ {value: 1, label: 'Toward Farther'}, {value: -1, label: 'Toward Closer'} ].map(option => {
     const active = threeDTournamentSetup.direction === option.value ? ' active' : '';
     return `<button class="setup-option${active}" onclick="selectThreeDDirection(${option.value})">${option.label}</button>`;
   }).join('');
 }
 
-function selectThreeDStartAnimal(animal) {
-  if (!THREE_D_TARGET_LOOKUP[animal]) return;
-  threeDTournamentSetup.startAnimal = animal;
-  renderThreeDTournamentSetup();
-}
-
-function selectThreeDDirection(direction) {
-  threeDTournamentSetup.direction = direction === -1 ? -1 : 1;
-  renderThreeDTournamentSetup();
-}
-
-function confirmThreeDTournamentSetup() {
-  closeOverlay('threeDTournamentOverlay');
-  launchSession('3d_tournament');
-}
+function selectThreeDStartAnimal(animal) { if (!THREE_D_TARGET_LOOKUP[animal]) return; threeDTournamentSetup.startAnimal = animal; renderThreeDTournamentSetup(); }
+function selectThreeDDirection(direction) { threeDTournamentSetup.direction = direction === -1 ? -1 : 1; renderThreeDTournamentSetup(); }
+function confirmThreeDTournamentSetup() { closeOverlay('threeDTournamentOverlay'); launchSession('3d_tournament'); }
 
 // ═══════════════════════════════════════════════
-//  TARGET DRAWING
+//  TARGET DRAWING & INTERACTION
 // ═══════════════════════════════════════════════
 const BULLSEYE_RINGS = [
-  {score:10, color:'#f7e900', end:0.1},
-  {score:9,  color:'#f7e900', end:0.2},
-  {score:8,  color:'#e84040', end:0.3},
-  {score:7,  color:'#e84040', end:0.4},
-  {score:6,  color:'#3b82f6', end:0.5},
-  {score:5,  color:'#3b82f6', end:0.6},
-  {score:4,  color:'#1a1a1a', end:0.7},
-  {score:3,  color:'#1a1a1a', end:0.8},
-  {score:2,  color:'#ffffff', end:0.9},
-  {score:1,  color:'#ffffff', end:1.0},
+  {score:10, color:'#f7e900', end:0.1}, {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3}, {score:7,  color:'#e84040', end:0.4},
+  {score:6,  color:'#3b82f6', end:0.5}, {score:5,  color:'#3b82f6', end:0.6},
+  {score:4,  color:'#1a1a1a', end:0.7}, {score:3,  color:'#1a1a1a', end:0.8},
+  {score:2,  color:'#ffffff', end:0.9}, {score:1,  color:'#ffffff', end:1.0},
 ];
-
 const THREE_D_RINGS = [
-  {score:10, color:'#f7e900', end:0.1},
-  {score:9,  color:'#f7e900', end:0.2},
-  {score:8,  color:'#e84040', end:0.3},
-  {score:7,  color:'#e84040', end:1.0},
+  {score:10, color:'#f7e900', end:0.1}, {score:9,  color:'#f7e900', end:0.2},
+  {score:8,  color:'#e84040', end:0.3}, {score:7,  color:'#e84040', end:1.0},
 ];
 
-function getRingsForMode(mode = 'bullseye') {
-  return mode === '3d' ? THREE_D_RINGS : BULLSEYE_RINGS;
-}
+function getRingsForMode(mode = 'bullseye') { return mode === '3d' ? THREE_D_RINGS : BULLSEYE_RINGS; }
 
 const canvas = document.getElementById('targetCanvas');
 const ctx = canvas.getContext('2d');
 const W = 600, H = 600, CX = W/2, CY = H/2, R = W/2 - 10;
 
-function drawTarget(arrows=[], mode='bullseye') {
-  drawTargetOnCtx(ctx, W, arrows, mode);
-}
+function drawTarget(arrows=[], mode='bullseye') { drawTargetOnCtx(ctx, W, arrows, mode); }
 
 function getScoreAt(mode, nx, ny) {
   const d = Math.sqrt(nx*nx + ny*ny);
@@ -2429,12 +2368,120 @@ function normalizeRoundScore(mode, score) {
   return score;
 }
 
-canvas.addEventListener('click', handleTargetClick);
-canvas.addEventListener('touchend', e => {
-  e.preventDefault();
-  const t = e.changedTouches[0];
-  handleTargetClick(t);
+// Touch & Mouse Handling (Scroll prevention & Magnifier)
+let targetTouchState = {
+  startX: 0, startY: 0, currentX: 0, currentY: 0,
+  isScrolling: false, magnifying: false, timer: null
+};
+
+function handlePointerDown(e) {
+  if (e.pointerId) canvas.setPointerCapture(e.pointerId);
+  targetTouchState.startX = e.clientX;
+  targetTouchState.startY = e.clientY;
+  targetTouchState.currentX = e.clientX;
+  targetTouchState.currentY = e.clientY;
+  targetTouchState.isScrolling = false;
+  targetTouchState.magnifying = false;
+
+  targetTouchState.timer = setTimeout(() => {
+    if (!targetTouchState.isScrolling && session && !session.currentRound.locked && session.currentRound.arrows.length < 5) {
+      targetTouchState.magnifying = true;
+      showMagnifier(targetTouchState.currentX, targetTouchState.currentY);
+    }
+  }, 350); // Hold delay
+}
+
+function handlePointerMove(e) {
+  targetTouchState.currentX = e.clientX;
+  targetTouchState.currentY = e.clientY;
+
+  if (Math.hypot(e.clientX - targetTouchState.startX, e.clientY - targetTouchState.startY) > 10) {
+    if (!targetTouchState.magnifying) {
+      targetTouchState.isScrolling = true;
+      clearTimeout(targetTouchState.timer);
+    }
+  }
+
+  if (targetTouchState.magnifying) {
+    if (e.cancelable) e.preventDefault(); // Prevent page scroll while magnifying
+    updateMagnifier(e.clientX, e.clientY);
+  }
+}
+
+function handlePointerUp(e) {
+  if (e.pointerId) canvas.releasePointerCapture(e.pointerId);
+  clearTimeout(targetTouchState.timer);
+
+  if (targetTouchState.magnifying) {
+    if (e.cancelable) e.preventDefault();
+    targetTouchState.magnifying = false;
+    hideMagnifier();
+    // Place arrow at magnified release point
+    handleTargetClick({ clientX: targetTouchState.currentX, clientY: targetTouchState.currentY });
+  } else if (!targetTouchState.isScrolling) {
+    // Quick tap or click without moving
+    handleTargetClick({ clientX: targetTouchState.currentX, clientY: targetTouchState.currentY });
+  }
+}
+
+// Unify all interaction using modern Pointer Events
+canvas.addEventListener('pointerdown', handlePointerDown);
+canvas.addEventListener('pointermove', handlePointerMove);
+canvas.addEventListener('pointerup', handlePointerUp);
+canvas.addEventListener('pointercancel', e => {
+  clearTimeout(targetTouchState.timer);
+  targetTouchState.magnifying = false;
+  hideMagnifier();
 });
+
+// Explicitly prevent mobile browser scrolling *only* when the magnifier is active
+canvas.addEventListener('touchmove', e => {
+  if (targetTouchState.magnifying && e.cancelable) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+function showMagnifier(clientX, clientY) {
+  document.getElementById('magnifierWrap').style.display = 'block';
+  updateMagnifier(clientX, clientY);
+}
+
+function updateMagnifier(clientX, clientY) {
+  const wrap = document.getElementById('magnifierWrap');
+  const magCanvas = document.getElementById('magnifierCanvas');
+  const mctx = magCanvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  
+  // Constrain coordinates to canvas bounds
+  const boundedX = Math.max(rect.left, Math.min(rect.right, clientX));
+  const boundedY = Math.max(rect.top, Math.min(rect.bottom, clientY));
+  
+  const x = boundedX - rect.left;
+  const y = boundedY - rect.top;
+
+  // Move the magnifier div (offset slightly above the finger so it isn't blocked)
+  wrap.style.left = boundedX + 'px';
+  wrap.style.top = boundedY + 'px';
+
+  // Draw scaled region
+  const zoom = 2;
+  const mw = magCanvas.width, mh = magCanvas.height;
+  mctx.clearRect(0, 0, mw, mh);
+  
+  // Calculate source rectangle
+  const scaleX = W / rect.width;
+  const scaleY = H / rect.height;
+  const srcX = (x * scaleX) - (mw / (2 * zoom));
+  const srcY = (y * scaleY) - (mh / (2 * zoom));
+  const srcW = mw / zoom;
+  const srcH = mh / zoom;
+
+  mctx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, mw, mh);
+}
+
+function hideMagnifier() {
+  document.getElementById('magnifierWrap').style.display = 'none';
+}
 
 function handleTargetClick(e) {
   if (!session) return;
@@ -2449,15 +2496,23 @@ function handleTargetClick(e) {
   const ny = (py - CY) / R;
   const score = normalizeRoundScore(cr.mode, getScoreAt(cr.mode, nx, ny));
   cr.arrows.push({nx, ny, score});
-  flashScore(score);
-  renderScorePage();
+  flashScore(score); renderScorePage();
   if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
-    const sessionId = session.id;
-    cr.locked = true;
-    renderScorePage();
-    setTimeout(() => {
-      if (session?.id === sessionId && session.currentRound.locked) endSession();
-    }, 250);
+    const sessionId = session.id; cr.locked = true; renderScorePage();
+    setTimeout(() => { if (session?.id === sessionId && session.currentRound.locked) endSession(); }, 250);
+  }
+}
+
+function scoreMiss() {
+  if (!session) return;
+  const cr = session.currentRound;
+  if (cr.locked || cr.arrows.length >= 5) return;
+  // Push a miss way outside the target rings (nx: 1.5, ny: 1.5)
+  cr.arrows.push({nx: 1.5, ny: 1.5, score: 0});
+  flashScore(0); renderScorePage();
+  if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
+    const sessionId = session.id; cr.locked = true; renderScorePage();
+    setTimeout(() => { if (session?.id === sessionId && session.currentRound.locked) endSession(); }, 250);
   }
 }
 
@@ -2465,17 +2520,14 @@ function undoLastArrow() {
   if (!session) return;
   const cr = session.currentRound;
   if (!cr.arrows.length || cr.locked) return;
-  cr.arrows.pop();
-  closeOverlay('roundCompleteOverlay');
-  renderScorePage();
+  cr.arrows.pop(); closeOverlay('roundCompleteOverlay'); renderScorePage();
 }
 
 function flashScore(s) {
   const el = document.getElementById('scoreFlash');
   el.textContent = s === 0 ? 'M' : s;
   el.style.color = s >= 9 ? '#f7e900' : s >= 7 ? '#e8c547' : s >= 5 ? '#3b82f6' : s >= 3 ? '#888' : '#e05252';
-  el.classList.remove('hide');
-  el.classList.add('show');
+  el.classList.remove('hide'); el.classList.add('show');
   setTimeout(() => { el.classList.add('hide'); }, 600);
   setTimeout(() => { el.classList.remove('show','hide'); }, 900);
 }
@@ -2489,14 +2541,9 @@ function renderScorePage() {
   const rn = sessionRoundNumber();
   const roundInfo = roundDescriptor(cr);
 
-  // title
-  document.getElementById('scoreTitle').textContent =
-    isTournamentSession(session)
-      ? `Round ${rn} / 6`
-      : `Round ${rn}`;
+  document.getElementById('scoreTitle').textContent = isTournamentSession(session) ? `Round ${rn} / 6` : `Round ${rn}`;
   document.getElementById('scoreMeta').textContent = sessionTypeLabel(session).toUpperCase();
 
-  // round target options
   document.getElementById('roundTargetLabel').textContent = roundInfo.mode === '3d' ? 'ANIMAL' : 'DISTANCE';
   const targetOptions = document.getElementById('roundTargetOptions');
   if (session.type === 'practice') {
@@ -2508,15 +2555,12 @@ function renderScorePage() {
     targetOptions.innerHTML = `<button class="dist-btn active" disabled>${roundInfo.label}</button>`;
   }
 
-  // round score
   const roundScore = cr.arrows.reduce((s,a)=>s+a.score,0);
   document.getElementById('roundScoreDisplay').textContent = cr.arrows.length ? roundScore : '—';
 
-  // session total
   const total = session.rounds.reduce((s,r)=>s+r.arrows.reduce((ss,a)=>ss+a.score,0),0) + roundScore;
   document.getElementById('sessionTotalDisplay').textContent = total;
 
-  // arrow dots
   const dots = document.getElementById('arrowDots');
   dots.innerHTML = '';
   for(let i=0;i<5;i++){
@@ -2524,15 +2568,9 @@ function renderScorePage() {
     d.className = 'arrow-dot';
     if(i < cr.arrows.length) {
       const a = cr.arrows[i];
-      d.classList.add('scored');
-      d.style.background = arrowColor(a.score);
-      d.textContent = a.score === 0 ? 'M' : a.score;
-    } else if(i === cr.arrows.length) {
-      d.classList.add('current');
-      d.textContent = '·';
-    } else {
-      d.textContent = '·';
-    }
+      d.classList.add('scored'); d.style.background = arrowColor(a.score); d.textContent = a.score === 0 ? 'M' : a.score;
+    } else if(i === cr.arrows.length) { d.classList.add('current'); d.textContent = '·'; }
+    else { d.textContent = '·'; }
     dots.appendChild(d);
   }
 
@@ -2551,25 +2589,19 @@ function renderScorePage() {
     overlayPrimaryBtn.style.display = 'none';
     overlay.classList.remove('open');
   } else if (done) {
-    overlayTitle.textContent = 'Round Complete';
-    overlayMessage.textContent = 'Choose your next action.';
+    overlayTitle.textContent = 'Round Complete'; overlayMessage.textContent = 'Choose your next action.';
     overlayPrimaryBtn.style.display = '';
     overlayPrimaryBtn.textContent = isTournamentSession(session) && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
     overlay.classList.add('open');
-  } else {
-    overlay.classList.remove('open');
-  }
+  } else { overlay.classList.remove('open'); }
 
-  // completed rounds
   const list = document.getElementById('completedRounds');
   list.innerHTML = '';
   session.rounds.forEach((r,i)=>{
     const s = r.arrows.reduce((x,a)=>x+a.score,0);
     const completedRoundInfo = roundDescriptor(r);
-    const row = document.createElement('div');
-    row.className = 'round-score-row';
-    row.innerHTML = `
-      <div class="rsr-label">Round ${i+1} · ${completedRoundInfo.shortLabel}</div>
+    const row = document.createElement('div'); row.className = 'round-score-row';
+    row.innerHTML = `<div class="rsr-label">Round ${i+1} · ${completedRoundInfo.shortLabel}</div>
       <div class="rsr-arrows">${r.arrows.map(a=>a.score===0?'M':a.score).join(' · ')}</div>
       <div class="rsr-score">${s}</div>`;
     list.appendChild(row);
@@ -2579,153 +2611,85 @@ function renderScorePage() {
 }
 
 function arrowColor(s) {
-  if(s>=9) return '#f7e900';
-  if(s>=7) return '#e84040';
-  if(s>=5) return '#3b82f6';
-  if(s>=3) return '#333';
-  if(s>=1) return '#aaa';
-  return '#666';
+  if(s>=9) return '#f7e900'; if(s>=7) return '#e84040'; if(s>=5) return '#3b82f6';
+  if(s>=3) return '#333'; if(s>=1) return '#aaa'; return '#666';
 }
 
 function setPracticeRoundTarget(mode, value) {
   if(!session || session.type !== 'practice') return;
   if (session.currentRound.arrows.length || session.currentRound.locked) return;
-  session.currentRound = mode === '3d'
-    ? createRound('3d', value)
-    : createRound('bullseye', Number(value) === 15 ? 15 : 10);
+  session.currentRound = mode === '3d' ? createRound('3d', value) : createRound('bullseye', Number(value) === 15 ? 15 : 10);
   renderScorePage();
 }
 
 function nextRound() {
-  if(!session) return;
-  const cr = session.currentRound;
+  if(!session) return; const cr = session.currentRound;
   if(cr.locked || cr.arrows.length < 5) return;
   closeOverlay('roundCompleteOverlay');
   session.rounds.push({...cr, arrows:[...cr.arrows]});
-
-  // tournament: 6 rounds then auto-end
-  if(isTournamentSession(session) && session.rounds.length===6) {
-    endSession(); return;
-  }
-
-  if (isTournamentSession(session)) {
-    session.currentRound = getCurrentTournamentRoundConfig(session);
-  } else {
-    session.currentRound = createRound(cr.mode, cr.mode === '3d' ? cr.animal : cr.distance);
-  }
-  renderScorePage();
-  // scroll to top of score page
-  window.scrollTo(0,0);
+  if(isTournamentSession(session) && session.rounds.length===6) { endSession(); return; }
+  if (isTournamentSession(session)) session.currentRound = getCurrentTournamentRoundConfig(session);
+  else session.currentRound = createRound(cr.mode, cr.mode === '3d' ? cr.animal : cr.distance);
+  renderScorePage(); window.scrollTo(0,0);
 }
 
 // ═══════════════════════════════════════════════
 //  SESSION END
 // ═══════════════════════════════════════════════
-function isTournamentEarlyExit() {
-  return !!session && isTournamentSession(session) && session.rounds.length < 6;
-}
+function isTournamentEarlyExit() { return !!session && isTournamentSession(session) && session.rounds.length < 6; }
 
 function updateEndOverlay() {
-  const title = document.getElementById('endOverlayTitle');
-  const message = document.getElementById('endOverlayMessage');
-  const primaryBtn = document.getElementById('endOverlayPrimaryBtn');
-  const dangerBtn = document.getElementById('endOverlayDangerBtn');
-  const cancelBtn = document.getElementById('endOverlayCancelBtn');
+  const title = document.getElementById('endOverlayTitle'), message = document.getElementById('endOverlayMessage');
+  const primaryBtn = document.getElementById('endOverlayPrimaryBtn'), dangerBtn = document.getElementById('endOverlayDangerBtn'), cancelBtn = document.getElementById('endOverlayCancelBtn');
 
   if (session?.ephemeral) {
-    title.textContent = 'End Quick Score?';
-    message.textContent = 'Your score will be shown but not saved.';
-    primaryBtn.style.display = '';
-    primaryBtn.textContent = 'SEE RESULTS';
-    primaryBtn.onclick = endSession;
-    dangerBtn.style.display = 'none';
-    cancelBtn.textContent = 'CONTINUE SCORING';
-    return;
+    title.textContent = 'End Quick Score?'; message.textContent = 'Your score will be shown but not saved.';
+    primaryBtn.style.display = ''; primaryBtn.textContent = 'SEE RESULTS'; primaryBtn.onclick = endSession;
+    dangerBtn.style.display = 'none'; cancelBtn.textContent = 'CONTINUE SCORING'; return;
   }
-
   if (isTournamentEarlyExit()) {
-    title.textContent = 'Leave Tournament?';
-    message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
-    primaryBtn.style.display = 'none';
-    dangerBtn.style.display = '';
-    dangerBtn.textContent = 'DISCARD SESSION';
-    dangerBtn.onclick = openDiscardSessionConfirm;
-    cancelBtn.textContent = 'CONTINUE SCORING';
-    return;
+    title.textContent = 'Leave Tournament?'; message.textContent = 'Tournament sessions cannot be saved early. You can discard this session or keep scoring.';
+    primaryBtn.style.display = 'none'; dangerBtn.style.display = ''; dangerBtn.textContent = 'DISCARD SESSION'; dangerBtn.onclick = openDiscardSessionConfirm;
+    cancelBtn.textContent = 'CONTINUE SCORING'; return;
   }
-
-  title.textContent = 'End Session?';
-  message.textContent = 'Choose whether to save your progress or discard this session entirely.';
-  primaryBtn.style.display = '';
-  primaryBtn.textContent = 'SAVE & EXIT';
-  primaryBtn.onclick = endSession;
-  dangerBtn.style.display = '';
-  dangerBtn.textContent = 'DISCARD SESSION';
-  dangerBtn.onclick = openDiscardSessionConfirm;
+  title.textContent = 'End Session?'; message.textContent = 'Choose whether to save your progress or discard this session entirely.';
+  primaryBtn.style.display = ''; primaryBtn.textContent = 'SAVE & EXIT'; primaryBtn.onclick = endSession;
+  dangerBtn.style.display = ''; dangerBtn.textContent = 'DISCARD SESSION'; dangerBtn.onclick = openDiscardSessionConfirm;
   cancelBtn.textContent = 'CONTINUE SESSION';
 }
 
-function openEndSession() {
-  updateEndOverlay();
-  document.getElementById('endOverlay').classList.add('open');
-}
+function openEndSession() { updateEndOverlay(); document.getElementById('endOverlay').classList.add('open'); }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-
-function sessionHasProgress() {
-  return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0);
-}
+function sessionHasProgress() { return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0); }
 
 function openDiscardSessionConfirm() {
-  if (!session) {
-    closeOverlay('endOverlay');
-    goPage('score', document.getElementById('nav-score'));
-    return;
-  }
-  if (!sessionHasProgress()) {
-    confirmDiscardSession();
-    return;
-  }
+  if (!session) { closeOverlay('endOverlay'); goPage('score', document.getElementById('nav-score')); return; }
+  if (!sessionHasProgress()) { confirmDiscardSession(); return; }
   document.getElementById('discardSessionOverlay').classList.add('open');
 }
 
 function endSession() {
   closeOverlay('endOverlay');
   if(!session) { goPage('score', document.getElementById('nav-score')); return; }
-
   if (session.ephemeral) {
-    // push current round if it has arrows
-    const cr = session.currentRound;
-    if (cr.arrows.length > 0) {
-      session.rounds.push({...cr, arrows:[...cr.arrows]});
-    }
-    showQuickScoreSummary();
-    return;
+    const cr = session.currentRound; if (cr.arrows.length > 0) session.rounds.push({...cr, arrows:[...cr.arrows]});
+    showQuickScoreSummary(); return;
   }
-
   const finished = buildFinishedSession();
-  session = null;
-  resetActiveSessionUI();
-  if (!finished || !finished.rounds.length) {
-    renderHome();
-    goPage('score', document.getElementById('nav-score'));
-    return;
-  }
-  finishingSession = finished;
-  openFinishOverlay();
+  session = null; resetActiveSessionUI();
+  if (!finished || !finished.rounds.length) { renderHome(); goPage('score', document.getElementById('nav-score')); return; }
+  finishingSession = finished; openFinishOverlay();
 }
 
 function showQuickScoreSummary() {
   const allRounds = session.rounds;
   const grandTotal = allRounds.reduce((t, r) => t + r.arrows.reduce((s, a) => s + a.score, 0), 0);
-
   document.getElementById('quickScoreTotalDisplay').textContent = grandTotal;
-
   const listEl = document.getElementById('quickScoreRoundList');
   listEl.innerHTML = allRounds.map((r, i) => {
     const rs = r.arrows.reduce((s, a) => s + a.score, 0);
     const pips = r.arrows.map(a => {
-      const bg = quickScorePipColor(a.score);
-      const light = a.score >= 3 && a.score <= 4 || a.score >= 1 && a.score <= 2;
+      const bg = quickScorePipColor(a.score); const light = a.score >= 3 && a.score <= 4 || a.score >= 1 && a.score <= 2;
       return `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${bg};font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${light?'#bbb':'#000'}">${a.score===0?'M':a.score}</span>`;
     }).join('');
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
@@ -2734,49 +2698,27 @@ function showQuickScoreSummary() {
       <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);width:32px;text-align:right">${rs}</span>
     </div>`;
   }).join('');
-
-  closeOverlay('roundCompleteOverlay');
-  document.getElementById('quickScoreSummaryOverlay').classList.add('open');
+  closeOverlay('roundCompleteOverlay'); document.getElementById('quickScoreSummaryOverlay').classList.add('open');
 }
 
 function quickScorePipColor(score) {
-  if (score >= 9) return '#f7e900';
-  if (score >= 7) return '#e84040';
-  if (score >= 5) return '#3b82f6';
-  if (score >= 3) return '#333333';
-  if (score >= 1) return '#dddddd';
-  return '#555555';
+  if (score >= 9) return '#f7e900'; if (score >= 7) return '#e84040'; if (score >= 5) return '#3b82f6';
+  if (score >= 3) return '#333333'; if (score >= 1) return '#dddddd'; return '#555555';
 }
 
 function exitEphemeralSession() {
-  session = null;
-  document.getElementById('quickScoreSummaryOverlay').classList.remove('open');
-  resetActiveSessionUI();
-  renderHome();
-  goPage('score', document.getElementById('nav-score'));
+  session = null; document.getElementById('quickScoreSummaryOverlay').classList.remove('open');
+  resetActiveSessionUI(); renderHome(); goPage('score', document.getElementById('nav-score'));
 }
-
-function discardSession() {
-  openDiscardSessionConfirm();
-}
-
+function discardSession() { openDiscardSessionConfirm(); }
 function confirmDiscardSession() {
-  if (!session) {
-    closeOverlay('discardSessionOverlay');
-    closeOverlay('endOverlay');
-    goPage('score', document.getElementById('nav-score'));
-    return;
-  }
-  closeOverlay('discardSessionOverlay');
-  closeOverlay('endOverlay');
-  session = null;
-  resetActiveSessionUI();
-  renderHome();
-  goPage('score', document.getElementById('nav-score'));
+  if (!session) { closeOverlay('discardSessionOverlay'); closeOverlay('endOverlay'); goPage('score', document.getElementById('nav-score')); return; }
+  closeOverlay('discardSessionOverlay'); closeOverlay('endOverlay'); session = null;
+  resetActiveSessionUI(); renderHome(); goPage('score', document.getElementById('nav-score'));
 }
 
 // ═══════════════════════════════════════════════
-//  HOME
+//  HOME & SORTING
 // ═══════════════════════════════════════════════
 const FILTER_DEFS = [
   {key: 'all', label: 'All', group: 'meta'},
@@ -2793,57 +2735,63 @@ const homeFilters = new Set();
 const diagFilters = new Set();
 const coachFilters = new Set();
 
-// ── Sort state ──
 let homeSort = 'newest';
 let coachSort = 'newest';
-let activeSortContext = 'home'; // which page opened the overlay
-
-const SORT_DEFS = [
-  { key: 'newest',        label: 'Newest → Oldest' },
-  { key: 'oldest',        label: 'Oldest → Newest' },
-  { key: 'score-high',    label: 'Highest Score First' },
-  { key: 'score-low',     label: 'Lowest Score First' },
-  { key: 'grouping-best', label: 'Best Grouping First' },
-  { key: 'grouping-worst',label: 'Worst Grouping First' },
-];
+let activeSortContext = 'home';
+let activeLocationContext = 'home';
 
 function openSortOverlay(context) {
   activeSortContext = context;
   const current = context === 'home' ? homeSort : coachSort;
-  document.querySelectorAll('.sort-option').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sort === current);
-  });
+  document.querySelectorAll('.sort-option').forEach(btn => btn.classList.toggle('active', btn.dataset.sort === current));
   document.getElementById('sortOverlay').classList.add('open');
 }
 
-function closeSortOverlay(e) {
-  document.getElementById('sortOverlay').classList.remove('open');
-}
+function closeSortOverlay(e) { document.getElementById('sortOverlay').classList.remove('open'); }
 
 function setSort(key) {
-  if (activeSortContext === 'home') {
-    homeSort = key;
-    const btn = document.getElementById('homeSortBtn');
-    btn.classList.toggle('active', key !== 'newest');
-  } else {
-    coachSort = key;
-    const btn = document.getElementById('coachSortBtn');
-    btn.classList.toggle('active', key !== 'newest');
-  }
+  if (activeSortContext === 'home') { homeSort = key; document.getElementById('homeSortBtn').classList.toggle('active', key !== 'newest'); }
+  else { coachSort = key; document.getElementById('coachSortBtn').classList.toggle('active', key !== 'newest'); }
   closeSortOverlay();
-  if (activeSortContext === 'home') renderHome();
-  else renderCoach();
+  if (activeSortContext === 'home') renderHome(); else renderCoach();
+}
+
+function openLocationOverlay(context) {
+  activeLocationContext = context;
+  const container = document.getElementById('locationOptionsContainer');
+  const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
+  const activeLoc = activeLocationFilters[context];
+  
+  let html = `<button class="sort-option ${activeLoc === 'all' ? 'active' : ''}" onclick="setLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
+  uniqueLocations.forEach(loc => {
+    html += `<button class="sort-option ${activeLoc === loc ? 'active' : ''}" onclick="setLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+  });
+  
+  if (uniqueLocations.length === 0) {
+    html += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No locations saved yet.</div>`;
+  }
+  
+  container.innerHTML = html;
+  document.getElementById('locationOverlay').classList.add('open');
+}
+
+function setLocationFilter(locLabel) {
+  activeLocationFilters[activeLocationContext] = locLabel;
+  const btn = document.getElementById(`${activeLocationContext}LocationBtn`);
+  if (btn) btn.classList.toggle('active', locLabel !== 'all');
+  closeOverlay('locationOverlay');
+  
+  if (activeLocationContext === 'home') renderHome();
+  else if (activeLocationContext === 'diag') renderDiag();
+  else if (activeLocationContext === 'coach') renderCoach();
 }
 
 function computeGroupingScore(sessionObj) {
-  // average spread of arrow positions per round (lower = tighter grouping)
   const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
   if (!rounds.length) return Infinity;
   const roundSpreads = rounds.map(r => {
-    const xs = r.arrows.map(a => a.nx);
-    const ys = r.arrows.map(a => a.ny);
-    const cx = xs.reduce((s,v) => s+v, 0) / xs.length;
-    const cy = ys.reduce((s,v) => s+v, 0) / ys.length;
+    const xs = r.arrows.map(a => a.nx), ys = r.arrows.map(a => a.ny);
+    const cx = xs.reduce((s,v) => s+v, 0) / xs.length, cy = ys.reduce((s,v) => s+v, 0) / ys.length;
     return r.arrows.reduce((s,a) => s + Math.sqrt((a.nx-cx)**2+(a.ny-cy)**2), 0) / r.arrows.length;
   });
   return roundSpreads.reduce((s,v) => s+v, 0) / roundSpreads.length;
@@ -2852,45 +2800,27 @@ function computeGroupingScore(sessionObj) {
 function applySortToSessions(sessions, sortKey) {
   const arr = [...sessions];
   switch (sortKey) {
-    case 'oldest':
-      return arr.reverse();
-    case 'score-high':
-      return arr.sort((a,b) => getSessionTotal(b) - getSessionTotal(a));
-    case 'score-low':
-      return arr.sort((a,b) => getSessionTotal(a) - getSessionTotal(b));
-    case 'grouping-best':
-      return arr.sort((a,b) => computeGroupingScore(a) - computeGroupingScore(b));
-    case 'grouping-worst':
-      return arr.sort((a,b) => computeGroupingScore(b) - computeGroupingScore(a));
-    case 'newest':
-    default:
-      return arr; // already newest-first from the .reverse() in renderHome
+    case 'oldest': return arr.reverse();
+    case 'score-high': return arr.sort((a,b) => getSessionTotal(b) - getSessionTotal(a));
+    case 'score-low': return arr.sort((a,b) => getSessionTotal(a) - getSessionTotal(b));
+    case 'grouping-best': return arr.sort((a,b) => computeGroupingScore(a) - computeGroupingScore(b));
+    case 'grouping-worst': return arr.sort((a,b) => computeGroupingScore(b) - computeGroupingScore(a));
+    case 'newest': default: return arr;
   }
 }
 
-function getFilterDefinition(key) {
-  return FILTER_DEFS.find(def => def.key === key);
-}
+function getFilterDefinition(key) { return FILTER_DEFS.find(def => def.key === key); }
 
 function getSelectedFilterMap(filters) {
   const selected = [...filters];
-  return {
-    scope: selected.find(key => getFilterDefinition(key)?.group === 'scope') || null,
-    family: selected.find(key => getFilterDefinition(key)?.group === 'family') || null,
-    value: selected.find(key => getFilterDefinition(key)?.group === 'value') || null
-  };
+  return { scope: selected.find(key => getFilterDefinition(key)?.group === 'scope') || null, family: selected.find(key => getFilterDefinition(key)?.group === 'family') || null, value: selected.find(key => getFilterDefinition(key)?.group === 'value') || null };
 }
 
 function getVisibleFilters(filters) {
-  const selected = getSelectedFilterMap(filters);
-  const visible = ['all'];
-  if (!selected.scope) visible.push('practice', 'tournament');
-  else visible.push(selected.scope);
-  if (!selected.family) visible.push('bullseye', '3d');
-  else visible.push(selected.family);
-  if (selected.family === 'bullseye') {
-    visible.push(selected.value && ['10m', '15m'].includes(selected.value) ? selected.value : '10m', selected.value && ['10m', '15m'].includes(selected.value) ? null : '15m');
-  }
+  const selected = getSelectedFilterMap(filters); const visible = ['all'];
+  if (!selected.scope) visible.push('practice', 'tournament'); else visible.push(selected.scope);
+  if (!selected.family) visible.push('bullseye', '3d'); else visible.push(selected.family);
+  if (selected.family === 'bullseye') { visible.push(selected.value && ['10m', '15m'].includes(selected.value) ? selected.value : '10m', selected.value && ['10m', '15m'].includes(selected.value) ? null : '15m'); }
   if (selected.family === '3d') {
     if (selected.value && THREE_D_TARGET_LOOKUP[selected.value]) visible.push(selected.value);
     else visible.push(...THREE_D_TARGETS.map(target => target.key));
@@ -2899,90 +2829,43 @@ function getVisibleFilters(filters) {
 }
 
 function toggleFilter(filters, key) {
-  if (key === 'all') {
-    filters.clear();
-    return;
-  }
-  const def = getFilterDefinition(key);
-  if (!def) return;
+  if (key === 'all') { filters.clear(); return; }
+  const def = getFilterDefinition(key); if (!def) return;
   if (filters.has(key)) {
     filters.delete(key);
-    if (def.group === 'family') {
-      [...filters].forEach(selectedKey => {
-        const selectedDef = getFilterDefinition(selectedKey);
-        if (selectedDef?.group === 'value') filters.delete(selectedKey);
-      });
-    }
+    if (def.group === 'family') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'value') filters.delete(selectedKey); }); }
     return;
   }
-  if (def.group !== 'meta') {
-    [...filters].forEach(selectedKey => {
-      const selectedDef = getFilterDefinition(selectedKey);
-      if (selectedDef?.group === def.group) filters.delete(selectedKey);
-    });
-  }
-  if (def.group === 'family') {
-    [...filters].forEach(selectedKey => {
-      const selectedDef = getFilterDefinition(selectedKey);
-      if (selectedDef?.group === 'value') filters.delete(selectedKey);
-    });
-  }
+  if (def.group !== 'meta') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === def.group) filters.delete(selectedKey); }); }
+  if (def.group === 'family') { [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'value') filters.delete(selectedKey); }); }
   if (def.group === 'value') {
     const current = getSelectedFilterMap(filters);
     if (current.family !== def.family) {
-      [...filters].forEach(selectedKey => {
-        const selectedDef = getFilterDefinition(selectedKey);
-        if (selectedDef?.group === 'family' || selectedDef?.group === 'value') filters.delete(selectedKey);
-      });
+      [...filters].forEach(selectedKey => { const selectedDef = getFilterDefinition(selectedKey); if (selectedDef?.group === 'family' || selectedDef?.group === 'value') filters.delete(selectedKey); });
       filters.add(def.family);
     }
   }
   filters.add(key);
 }
 
-function renderFilters(rowId, helpId, filters, toggleFn) {
+function renderFilters(rowId, filters, toggleFn) {
   const row = document.getElementById(rowId);
-  const help = document.getElementById(helpId);
-  if (!row || !help) return;
+  if (!row) return;
   const visible = getVisibleFilters(filters);
   row.innerHTML = visible.map(key => {
     const def = getFilterDefinition(key);
     const active = key === 'all' ? filters.size === 0 : filters.has(key);
     return `<button class="filter-btn${active ? ' active' : ''}" onclick="${toggleFn}('${key}')">${def.label}</button>`;
   }).join('');
-  const selected = [...filters].map(key => getFilterDefinition(key)?.label).filter(Boolean);
-  help.textContent = selected.length ? `Active: ${selected.join(' + ')}` : 'Tap filters to narrow results. Tap again to remove.';
 }
 
-function toggleHomeFilter(key) {
-  toggleFilter(homeFilters, key);
-  renderHomeFilters();
-  renderHome();
-}
+function toggleHomeFilter(key) { toggleFilter(homeFilters, key); renderHomeFilters(); renderHome(); }
+function toggleDiagFilter(key) { toggleFilter(diagFilters, key); renderDiagFilters(); renderDiag(); }
+function toggleCoachFilter(key) { toggleFilter(coachFilters, key); renderCoachFilters(); renderCoach(); }
 
-function toggleDiagFilter(key) {
-  toggleFilter(diagFilters, key);
-  renderDiagFilters();
-  renderDiag();
-}
-
-function renderHomeFilters() {
-  renderFilters('homeFilterRow', 'homeFilterHelp', homeFilters, 'toggleHomeFilter');
-}
-
-function renderDiagFilters() {
-  renderFilters('diagFilterRow', 'diagFilterHelp', diagFilters, 'toggleDiagFilter');
-}
-
-function toggleCoachFilter(key) {
-  toggleFilter(coachFilters, key);
-  renderCoachFilters();
-  renderCoach();
-}
-
-function renderCoachFilters() {
-  renderFilters('coachFilterRow', 'coachFilterHelp', coachFilters, 'toggleCoachFilter');
-}
+function renderHomeFilters() { renderFilters('homeFilterRow', homeFilters, 'toggleHomeFilter'); }
+function renderDiagFilters() { renderFilters('diagFilterRow', diagFilters, 'toggleDiagFilter'); }
+function renderCoachFilters() { renderFilters('coachFilterRow', coachFilters, 'toggleCoachFilter'); }
 
 function roundMatchesFilters(round, filters) {
   const selected = getSelectedFilterMap(filters);
@@ -2994,7 +2877,13 @@ function roundMatchesFilters(round, filters) {
   return true;
 }
 
-function sessionMatchesFilter(sessionObj, filters) {
+function sessionMatchesFilter(sessionObj, filters, context) {
+  // Check location first
+  const activeLoc = activeLocationFilters[context];
+  if (activeLoc && activeLoc !== 'all') {
+    if (formatLocation(sessionObj.location) !== activeLoc) return false;
+  }
+  
   const selected = getSelectedFilterMap(filters);
   if (selected.scope === 'practice' && sessionObj.type !== 'practice') return false;
   if (selected.scope === 'tournament' && !isTournamentSession(sessionObj)) return false;
@@ -3004,17 +2893,17 @@ function sessionMatchesFilter(sessionObj, filters) {
 
 function renderHome() {
   const list = document.getElementById('recentList');
-  const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters));
+  const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters, 'home'));
   const filtered = applySortToSessions(newestFirst, homeSort);
   if (!db.sessions.length) {
-    list.innerHTML = `<div class="empty-state">No sessions yet.<br>Start your first session above!</div>`;
+    list.innerHTML = `<div class="empty-state">No sessions yet.</div>`;
     return;
   }
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No sessions match this filter.</div>`;
     return;
   }
-  list.innerHTML = filtered.map((s, fi) => {
+  list.innerHTML = filtered.map((s) => {
     const realIdx = db.sessions.indexOf(s);
     const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
     const typeLabel = `<span class="session-type">${sessionTypeBadge(s)}</span>`;
@@ -3031,89 +2920,52 @@ function renderHome() {
   }).join('');
 }
 
-function getSessionTotal(sessionObj) {
-  return sessionObj.rounds.reduce((sum, round) => sum + round.arrows.reduce((roundSum, arrow) => roundSum + arrow.score, 0), 0);
-}
+function getSessionTotal(sessionObj) { return sessionObj.rounds.reduce((sum, round) => sum + round.arrows.reduce((roundSum, arrow) => roundSum + arrow.score, 0), 0); }
 
-function setCoachSearch(value) {
-  coachSearch = value.trim().toLowerCase();
-  renderCoach();
-}
+function setCoachSearch(value) { coachSearch = value.trim().toLowerCase(); renderCoach(); }
 
 function submitCoachPassword() {
-  const input = document.getElementById('coachPasswordInput');
-  const hint = document.getElementById('coachPasswordHint');
-  if (input.value !== COACH_PASSWORD) {
-    hint.textContent = 'Incorrect password.';
-    input.focus();
-    input.select();
-    return;
-  }
-  coachUnlocked = true;
-  localStorage.setItem(COACH_UNLOCK_KEY, 'true');
-  updateCoachModeUI();
-  closeOverlay('coachPasswordOverlay');
-  goPage('coach', document.getElementById('nav-coach'));
+  const input = document.getElementById('coachPasswordInput'); const hint = document.getElementById('coachPasswordHint');
+  if (input.value !== COACH_PASSWORD) { hint.textContent = 'Incorrect password.'; input.focus(); input.select(); return; }
+  coachUnlocked = true; localStorage.setItem(COACH_UNLOCK_KEY, 'true'); updateCoachModeUI(); closeOverlay('coachPasswordOverlay'); goPage('coach', document.getElementById('nav-coach'));
 }
 
 function renderCoach() {
-  const list = document.getElementById('coachList');
-  const input = document.getElementById('coachSearchInput');
+  const list = document.getElementById('coachList'); const input = document.getElementById('coachSearchInput');
   if (!list || !input) return;
 
-  const namedSessions = [...db.sessions]
-    .reverse()
-    .map((sessionObj, revIdx) => ({sessionObj, idx: db.sessions.length - 1 - revIdx}))
-    .filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
+  const namedSessions = [...db.sessions].reverse().map((sessionObj, revIdx) => ({sessionObj, idx: db.sessions.length - 1 - revIdx})).filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
 
   const filteredUnsorted = namedSessions.filter(({sessionObj}) => {
     const name = normalizePersonName(sessionObj.archerName).toLowerCase();
     if (coachSearch && !name.includes(coachSearch)) return false;
-    return sessionMatchesFilter(sessionObj, coachFilters);
+    return sessionMatchesFilter(sessionObj, coachFilters, 'coach');
   });
 
-  const sortedItems = applySortToSessions(
-    filteredUnsorted.map(item => item.sessionObj),
-    coachSort
-  ).map(sessionObj => filteredUnsorted.find(item => item.sessionObj === sessionObj));
+  const sortedItems = applySortToSessions(filteredUnsorted.map(item => item.sessionObj), coachSort).map(sessionObj => filteredUnsorted.find(item => item.sessionObj === sessionObj));
 
-  const filtered = sortedItems;
-
-  if (!namedSessions.length) {
-    list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`;
-    return;
-  }
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No coach results match this search or filter.</div>`;
-    return;
-  }
+  if (!namedSessions.length) { list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`; return; }
+  if (!sortedItems.length) { list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No coach results match this search or filter.</div>`; return; }
 
   const groups = new Map();
-  filtered.forEach(item => {
+  sortedItems.forEach(item => {
     const name = normalizePersonName(item.sessionObj.archerName);
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name).push(item);
   });
 
-  list.innerHTML = [...groups.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([name, entries]) => {
-      const cards = entries
-        .sort((a, b) => new Date(b.sessionObj.date).getTime() - new Date(a.sessionObj.date).getTime())
-        .map(({sessionObj, idx}) => `
-          <div class="coach-card" onclick="openSessionOverlay(${idx})">
-            <div class="coach-card-top">
-              <div>
-                <div class="coach-card-name">${name}</div>
-                <div class="coach-card-meta">${sessionMetaText({...sessionObj, archerName: ''})}</div>
-              </div>
-              <div class="coach-card-score">${getSessionTotal(sessionObj)}</div>
-            </div>
-            <div class="coach-card-type">${sessionTypeBadge(sessionObj)}</div>
-          </div>
-        `).join('');
-      return `<div class="coach-group"><div class="coach-group-label">${name}</div>${cards}</div>`;
-    }).join('');
+  list.innerHTML = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([name, entries]) => {
+    const cards = entries.sort((a, b) => new Date(b.sessionObj.date).getTime() - new Date(a.sessionObj.date).getTime()).map(({sessionObj, idx}) => `
+      <div class="coach-card" onclick="openSessionOverlay(${idx})">
+        <div class="coach-card-top">
+          <div><div class="coach-card-name">${name}</div><div class="coach-card-meta">${sessionMetaText({...sessionObj, archerName: ''})}</div></div>
+          <div class="coach-card-score">${getSessionTotal(sessionObj)}</div>
+        </div>
+        <div class="coach-card-type">${sessionTypeBadge(sessionObj)}</div>
+      </div>
+    `).join('');
+    return `<div class="coach-group"><div class="coach-group-label">${name}</div>${cards}</div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -3122,121 +2974,69 @@ function renderCoach() {
 let activeSessionIdx = null;
 
 function pipColor(score) {
-  if(score>=9) return '#f7e900';
-  if(score>=7) return '#e84040';
-  if(score>=5) return '#3b82f6';
-  if(score>=3) return '#333333';
-  if(score>=1) return '#dddddd';
-  return '#555555';
+  if(score>=9) return '#f7e900'; if(score>=7) return '#e84040'; if(score>=5) return '#3b82f6';
+  if(score>=3) return '#333333'; if(score>=1) return '#dddddd'; return '#555555';
 }
 function pipLightText(score) { return score>=3&&score<=4 || score>=1&&score<=2; }
 
 function openSessionOverlay(idx) {
   activeSessionIdx = idx;
   activeSessionViewMode = document.getElementById('page-coach')?.classList.contains('active') ? 'coach' : 'default';
-  const s = db.sessions[idx];
-  const d = new Date(s.date);
+  const s = db.sessions[idx]; const d = new Date(s.date);
   const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   document.getElementById('sessionOverlayTitle').innerHTML = sessionTypeBadge(s);
   const locationLabel = formatLocation(s.location);
-  document.getElementById('sessionOverlayMeta').innerHTML =
-    locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
-  const owner = document.getElementById('sessionOverlayOwner');
-  const ownerName = normalizePersonName(s.archerName);
-  owner.textContent = ownerName || 'Unassigned';
-  owner.classList.toggle('unassigned', !ownerName);
+  document.getElementById('sessionOverlayMeta').innerHTML = locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
+  const owner = document.getElementById('sessionOverlayOwner'); const ownerName = normalizePersonName(s.archerName);
+  owner.textContent = ownerName || 'Unassigned'; owner.classList.toggle('unassigned', !ownerName);
   const coachView = activeSessionViewMode === 'coach';
   document.querySelectorAll('#sessionOverlay .icon-btn.danger, #sessionOverlay .icon-btn').forEach(btn => {
-    if (btn.getAttribute('aria-label') === 'Delete session' || btn.getAttribute('aria-label') === 'Edit archer name') {
-      btn.style.display = coachView ? 'none' : '';
-    }
+    if (btn.getAttribute('aria-label') === 'Delete session' || btn.getAttribute('aria-label') === 'Edit archer name') btn.style.display = coachView ? 'none' : '';
   });
 
-  const total = getSessionTotal(s);
-  document.getElementById('sessionOverlayTotal').textContent = total;
+  document.getElementById('sessionOverlayTotal').textContent = getSessionTotal(s);
 
   const container = document.getElementById('sessionOverlayRounds');
   container.innerHTML = s.rounds.map((r,ri) => {
-    const rs = r.arrows.reduce((x,a)=>x+a.score,0);
-    const info = roundDescriptor(r);
-    const pips = r.arrows.map(a => {
-      const bg = pipColor(a.score);
-      const lt = pipLightText(a.score);
-      return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
-    }).join('');
+    const rs = r.arrows.reduce((x,a)=>x+a.score,0); const info = roundDescriptor(r);
+    const pips = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
     return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
-      <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
-      <div class="sor-pips">${pips}</div>
-      <div class="sor-score">${rs}</div>
+      <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
       ${coachView ? '' : `<button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>`}
     </div>`;
   }).join('');
-
   document.getElementById('sessionOverlay').classList.add('open');
 }
 
 function deleteCurrentSession() {
   if (activeSessionViewMode === 'coach') return;
   if (!confirm('Delete this entire session?')) return;
-  db.sessions.splice(activeSessionIdx, 1);
-  save();
-  closeOverlay('sessionOverlay');
-  renderHome();
-  renderCoach();
-  renderDiag();
+  db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderCoach(); renderDiag();
 }
 
 function deleteRound(sessionIdx, roundIdx) {
   if (activeSessionViewMode === 'coach') return;
   if (!confirm('Delete this round?')) return;
   db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
-  if (db.sessions[sessionIdx].rounds.length === 0) {
-    db.sessions.splice(sessionIdx, 1);
-    closeOverlay('sessionOverlay');
-  } else {
-    openSessionOverlay(sessionIdx); // refresh overlay
-  }
-  save();
-  renderHome();
-  renderCoach();
-  renderDiag();
+  if (db.sessions[sessionIdx].rounds.length === 0) { db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay'); }
+  else openSessionOverlay(sessionIdx);
+  save(); renderHome(); renderCoach(); renderDiag();
 }
 
 function openSessionArcherOverlay() {
-  if (activeSessionViewMode === 'coach') return;
-  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
-  const input = document.getElementById('sessionArcherInput');
-  input.value = db.sessions[activeSessionIdx].archerName || '';
-  document.getElementById('sessionArcherOverlay').classList.add('open');
-  setTimeout(() => {
-    input.focus();
-    input.select();
-  }, 60);
+  if (activeSessionViewMode === 'coach' || activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  const input = document.getElementById('sessionArcherInput'); input.value = db.sessions[activeSessionIdx].archerName || '';
+  document.getElementById('sessionArcherOverlay').classList.add('open'); setTimeout(() => { input.focus(); input.select(); }, 60);
 }
 
 function saveSessionArcherName() {
-  if (activeSessionViewMode === 'coach') return;
-  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
-  const input = document.getElementById('sessionArcherInput');
-  const nextName = normalizePersonName(input.value);
-  const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
+  if (activeSessionViewMode === 'coach' || activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  const input = document.getElementById('sessionArcherInput'); const nextName = normalizePersonName(input.value); const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
   if (nextName && nextName.toLowerCase() !== (existingName || '').toLowerCase()) {
-    const duplicate = db.sessions.some((s, i) =>
-      i !== activeSessionIdx &&
-      normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase()
-    );
-    if (duplicate) {
-      alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`);
-      input.focus();
-      return;
-    }
+    const duplicate = db.sessions.some((s, i) => i !== activeSessionIdx && normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase());
+    if (duplicate) { alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
   }
-  db.sessions[activeSessionIdx].archerName = nextName;
-  save();
-  closeOverlay('sessionArcherOverlay');
-  openSessionOverlay(activeSessionIdx);
-  renderHome();
-  renderCoach();
+  db.sessions[activeSessionIdx].archerName = nextName; save(); closeOverlay('sessionArcherOverlay'); openSessionOverlay(activeSessionIdx); renderHome(); renderCoach();
 }
 
 // ═══════════════════════════════════════════════
@@ -3247,71 +3047,35 @@ const dctx = detailCanvas.getContext('2d');
 
 function openRoundDetail(sessionIdx, roundIdx) {
   const r = db.sessions[sessionIdx].rounds[roundIdx];
-  document.getElementById('detailTitle').textContent =
-    `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
-
+  document.getElementById('detailTitle').textContent = `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
   drawTargetOnCtx(dctx, 600, r.arrows, r.mode);
-
-  const row = document.getElementById('detailArrows');
-  row.innerHTML = r.arrows.map(a => {
-    const bg = pipColor(a.score);
-    const lt = pipLightText(a.score);
-    return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`;
-  }).join('');
-
+  document.getElementById('detailArrows').innerHTML = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
   document.getElementById('detailScore').textContent = r.arrows.reduce((x,a)=>x+a.score,0);
   document.getElementById('detailOverlay').classList.add('open');
 }
 
 function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
-  const CX2=size/2, CY2=size/2, R2=size/2-10;
-  const rings = getRingsForMode(mode);
-  c.clearRect(0,0,size,size);
+  const CX2=size/2, CY2=size/2, R2=size/2-10; const rings = getRingsForMode(mode); c.clearRect(0,0,size,size);
   for(let i=rings.length-1;i>=0;i--){
-    const r=R2*rings[i].end;
-    c.beginPath(); c.arc(CX2,CY2,r,0,Math.PI*2);
-    c.fillStyle=rings[i].color; c.fill();
-    c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
+    const r=R2*rings[i].end; c.beginPath(); c.arc(CX2,CY2,r,0,Math.PI*2); c.fillStyle=rings[i].color; c.fill(); c.strokeStyle='rgba(0,0,0,0.3)'; c.lineWidth=1; c.stroke();
   }
-  c.strokeStyle='rgba(0,0,0,0.15)'; c.lineWidth=1; c.setLineDash([4,4]);
-  c.beginPath(); c.moveTo(CX2,4); c.lineTo(CX2,size-4); c.stroke();
-  c.beginPath(); c.moveTo(4,CY2); c.lineTo(size-4,CY2); c.stroke();
-  c.setLineDash([]);
+  c.strokeStyle='rgba(0,0,0,0.15)'; c.lineWidth=1; c.setLineDash([4,4]); c.beginPath(); c.moveTo(CX2,4); c.lineTo(CX2,size-4); c.stroke(); c.beginPath(); c.moveTo(4,CY2); c.lineTo(size-4,CY2); c.stroke(); c.setLineDash([]);
   const LC={'#f7e900':'#1a1000','#e84040':'#ffffff','#3b82f6':'#ffffff','#1a1a1a':'#cccccc','#ffffff':'#333333','#cccccc':'#555555'};
-  c.textAlign='center';
-  c.textBaseline='middle';
+  c.textAlign='center'; c.textBaseline='middle';
   for(let i=0;i<rings.length;i++){
-    const innerR=i===0 ? 0 : R2 * rings[i-1].end;
-    const outerR=R2 * rings[i].end;
-    const ringWidth=outerR-innerR;
-    const labelR=innerR + ringWidth * 0.5;
-    const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
-    c.fillStyle=LC[rings[i].color]||'#fff';
-    c.font=`bold ${fontSize}px "DM Mono",monospace`;
-    if (i === 0) {
-      c.fillText(rings[i].score, CX2, CY2);
-      continue;
-    }
-    const positions = [
-      -Math.PI / 2,
-      0,
-      Math.PI / 2,
-      Math.PI,
-    ];
-    positions.forEach(angle => {
-      const x = CX2 + Math.cos(angle) * labelR;
-      const y = CY2 + Math.sin(angle) * labelR;
-      c.fillText(rings[i].score, x, y);
-    });
+    const innerR=i===0 ? 0 : R2 * rings[i-1].end; const outerR=R2 * rings[i].end; const ringWidth=outerR-innerR; const labelR=innerR + ringWidth * 0.5; const fontSize=Math.max(10, Math.floor(ringWidth * 0.46));
+    c.fillStyle=LC[rings[i].color]||'#fff'; c.font=`bold ${fontSize}px "DM Mono",monospace`;
+    if (i === 0) { c.fillText(rings[i].score, CX2, CY2); continue; }
+    const positions = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+    positions.forEach(angle => { const x = CX2 + Math.cos(angle) * labelR; const y = CY2 + Math.sin(angle) * labelR; c.fillText(rings[i].score, x, y); });
   }
   arrows.forEach((a,idx)=>{
+    // Ensure miss arrows are drawn appropriately out of bounds or not at all (they have nx/ny = 1.5)
+    if(a.score === 0 && (a.nx > 1 || a.ny > 1)) return; // Don't draw manual misses on the face
     const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
     c.beginPath(); c.arc(px+2,py+2,12,0,Math.PI*2); c.fillStyle='rgba(0,0,0,0.4)'; c.fill();
-    c.beginPath(); c.arc(px,py,12,0,Math.PI*2);
-    c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
-    c.fillStyle='#000'; c.font='bold 12px "DM Mono",monospace';
-    c.textAlign='center'; c.textBaseline='middle';
-    c.fillText(idx+1, px, py);
+    c.beginPath(); c.arc(px,py,12,0,Math.PI*2); c.fillStyle='#e8c547'; c.strokeStyle='#fff'; c.lineWidth=2; c.fill(); c.stroke();
+    c.fillStyle='#000'; c.font='bold 12px "DM Mono",monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(idx+1, px, py);
   });
 }
 
@@ -3325,15 +3089,8 @@ function goPage(name, btn) {
   btn.classList.add('active');
 
   if(name==='score') {
-    if(session) {
-      document.getElementById('scorePicker').style.display = 'none';
-      document.getElementById('scoreActive').style.display = 'block';
-      renderScorePage();
-    } else {
-      document.getElementById('scorePicker').style.display = 'block';
-      document.getElementById('scoreActive').style.display = 'none';
-      drawTarget([]);
-    }
+    if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block'; renderScorePage(); }
+    else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); }
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
@@ -3346,125 +3103,136 @@ function goPage(name, btn) {
 //  SETTINGS
 // ═══════════════════════════════════════════════
 function downloadSave() {
-  const payload = {
-    ...db,
-    deviceProfile: normalizeDeviceProfile(db.deviceProfile),
-    theme: themeState
-  };
-  const json = JSON.stringify(payload, null, 2);
-  const blob = new Blob([json], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `achery-scorer-save-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const payload = { ...db, deviceProfile: normalizeDeviceProfile(db.deviceProfile), theme: themeState };
+  const json = JSON.stringify(payload, null, 2); const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `achery-scorer-save-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 function uploadSave(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = evt => {
     try {
-      const parsed = JSON.parse(evt.target.result);
-      if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
-      db = {
-        sessions: parsed.sessions.map(normalizeSessionData),
-        savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [],
-        deviceProfile: normalizeDeviceProfile(parsed.deviceProfile)
-      };
-      if (parsed.theme && typeof parsed.theme === 'object') {
-        themeState = parsed.theme;
-        persistTheme();
-        applyTheme();
-      }
-      save();
-      refreshSavedLocationOptions();
-      renderHome();
-      renderCoach();
-      renderDiag();
-      updateDeviceNameSummary();
-      updateCoachModeUI();
+      const parsed = JSON.parse(evt.target.result); if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
+      db = { sessions: parsed.sessions.map(normalizeSessionData), savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [], deviceProfile: normalizeDeviceProfile(parsed.deviceProfile) };
+      if (parsed.theme && typeof parsed.theme === 'object') { themeState = parsed.theme; persistTheme(); applyTheme(); }
+      save(); refreshSavedLocationOptions(); renderHome(); renderCoach(); renderDiag(); updateDeviceNameSummary(); updateCoachModeUI();
       alert(`Loaded ${db.sessions.length} session(s) successfully.`);
-    } catch {
-      alert('Could not read save file. Make sure it is a valid Achery Scorer backup.');
-    }
+    } catch { alert('Could not read save file. Make sure it is a valid Achery Scorer backup.'); }
   };
-  reader.readAsText(file);
-  e.target.value = '';
+  reader.readAsText(file); e.target.value = '';
 }
 
-function confirmReset() {
-  document.getElementById('resetOverlay').classList.add('open');
-}
+function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
 
 function resetData() {
   db = { sessions: [], savedLocations: [], deviceProfile: {name: ''} };
-  session = null;
-  finishingSession = null;
-  activeSessionIdx = null;
-  pendingSessionType = null;
-  pendingLocationSessionId = null;
-  coachSearch = '';
-  coachFilters.clear();
-  coachUnlocked = false;
-  save();
-  localStorage.removeItem(COACH_UNLOCK_KEY);
-  refreshSavedLocationOptions();
-  resetActiveSessionUI();
-  const coachSearchInput = document.getElementById('coachSearchInput');
-  if (coachSearchInput) coachSearchInput.value = '';
-  closeOverlay('resetOverlay');
-  closeOverlay('sessionOverlay');
-  closeOverlay('sessionArcherOverlay');
-  closeOverlay('detailOverlay');
-  closeOverlay('finishOverlay');
-  closeOverlay('deviceNameOverlay');
-  closeOverlay('coachPasswordOverlay');
-  closeOverlay('discardSessionOverlay');
-  closeOverlay('endOverlay');
-  renderCoachFilters();
-  renderHome();
-  renderCoach();
-  renderDiag();
-  updateDeviceNameSummary();
-  updateCoachModeUI();
+  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null; coachSearch = ''; coachFilters.clear(); coachUnlocked = false;
+  save(); localStorage.removeItem(COACH_UNLOCK_KEY); refreshSavedLocationOptions(); resetActiveSessionUI();
+  const coachSearchInput = document.getElementById('coachSearchInput'); if (coachSearchInput) coachSearchInput.value = '';
+  document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
+  renderCoachFilters(); renderHome(); renderCoach(); renderDiag(); updateDeviceNameSummary(); updateCoachModeUI();
   alert('All data has been reset.');
 }
 
 // ═══════════════════════════════════════════════
-//  DIAGNOSTICS
+//  PAN/ZOOM UTILITIES
+// ═══════════════════════════════════════════════
+function attachPanZoom(containerId, wrapId) {
+  const container = document.getElementById(containerId);
+  const wrap = document.getElementById(wrapId);
+  let scale = 1, tx = 0, ty = 0;
+  let startScale = 1, startTx = 0, startTy = 0;
+  let startTouches = [];
+
+  container.addEventListener('touchstart', e => {
+    startTouches = Array.from(e.touches).map(t => ({x: t.clientX, y: t.clientY}));
+    startScale = scale; startTx = tx; startTy = ty;
+  }, {passive: false});
+
+  container.addEventListener('touchmove', e => {
+    if (e.touches.length === 2) {
+      e.preventDefault(); // Prevent scroll while pinching
+      const currentTouches = Array.from(e.touches).map(t => ({x: t.clientX, y: t.clientY}));
+      const startDist = Math.hypot(startTouches[0].x - startTouches[1].x, startTouches[0].y - startTouches[1].y);
+      const currentDist = Math.hypot(currentTouches[0].x - currentTouches[1].x, currentTouches[0].y - currentTouches[1].y);
+      if (startDist > 0) scale = Math.max(1, Math.min(5, startScale * (currentDist / startDist)));
+
+      const startCX = (startTouches[0].x + startTouches[1].x) / 2;
+      const startCY = (startTouches[0].y + startTouches[1].y) / 2;
+      const currentCX = (currentTouches[0].x + currentTouches[1].x) / 2;
+      const currentCY = (currentTouches[0].y + currentTouches[1].y) / 2;
+      tx = startTx + (currentCX - startCX);
+      ty = startTy + (currentCY - startCY);
+      updateTransform();
+    } else if (e.touches.length === 1 && scale > 1) {
+      e.preventDefault(); // Prevent scroll while panning
+      const t = e.touches[0];
+      tx = startTx + (t.clientX - startTouches[0].x);
+      ty = startTy + (t.clientY - startTouches[0].y);
+      updateTransform();
+    }
+  }, {passive: false});
+
+  function updateTransform() {
+    const maxTx = (scale - 1) * container.clientWidth / 2;
+    const maxTy = (scale - 1) * container.clientHeight / 2;
+    tx = Math.max(-maxTx, Math.min(maxTx, tx));
+    ty = Math.max(-maxTy, Math.min(maxTy, ty));
+    wrap.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+
+  // Double tap to reset
+  let lastTap = 0;
+  container.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTap < 300 && e.touches.length === 0) {
+      scale = 1; tx = 0; ty = 0;
+      updateTransform();
+    }
+    lastTap = now;
+  });
+
+  return () => ({scale, tx, ty, rect: container.getBoundingClientRect()});
+}
+
+const getTimelineTransform = attachPanZoom('timelineContainer', 'timelineTransformWrap');
+attachPanZoom('heatmapContainer', 'heatmapTransformWrap');
+
+// ═══════════════════════════════════════════════
+//  DIAGNOSTICS / STATS
 // ═══════════════════════════════════════════════
 function getFilteredRounds() {
   let rounds = [];
-  db.sessions.forEach(s => {
-    s.rounds.forEach(r => {
-      rounds.push({...normalizeRound(r), sessionType: s.type});
-    });
-  });
-  // include in-progress session
+  db.sessions.forEach(s => { s.rounds.forEach(r => { rounds.push({...normalizeRound(r), sessionType: s.type, sessionDate: s.date}); }); });
   if(session) {
-    session.rounds.forEach(r => rounds.push({...normalizeRound(r), sessionType: session.type}));
-    if(session.currentRound.arrows.length) rounds.push({...normalizeRound(session.currentRound), sessionType: session.type});
+    session.rounds.forEach(r => rounds.push({...normalizeRound(r), sessionType: session.type, sessionDate: session.date}));
+    if(session.currentRound.arrows.length) rounds.push({...normalizeRound(session.currentRound), sessionType: session.type, sessionDate: session.date});
   }
   const selected = getSelectedFilterMap(diagFilters);
   return rounds.filter(round => {
     if (selected.scope === 'practice' && round.sessionType !== 'practice') return false;
     if (selected.scope === 'tournament' && !isTournamentSession({type: round.sessionType})) return false;
     return roundMatchesFilters(round, diagFilters);
+  }).filter(round => {
+    const activeLoc = activeLocationFilters.diag;
+    if (activeLoc && activeLoc !== 'all') {
+      const sess = db.sessions.find(s => s.date === round.sessionDate) || session;
+      if (sess && formatLocation(sess.location) !== activeLoc) return false;
+    }
+    return true;
   });
 }
 
 function renderDiag() {
   const rounds = getFilteredRounds();
   const allArrows = rounds.flatMap(r=>r.arrows);
-  const filteredSavedSessions = db.sessions.filter(sessionObj => sessionMatchesFilter(sessionObj, diagFilters));
-  const currentSessionMatches = session && (
-    session.rounds.length > 0 || session.currentRound.arrows.length > 0
-  ) && sessionMatchesFilter(buildFinishedSession() || normalizeSessionData(session), diagFilters);
+  const filteredSavedSessions = db.sessions.filter(sessionObj => sessionMatchesFilter(sessionObj, diagFilters, 'diag'));
+  const currentSessionMatches = session && ( session.rounds.length > 0 || session.currentRound.arrows.length > 0 ) && sessionMatchesFilter(buildFinishedSession() || normalizeSessionData(session), diagFilters, 'diag');
 
-  // stats
   document.getElementById('dArrows').textContent = allArrows.length || '—';
   document.getElementById('dSessions').textContent = filteredSavedSessions.length + (currentSessionMatches ? 1 : 0) || '—';
   if(rounds.length) {
@@ -3472,179 +3240,192 @@ function renderDiag() {
     const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
     document.getElementById('dAvg').textContent = avg.toFixed(1);
     document.getElementById('dBest').textContent = Math.max(...scores);
-  } else {
-    document.getElementById('dAvg').textContent = '—';
-    document.getElementById('dBest').textContent = '—';
-  }
+  } else { document.getElementById('dAvg').textContent = '—'; document.getElementById('dBest').textContent = '—'; }
 
   drawHeatmap(allArrows);
   drawTimeline(rounds);
   drawZoneBars(allArrows);
 }
 
-// Heatmap
+// True Heatmap Helper
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if(s == 0) r = g = b = l;
+  else {
+    const hue2rgb = (p, q, t) => {
+      if(t < 0) t += 1; if(t > 1) t -= 1;
+      if(t < 1/6) return p + (q - p) * 6 * t;
+      if(t < 1/2) return q;
+      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1/3);
+  }
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
 function drawHeatmap(arrows) {
-  const hc = document.getElementById('heatmapCanvas');
-  const hx = hc.getContext('2d');
-  const W2 = 520, CX2 = W2/2, R2 = W2/2-10;
+  const hc = document.getElementById('heatmapCanvas'); const hx = hc.getContext('2d');
+  const W2 = 520, CX2 = W2/2, R2 = W2/2-10; 
+  hc.width = W2; hc.height = W2;
   hx.clearRect(0,0,W2,W2);
-  const mixHeatColor = (hex, overlayHex, amount) => {
-    const base = hex.replace('#', '');
-    const overlay = overlayHex.replace('#', '');
-    const br = parseInt(base.slice(0, 2), 16);
-    const bg = parseInt(base.slice(2, 4), 16);
-    const bb = parseInt(base.slice(4, 6), 16);
-    const or = parseInt(overlay.slice(0, 2), 16);
-    const og = parseInt(overlay.slice(2, 4), 16);
-    const ob = parseInt(overlay.slice(4, 6), 16);
-    const blend = channel => Math.round(channel[0] + (channel[1] - channel[0]) * amount);
-    return `rgb(${blend([br, or])}, ${blend([bg, og])}, ${blend([bb, ob])})`;
-  };
 
   // target background
   for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
     const r=R2*BULLSEYE_RINGS[i].end;
-    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
-    hx.fillStyle = mixHeatColor(BULLSEYE_RINGS[i].color, '#0b1220', 0.5);
-    hx.fill();
-    hx.strokeStyle='rgba(255,255,255,0.18)';
-    hx.lineWidth=1;
-    hx.stroke();
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2); hx.fillStyle = BULLSEYE_RINGS[i].color; hx.fill();
+    hx.strokeStyle='rgba(0,0,0,0.3)'; hx.lineWidth=1; hx.stroke();
   }
-
-  hx.save();
-  hx.beginPath();
-  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
-  hx.clip();
-  hx.fillStyle = 'rgba(7, 11, 18, 0.16)';
-  hx.fillRect(0, 0, W2, W2);
-  hx.restore();
 
   if(!arrows.length) return;
 
-  const heatCanvas = document.createElement('canvas');
-  heatCanvas.width = W2;
-  heatCanvas.height = W2;
+  const heatCanvas = document.createElement('canvas'); heatCanvas.width = W2; heatCanvas.height = W2;
   const heatCtx = heatCanvas.getContext('2d');
 
-  // accumulate density
   arrows.forEach(a=>{
+    if (a.nx > 1 || a.ny > 1) return; // skip misses from heatmap
     const px=CX2+a.nx*R2, py=CX2+a.ny*R2;
-    const grad=heatCtx.createRadialGradient(px,py,0,px,py,38);
-    grad.addColorStop(0,'rgba(255,255,255,0.52)');
-    grad.addColorStop(0.48,'rgba(255,255,255,0.24)');
+    const grad=heatCtx.createRadialGradient(px,py,0,px,py,40);
+    grad.addColorStop(0,'rgba(255,255,255,1)');
     grad.addColorStop(1,'rgba(255,255,255,0)');
-    heatCtx.beginPath(); heatCtx.arc(px,py,38,0,Math.PI*2);
+    heatCtx.beginPath(); heatCtx.arc(px,py,40,0,Math.PI*2);
     heatCtx.fillStyle=grad; heatCtx.fill();
   });
 
   const heatData = heatCtx.getImageData(0,0,W2,W2);
   let maxAlpha = 0;
-  for(let i=3;i<heatData.data.length;i+=4){
-    if(heatData.data[i] > maxAlpha) maxAlpha = heatData.data[i];
-  }
+  for(let i=3;i<heatData.data.length;i+=4) { if(heatData.data[i] > maxAlpha) maxAlpha = heatData.data[i]; }
   if(!maxAlpha) return;
 
   const colored = hx.createImageData(W2,W2);
   for(let i=0;i<heatData.data.length;i+=4){
     const alpha = heatData.data[i+3];
     if (!alpha) continue;
-    const t = Math.min(1, alpha / maxAlpha);
-    const eased = Math.pow(t, 0.62);
-    let r, g, b;
-    if (eased < 0.45) {
-      const p = eased / 0.45;
-      r = Math.round(255);
-      g = Math.round(188 - 84 * p);
-      b = Math.round(72 - 40 * p);
-    } else {
-      const p = (eased - 0.45) / 0.55;
-      r = Math.round(255 - 35 * p);
-      g = Math.round(104 - 82 * p);
-      b = Math.round(32 - 6 * p);
-    }
-    colored.data[i] = r;
-    colored.data[i+1] = g;
-    colored.data[i+2] = b;
-    colored.data[i+3] = Math.round(Math.min(250, 55 + eased * 195));
+    const density = alpha / maxAlpha; // 0.0 to 1.0
+    // Map 0 (Blue) to 1 (Red). Blue is hue 0.66, Red is hue 0.
+    const h = (1.0 - density) * 0.66;
+    const rgb = hslToRgb(h, 1.0, 0.5);
+    colored.data[i] = rgb[0];
+    colored.data[i+1] = rgb[1];
+    colored.data[i+2] = rgb[2];
+    colored.data[i+3] = Math.floor(density * 240); // Opacity scales smoothly with density so target shows through
   }
 
-  const colorCanvas = document.createElement('canvas');
-  colorCanvas.width = W2;
-  colorCanvas.height = W2;
+  const colorCanvas = document.createElement('canvas'); colorCanvas.width = W2; colorCanvas.height = W2;
   colorCanvas.getContext('2d').putImageData(colored, 0, 0);
 
-  hx.save();
-  hx.beginPath();
-  hx.arc(CX2, CX2, R2, 0, Math.PI*2);
-  hx.clip();
-  hx.drawImage(colorCanvas, 0, 0);
-  hx.restore();
+  hx.save(); hx.beginPath(); hx.arc(CX2, CX2, R2, 0, Math.PI*2); hx.clip();
+  hx.drawImage(colorCanvas, 0, 0); hx.restore();
 
-  // redraw ring outlines above the heatmap for readability
+  // redraw faint rings on top of heatmap overlay for better reference
   for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
     const r=R2*BULLSEYE_RINGS[i].end;
-    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2);
-    hx.strokeStyle='rgba(255,255,255,0.26)';
-    hx.lineWidth=1;
-    hx.stroke();
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2); hx.strokeStyle='rgba(0,0,0,0.15)'; hx.lineWidth=1; hx.stroke();
   }
 }
 
 // Timeline
+let timelineDataPoints = []; // Track mapped coordinates for tooltips
+
 function drawTimeline(rounds) {
-  const tc = document.getElementById('timelineCanvas');
-  const tx = tc.getContext('2d');
-  const W3=800, H3=200;
-  tc.style.width='100%';
-  tx.clearRect(0,0,W3,H3);
+  const tc = document.getElementById('timelineCanvas'); const tx = tc.getContext('2d');
+  const W3=800, H3=250; tc.style.width='100%'; tx.clearRect(0,0,W3,H3);
   tx.fillStyle='#111827'; tx.fillRect(0,0,W3,H3);
+  timelineDataPoints = []; // reset
 
   if(rounds.length < 2) {
-    tx.fillStyle='#6b7a99'; tx.font='20px DM Mono, monospace';
-    tx.textAlign='center'; tx.textBaseline='middle';
-    tx.fillText('Need 2+ rounds for timeline', W3/2, H3/2);
-    return;
+    tx.fillStyle='#6b7a99'; tx.font='20px DM Mono, monospace'; tx.textAlign='center'; tx.textBaseline='middle';
+    tx.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
   }
 
   const scores=rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
   const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
-  const pad=30;
+  const pad=40; // extra padding for text
 
   const px=i=>(pad + (i/(scores.length-1))*(W3-pad*2));
   const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
 
-  // grid lines
-  tx.strokeStyle='rgba(255,255,255,0.05)'; tx.lineWidth=1;
+  // Horizontal Grid Lines (Scores)
+  tx.strokeStyle='rgba(255,255,255,0.08)'; tx.lineWidth=1;
+  tx.fillStyle='#6b7a99'; tx.font='10px "DM Mono", monospace'; tx.textAlign='right'; tx.textBaseline='middle';
   for(let g=0;g<=4;g++){
-    const y=pad+(g/4)*(H3-pad*2);
+    const val = minS + (g/4)*(maxS-minS);
+    const y=py(val);
     tx.beginPath(); tx.moveTo(pad,y); tx.lineTo(W3-pad,y); tx.stroke();
+    tx.fillText(Math.round(val), pad - 8, y);
+  }
+
+  // Vertical Grid Lines (Dates)
+  const step = Math.max(1, Math.ceil(rounds.length / 5));
+  tx.textAlign='center'; tx.textBaseline='top';
+  for(let i=0; i<rounds.length; i+=step) {
+    const x = px(i);
+    tx.beginPath(); tx.moveTo(x, pad); tx.lineTo(x, H3-pad); tx.stroke();
+    tx.fillText(new Date(rounds[i].sessionDate).toLocaleDateString(undefined, {month:'short', day:'numeric'}), x, H3-pad + 8);
   }
 
   // area fill
-  tx.beginPath();
-  tx.moveTo(px(0),H3-pad);
+  tx.beginPath(); tx.moveTo(px(0),H3-pad);
   scores.forEach((s,i)=>tx.lineTo(px(i),py(s)));
-  tx.lineTo(px(scores.length-1),H3-pad);
-  tx.closePath();
-  const grad=tx.createLinearGradient(0,0,0,H3);
-  grad.addColorStop(0,'rgba(232,197,71,0.3)');
-  grad.addColorStop(1,'rgba(232,197,71,0)');
+  tx.lineTo(px(scores.length-1),H3-pad); tx.closePath();
+  const grad=tx.createLinearGradient(0,0,0,H3); grad.addColorStop(0,'rgba(232,197,71,0.3)'); grad.addColorStop(1,'rgba(232,197,71,0)');
   tx.fillStyle=grad; tx.fill();
 
   // line
-  tx.beginPath();
-  tx.moveTo(px(0),py(scores[0]));
+  tx.beginPath(); tx.moveTo(px(0),py(scores[0]));
   scores.forEach((s,i)=>{if(i>0)tx.lineTo(px(i),py(s));});
-  tx.strokeStyle='#e8c547'; tx.lineWidth=2.5; tx.lineJoin='round';
-  tx.stroke();
+  tx.strokeStyle='#e8c547'; tx.lineWidth=2.5; tx.lineJoin='round'; tx.stroke();
 
-  // dots
+  // dots & save data points
   scores.forEach((s,i)=>{
-    tx.beginPath(); tx.arc(px(i),py(s),4,0,Math.PI*2);
-    tx.fillStyle='#e8c547'; tx.fill();
+    const x = px(i), y = py(s);
+    tx.beginPath(); tx.arc(x,y,4,0,Math.PI*2); tx.fillStyle='#e8c547'; tx.fill();
+    timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i });
   });
 }
+
+// Handle Timeline Taps for Details
+const tcContainer = document.getElementById('timelineContainer');
+let tooltipHideTimer;
+
+tcContainer.addEventListener('touchend', e => {
+  if (e.changedTouches.length !== 1) return;
+  const t = e.changedTouches[0];
+  const { scale, tx, rect } = getTimelineTransform();
+  
+  // Untransform the coordinate
+  const xUntransformed = ((t.clientX - rect.left) - tx) / scale;
+  
+  // Find nearest point along the X axis
+  let nearest = null;
+  let minDist = Infinity;
+  timelineDataPoints.forEach(pt => {
+    const dist = Math.abs(pt.x - xUntransformed);
+    if (dist < minDist && dist < 30) { // must be relatively close
+      minDist = dist;
+      nearest = pt;
+    }
+  });
+
+  const tooltip = document.getElementById('timelineTooltip');
+  if (nearest) {
+    document.getElementById('ttScore').textContent = nearest.score;
+    document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+    // Position tooltip using transformed coordinates
+    const displayX = (nearest.x * scale) + tx;
+    const displayY = (nearest.y * scale);
+    tooltip.style.left = displayX + 'px';
+    tooltip.style.top = displayY + 'px';
+    tooltip.style.display = 'block';
+    
+    clearTimeout(tooltipHideTimer);
+    tooltipHideTimer = setTimeout(() => { tooltip.style.display = 'none'; }, 2500);
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
 
 // Zone bars
 const ZONES = [
@@ -3657,8 +3438,7 @@ const ZONES = [
 ];
 
 function drawZoneBars(arrows) {
-  const el = document.getElementById('zoneBars');
-  el.innerHTML='';
+  const el = document.getElementById('zoneBars'); el.innerHTML='';
   const total=arrows.length||1;
   ZONES.forEach(z=>{
     const count=arrows.filter(a=>a.score>=z.min&&a.score<=z.max).length;
@@ -3687,10 +3467,7 @@ renderCoach();
 drawTarget([]);
 
 function wipeEphemeralOnExit() {
-  if (session?.ephemeral) {
-    session = null;
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-  }
+  if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 }
 window.addEventListener('beforeunload', wipeEphemeralOnExit);
 window.addEventListener('pagehide', wipeEphemeralOnExit);
