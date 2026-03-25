@@ -2372,76 +2372,107 @@ function normalizeRoundScore(mode, score) {
 // Touch & Mouse Handling (Scroll prevention & Magnifier)
 let targetTouchState = {
   startX: 0, startY: 0, currentX: 0, currentY: 0,
-  isScrolling: false, magnifying: false, timer: null
+  isScrolling: false, magnifying: false, timer: null, active: false
 };
 
-function handlePointerDown(e) {
-  if (e.pointerId) canvas.setPointerCapture(e.pointerId);
-  targetTouchState.startX = e.clientX;
-  targetTouchState.startY = e.clientY;
-  targetTouchState.currentX = e.clientX;
-  targetTouchState.currentY = e.clientY;
+function startTargetInteraction(x, y) {
+  targetTouchState.active = true;
+  targetTouchState.startX = x;
+  targetTouchState.startY = y;
+  targetTouchState.currentX = x;
+  targetTouchState.currentY = y;
   targetTouchState.isScrolling = false;
   targetTouchState.magnifying = false;
+  clearTimeout(targetTouchState.timer);
 
   targetTouchState.timer = setTimeout(() => {
     if (session && !session.currentRound.locked && session.currentRound.arrows.length < 5) {
-      targetTouchState.magnifying = true;
-      targetTouchState.isScrolling = false; // Override scrolling so letting go properly places an arrow
-      showMagnifier(targetTouchState.currentX, targetTouchState.currentY);
+      if (!targetTouchState.isScrolling) {
+        targetTouchState.magnifying = true;
+        showMagnifier(targetTouchState.currentX, targetTouchState.currentY);
+      }
     }
-  }, 350); // Hold delay
+  }, 300); // 300ms hold delay
 }
 
-function handlePointerMove(e) {
-  targetTouchState.currentX = e.clientX;
-  targetTouchState.currentY = e.clientY;
+function moveTargetInteraction(x, y, e) {
+  if (!targetTouchState.active) return;
+  targetTouchState.currentX = x;
+  targetTouchState.currentY = y;
 
-  if (Math.hypot(e.clientX - targetTouchState.startX, e.clientY - targetTouchState.startY) > 15) {
-    if (!targetTouchState.magnifying) {
+  if (!targetTouchState.magnifying) {
+    // If they move significantly before the timer pops, it's a scroll attempt
+    if (Math.hypot(x - targetTouchState.startX, y - targetTouchState.startY) > 15) {
       targetTouchState.isScrolling = true;
-      // Do not cancel the timer here. Let them hold to magnify!
+      clearTimeout(targetTouchState.timer);
     }
-  }
-
-  if (targetTouchState.magnifying) {
-    if (e.cancelable) e.preventDefault(); // Prevent page scroll while magnifying
-    updateMagnifier(e.clientX, e.clientY);
+  } else {
+    // Magnifier is active! Lock the screen scroll and track the finger indefinitely.
+    if (e && e.cancelable) e.preventDefault(); 
+    updateMagnifier(x, y);
   }
 }
 
-function handlePointerUp(e) {
-  if (e.pointerId) canvas.releasePointerCapture(e.pointerId);
+function endTargetInteraction(e) {
+  if (!targetTouchState.active) return;
+  targetTouchState.active = false;
   clearTimeout(targetTouchState.timer);
 
   if (targetTouchState.magnifying) {
-    if (e.cancelable) e.preventDefault();
+    if (e && e.cancelable) e.preventDefault();
     targetTouchState.magnifying = false;
     hideMagnifier();
-    // Place arrow at magnified release point
     handleTargetClick({ clientX: targetTouchState.currentX, clientY: targetTouchState.currentY });
   } else if (!targetTouchState.isScrolling) {
-    // Quick tap or click without moving
     handleTargetClick({ clientX: targetTouchState.currentX, clientY: targetTouchState.currentY });
   }
 }
 
-// Unify all interaction using modern Pointer Events
-canvas.addEventListener('pointerdown', handlePointerDown);
-canvas.addEventListener('pointermove', handlePointerMove);
-canvas.addEventListener('pointerup', handlePointerUp);
-canvas.addEventListener('pointercancel', e => {
+function cancelTargetInteraction() {
+  targetTouchState.active = false;
   clearTimeout(targetTouchState.timer);
-  targetTouchState.magnifying = false;
-  hideMagnifier();
-});
+  if (targetTouchState.magnifying) {
+    targetTouchState.magnifying = false;
+    hideMagnifier();
+  }
+}
 
-// Explicitly prevent mobile browser scrolling *only* when the magnifier is active
-canvas.addEventListener('touchmove', e => {
-  if (targetTouchState.magnifying && e.cancelable) {
-    e.preventDefault();
+// Pure Touch Listeners (Mobile)
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    startTargetInteraction(e.touches[0].clientX, e.touches[0].clientY);
   }
 }, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1) {
+    moveTargetInteraction(e.touches[0].clientX, e.touches[0].clientY, e);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  endTargetInteraction(e);
+});
+
+canvas.addEventListener('touchcancel', cancelTargetInteraction);
+
+// Pure Mouse Listeners (Desktop)
+canvas.addEventListener('mousedown', e => {
+  if (e.button !== 0) return; // Only trigger on left click
+  startTargetInteraction(e.clientX, e.clientY);
+});
+
+window.addEventListener('mousemove', e => {
+  if (targetTouchState.active) {
+    moveTargetInteraction(e.clientX, e.clientY, e);
+  }
+});
+
+window.addEventListener('mouseup', e => {
+  if (targetTouchState.active) {
+    endTargetInteraction(e);
+  }
+});
 
 function showMagnifier(clientX, clientY) {
   document.getElementById('magnifierWrap').style.display = 'block';
