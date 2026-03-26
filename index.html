@@ -175,6 +175,7 @@
     display: flex; justify-content: space-between; align-items: center;
     cursor: pointer; transition: border-color .15s, transform .1s;
     -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; /* Prevents iOS browser menu on long press */
   }
   .recent-item:active { transform: scale(.98); border-color: var(--accent); }
   .recent-item.selected {
@@ -288,6 +289,7 @@
     cursor: crosshair;
     display: block;
     margin: 0 auto;
+    -webkit-touch-callout: none; /* Prevents iOS magnifying glass overlay */
   }
 
   /* Magnifier Tool */
@@ -498,6 +500,7 @@
     width: 100%; max-width: 480px; max-height: 80dvh; overflow-y: auto;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     transform: translateY(30px); transition: transform .25s;
+    overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
   }
   .sort-overlay.open .sort-sheet { transform: translateY(0); }
   .sort-sheet h4 {
@@ -660,6 +663,7 @@
     width: 100%; max-height: 80dvh; overflow-y: auto;
     padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
     transform: translateY(40px); transition: transform .3s;
+    overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
   }
   .overlay.open .modal { transform: translateY(0); }
   .overlay.centered {
@@ -729,6 +733,7 @@
     width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto;
     padding: 20px;
     transform: scale(.95); transition: transform .2s;
+    overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
   }
   .detail-overlay.open .detail-modal { transform: scale(1); }
   .detail-modal-header {
@@ -1148,7 +1153,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
 
     <div class="target-wrap">
-      <canvas id="targetCanvas" width="600" height="600"></canvas>
+      <canvas id="targetCanvas" width="600" height="600" oncontextmenu="return false;"></canvas>
       <div id="magnifierWrap">
         <canvas id="magnifierCanvas" width="130" height="130"></canvas>
         <div class="magnifier-crosshair"></div>
@@ -1158,8 +1163,17 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="arrows-row" id="arrowDots"></div>
 
-    <div class="recent-header" style="margin-top:8px">COMPLETED ROUNDS</div>
-    <div class="round-scores-list" id="completedRounds"></div>
+    <input type="text" id="activeRoundNotes" class="modal-input" placeholder="Add round notes (optional)..." onchange="if(session && session.currentRound) session.currentRound.notes = this.value;" style="margin: 8px 16px 16px; width: calc(100% - 32px); height: 44px; font-size: 14px; background: transparent; border: 1px dashed var(--border);">
+
+    <div class="diag-section" style="margin-bottom: 20px;">
+      <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
+        <h3>COMPLETED ROUNDS</h3>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+      <div class="accordion-content" style="padding-top: 0;">
+        <div class="round-scores-list" id="completedRounds"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1482,6 +1496,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
     <canvas id="detailCanvas" width="600" height="600"></canvas>
     <div class="detail-arrow-row" id="detailArrows"></div>
+    <div id="detailNotes" class="session-notes-box" style="display:none; margin-top: 14px;"></div>
     <div style="margin-top:14px;text-align:center">
       <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">TOTAL SCORE</span>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--accent);line-height:1" id="detailScore"></div>
@@ -1683,6 +1698,24 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<!-- Custom Alert/Confirm Modals for perfect mobile & iframe compatibility -->
+<div class="overlay centered" id="customAlertOverlay" style="z-index: 9999;">
+  <div class="modal">
+    <h3>Notice</h3>
+    <p id="customAlertMessage" style="color:var(--muted);font-size:14px;margin-bottom:20px"></p>
+    <button class="modal-btn primary" onclick="closeOverlay('customAlertOverlay')">OK</button>
+  </div>
+</div>
+
+<div class="overlay centered" id="customConfirmOverlay" style="z-index: 9999;">
+  <div class="modal">
+    <h3>Confirm Action</h3>
+    <p id="customConfirmMessage" style="color:var(--muted);font-size:14px;margin-bottom:20px"></p>
+    <button class="modal-btn danger" onclick="execAppConfirm()">CONFIRM</button>
+    <button class="modal-btn" onclick="closeOverlay('customConfirmOverlay')">CANCEL</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 //  DATA LAYER & INITIALIZATION
@@ -1749,6 +1782,7 @@ function normalizeRound(round = {}) {
     mode,
     distance: mode === 'bullseye' ? (round.distance === 15 ? 15 : 10) : null,
     animal: mode === '3d' ? (THREE_D_TARGET_LOOKUP[round.animal] ? round.animal : 'turkey') : null,
+    notes: typeof round.notes === 'string' ? round.notes.trim() : '',
     arrows: Array.isArray(round.arrows) ? round.arrows.map(arrow => ({
       nx: typeof arrow?.nx === 'number' ? arrow.nx : 0,
       ny: typeof arrow?.ny === 'number' ? arrow.ny : 0,
@@ -1784,6 +1818,24 @@ function normalizeSessionData(raw = {}) {
 
 db.sessions = db.sessions.map(normalizeSessionData);
 db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
+
+// Custom Dialog Utilities
+function appAlert(message) {
+  document.getElementById('customAlertMessage').textContent = message;
+  document.getElementById('customAlertOverlay').classList.add('open');
+}
+
+let appConfirmCallback = null;
+function appConfirm(message, callback) {
+  document.getElementById('customConfirmMessage').textContent = message;
+  appConfirmCallback = callback;
+  document.getElementById('customConfirmOverlay').classList.add('open');
+}
+
+function execAppConfirm() {
+  closeOverlay('customConfirmOverlay');
+  if (appConfirmCallback) appConfirmCallback();
+}
 
 // ═══════════════════════════════════════════════
 //  SESSION STATE
@@ -2140,7 +2192,7 @@ function saveEditArcher() {
   const newName = normalizePersonName(document.getElementById('editArcherInput').value);
   if (!newName) return;
   if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(newName.toLowerCase())) {
-     alert('An archer with this name already exists.'); return;
+     appAlert('An archer with this name already exists.'); return;
   }
   const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
   if (idx !== -1) db.deviceProfile.archers[idx] = newName;
@@ -2152,13 +2204,14 @@ function saveEditArcher() {
 }
 
 function deleteArcher() {
-  if (!confirm(`Remove ${editingArcherOldName} from this device? Past sessions will still remain in History.`)) return;
-  const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
-  if (idx !== -1) db.deviceProfile.archers.splice(idx, 1);
-  if (db.deviceProfile.activeArcher === editingArcherOldName) {
-    db.deviceProfile.activeArcher = db.deviceProfile.archers.length > 0 ? db.deviceProfile.archers[0] : '';
-  }
-  save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
+  appConfirm(`Remove ${editingArcherOldName} from this device? Past sessions will still remain in History.`, () => {
+    const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
+    if (idx !== -1) db.deviceProfile.archers.splice(idx, 1);
+    if (db.deviceProfile.activeArcher === editingArcherOldName) {
+      db.deviceProfile.activeArcher = db.deviceProfile.archers.length > 0 ? db.deviceProfile.archers[0] : '';
+    }
+    save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
+  });
 }
 
 function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
@@ -2179,11 +2232,11 @@ function openDeviceNameOverlay(context = 'launch') {
 function submitDeviceName() {
   const input = document.getElementById('deviceNameInput');
   const nextName = normalizePersonName(input.value);
-  if (!nextName) { alert('Please enter an archer name.'); input.focus(); return; }
+  if (!nextName) { appAlert('Please enter an archer name.'); input.focus(); return; }
   
   db.deviceProfile.archers = db.deviceProfile.archers || [];
   if (db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(nextName.toLowerCase())) {
-    alert('This archer already exists on this device.'); input.focus(); return;
+    appAlert('This archer already exists on this device.'); input.focus(); return;
   }
   db.deviceProfile.archers.push(nextName);
   db.deviceProfile.activeArcher = nextName;
@@ -2603,6 +2656,12 @@ function renderScorePage() {
   undoBtn.disabled = !cr.arrows.length || cr.locked;
   document.getElementById('undoSecondaryBtn').style.display = cr.locked ? 'none' : '';
 
+  const notesInput = document.getElementById('activeRoundNotes');
+  if (notesInput) {
+    notesInput.value = cr.notes || '';
+    notesInput.disabled = cr.locked;
+  }
+
   const overlay = document.getElementById('roundCompleteOverlay');
   const overlayTitle = document.getElementById('roundCompleteTitle');
   const overlayMessage = document.getElementById('roundCompleteMessage');
@@ -2754,7 +2813,13 @@ const FILTER_DEFS = [
   {key: '3d', label: '3D', group: 'family'},
   {key: '10m', label: '10m', group: 'value', family: 'bullseye'},
   {key: '15m', label: '15m', group: 'value', family: 'bullseye'},
-  ...THREE_D_TARGETS.map(target => ({key: target.key, label: target.label, group: 'value', family: '3d'}))
+  ...THREE_D_TARGETS.map(target => ({key: target.key, label: target.label, group: 'value', family: '3d'})),
+  {key: 'arrow_filter', label: 'Arrow', group: 'arrow_parent'},
+  {key: 'arrow_1', label: '1', group: 'arrow_num', parent: 'arrow_filter'},
+  {key: 'arrow_2', label: '2', group: 'arrow_num', parent: 'arrow_filter'},
+  {key: 'arrow_3', label: '3', group: 'arrow_num', parent: 'arrow_filter'},
+  {key: 'arrow_4', label: '4', group: 'arrow_num', parent: 'arrow_filter'},
+  {key: 'arrow_5', label: '5', group: 'arrow_num', parent: 'arrow_filter'}
 ];
 
 const homeFilters = new Set();
@@ -2883,10 +2948,14 @@ function applySortToSessions(sessions, sortKey) {
 
 function getFilterDefinition(key) { return FILTER_DEFS.find(def => def.key === key); }
 
-function getVisibleFilters(filters) {
+function getVisibleFilters(filters, context) {
   const visible = ['all', 'practice', 'tournament', 'bullseye', '3d'];
+  if (context === 'diag') visible.push('arrow_filter');
+  
   if (filters.has('bullseye')) visible.push('10m', '15m');
   if (filters.has('3d')) visible.push(...THREE_D_TARGETS.map(target => target.key));
+  if (filters.has('arrow_filter') && context === 'diag') visible.push('arrow_1', 'arrow_2', 'arrow_3', 'arrow_4', 'arrow_5');
+  
   return visible;
 }
 
@@ -2904,19 +2973,28 @@ function toggleFilter(filters, key) {
         if (kDef.group === 'value' && kDef.family === key) filters.delete(k);
       });
     }
+    if (def.group === 'arrow_parent') {
+      [...filters].forEach(k => {
+        const kDef = getFilterDefinition(k);
+        if (kDef.group === 'arrow_num') filters.delete(k);
+      });
+    }
   } else {
     filters.add(key);
     const def = getFilterDefinition(key);
     if (def.group === 'value') {
       filters.add(def.family);
     }
+    if (def.group === 'arrow_num') {
+      filters.add(def.parent);
+    }
   }
 }
 
-function renderFilters(rowId, filters, toggleFn) {
+function renderFilters(rowId, filters, toggleFn, context) {
   const row = document.getElementById(rowId);
   if (!row) return;
-  const visible = getVisibleFilters(filters);
+  const visible = getVisibleFilters(filters, context);
   row.innerHTML = visible.map(key => {
     const def = getFilterDefinition(key);
     const active = key === 'all' ? filters.size === 0 : filters.has(key);
@@ -2927,8 +3005,8 @@ function renderFilters(rowId, filters, toggleFn) {
 function toggleHomeFilter(key) { toggleFilter(homeFilters, key); renderHomeFilters(); renderHome(); }
 function toggleDiagFilter(key) { toggleFilter(diagFilters, key); renderDiagFilters(); renderDiag(); }
 
-function renderHomeFilters() { renderFilters('homeFilterRow', homeFilters, 'toggleHomeFilter'); }
-function renderDiagFilters() { renderFilters('diagFilterRow', diagFilters, 'toggleDiagFilter'); }
+function renderHomeFilters() { renderFilters('homeFilterRow', homeFilters, 'toggleHomeFilter', 'home'); }
+function renderDiagFilters() { renderFilters('diagFilterRow', diagFilters, 'toggleDiagFilter', 'diag'); }
 
 function roundMatchesFilters(round, filters) {
   if (filters.size === 0) return true;
@@ -3060,19 +3138,19 @@ function toggleHomeSelectAll() {
 
 function deleteHomeSelected() {
   if (homeSelectedSessions.size === 0) return;
-  if (!confirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`)) return;
-  
-  // Splice array safely by deleting highest indices first
-  const sortedIndices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
-  sortedIndices.forEach(idx => {
-    db.sessions.splice(idx, 1);
+  appConfirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`, () => {
+    // Splice array safely by deleting highest indices first
+    const sortedIndices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
+    sortedIndices.forEach(idx => {
+      db.sessions.splice(idx, 1);
+    });
+    
+    save();
+    isHomeSelectMode = false;
+    homeSelectedSessions.clear();
+    renderHome();
+    renderDiag();
   });
-  
-  save();
-  isHomeSelectMode = false;
-  homeSelectedSessions.clear();
-  renderHome();
-  renderDiag();
 }
 
 function renderHome() {
@@ -3157,25 +3235,31 @@ function openSessionOverlay(idx) {
   container.innerHTML = s.rounds.map((r,ri) => {
     const rs = r.arrows.reduce((x,a)=>x+a.score,0); const info = roundDescriptor(r);
     const pips = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
-    return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
-      <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
-      <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
+    const notesHtml = r.notes ? `<div style="width:100%; font-size:12px; color:var(--muted); margin-top:6px; padding-left:66px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${r.notes}</div>` : '';
+    return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})" style="flex-wrap:wrap;">
+      <div style="display:flex; width:100%; align-items:center; gap:10px;">
+        <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
+        <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
+      </div>
+      ${notesHtml}
     </div>`;
   }).join('');
   document.getElementById('sessionOverlay').classList.add('open');
 }
 
 function deleteCurrentSession() {
-  if (!confirm('Delete this entire session?')) return;
-  db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
+  appConfirm('Delete this entire session?', () => {
+    db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
+  });
 }
 
 function deleteRound(sessionIdx, roundIdx) {
-  if (!confirm('Delete this round?')) return;
-  db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
-  if (db.sessions[sessionIdx].rounds.length === 0) { db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay'); }
-  else openSessionOverlay(sessionIdx);
-  save(); renderHome(); renderDiag();
+  appConfirm('Delete this round?', () => {
+    db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
+    if (db.sessions[sessionIdx].rounds.length === 0) { db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay'); }
+    else openSessionOverlay(sessionIdx);
+    save(); renderHome(); renderDiag();
+  });
 }
 
 function openSessionArcherOverlay() {
@@ -3189,7 +3273,7 @@ function saveSessionArcherName() {
   const input = document.getElementById('sessionArcherInput'); const nextName = normalizePersonName(input.value); const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
   if (nextName && nextName.toLowerCase() !== (existingName || '').toLowerCase()) {
     const duplicate = db.sessions.some((s, i) => i !== activeSessionIdx && normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase());
-    if (duplicate) { alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
+    if (duplicate) { appAlert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
   }
   db.sessions[activeSessionIdx].archerName = nextName; save(); closeOverlay('sessionArcherOverlay'); openSessionOverlay(activeSessionIdx); renderHome();
 }
@@ -3205,6 +3289,17 @@ function openRoundDetail(sessionIdx, roundIdx) {
   document.getElementById('detailTitle').textContent = `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
   drawTargetOnCtx(dctx, 600, r.arrows, r.mode);
   document.getElementById('detailArrows').innerHTML = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
+  
+  const notesEl = document.getElementById('detailNotes');
+  if (notesEl) {
+    if (r.notes) {
+      notesEl.textContent = r.notes;
+      notesEl.style.display = 'block';
+    } else {
+      notesEl.style.display = 'none';
+    }
+  }
+
   document.getElementById('detailScore').textContent = r.arrows.reduce((x,a)=>x+a.score,0);
   document.getElementById('detailOverlay').classList.add('open');
 }
@@ -3281,8 +3376,8 @@ function uploadSave(e) {
       db = { sessions: parsed.sessions.map(normalizeSessionData), savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [], deviceProfile: normalizeDeviceProfile(parsed.deviceProfile) };
       if (parsed.theme && typeof parsed.theme === 'object') { themeState = parsed.theme; persistTheme(); applyTheme(); }
       save(); refreshSavedLocationOptions(); renderHome(); renderDiag(); updateDeviceNameSummary();
-      alert(`Loaded ${db.sessions.length} session(s) successfully.`);
-    } catch { alert('Could not read save file. Make sure it is a valid Achery Scorer backup.'); }
+      appAlert(`Loaded ${db.sessions.length} session(s) successfully.`);
+    } catch { appAlert('Could not read save file. Make sure it is a valid Achery Scorer backup.'); }
   };
   reader.readAsText(file); e.target.value = '';
 }
@@ -3290,13 +3385,13 @@ function uploadSave(e) {
 function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
 
 function resetData() {
-  db = { sessions: [], savedLocations: [], deviceProfile: {name: ''} };
+  db = { sessions: [], savedLocations: [], deviceProfile: {name: '', archers: [], activeArcher: ''} };
   session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
   save(); refreshSavedLocationOptions(); resetActiveSessionUI();
   document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
   document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
   renderHome(); renderDiag(); updateDeviceNameSummary();
-  alert('All data has been reset.');
+  appAlert('All data has been reset.');
 }
 
 // ═══════════════════════════════════════════════
@@ -3417,8 +3512,9 @@ function getFilteredRounds() {
   }
   
   const selectedScopes = [...diagFilters].filter(k => getFilterDefinition(k).group === 'scope');
+  const selectedArrowNums = [...diagFilters].filter(k => getFilterDefinition(k).group === 'arrow_num').map(k => parseInt(k.replace('arrow_', '')));
 
-  return rounds.filter(round => {
+  let filtered = rounds.filter(round => {
     if (selectedScopes.length > 0) {
       const rScope = isTournamentSession({type: round.sessionType}) ? 'tournament' : 'practice';
       if (!selectedScopes.includes(rScope)) return false;
@@ -3442,6 +3538,15 @@ function getFilteredRounds() {
     
     return true;
   });
+
+  if (selectedArrowNums.length > 0) {
+    filtered = filtered.map(r => ({
+      ...r,
+      arrows: r.arrows.filter((a, idx) => selectedArrowNums.includes(idx + 1))
+    })).filter(r => r.arrows.length > 0);
+  }
+
+  return filtered;
 }
 
 function renderDiag() {
@@ -3769,6 +3874,56 @@ function wipeEphemeralOnExit() {
 }
 window.addEventListener('beforeunload', wipeEphemeralOnExit);
 window.addEventListener('pagehide', wipeEphemeralOnExit);
+
+// --- NOTE TAKING PATCH ---
+(function injectNotesFeature() {
+  // 1. Inject CSS safely
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .modal-textarea { width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; resize: none; }
+    .session-notes-box { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
+  `;
+  document.head.appendChild(style);
+
+  // 2. Inject HTML Elements
+  const datalist = document.getElementById('savedLocationOptions');
+  if (datalist) datalist.insertAdjacentHTML('beforebegin', '<textarea id="finishNotesInput" class="modal-textarea" placeholder="Add session notes (optional)..."></textarea>');
+
+  const roundsContainer = document.getElementById('sessionOverlayRounds');
+  if (roundsContainer) roundsContainer.insertAdjacentHTML('beforebegin', '<div id="sessionOverlayNotes" class="session-notes-box" style="display:none"></div>');
+
+  // 3. Safely Intercept Functions
+  const originalEndSession = endSession;
+  endSession = function() {
+    const notesInput = document.getElementById('finishNotesInput');
+    if (notesInput) notesInput.value = ''; // Clear notes when starting end process
+    originalEndSession();
+  };
+
+  const originalSaveFinishedSession = saveFinishedSession;
+  saveFinishedSession = function(withLocation = true) {
+    if (finishingSession) {
+      const notesInput = document.getElementById('finishNotesInput');
+      if (notesInput) finishingSession.notes = notesInput.value.trim(); // Save notes to session
+    }
+    originalSaveFinishedSession(withLocation);
+  };
+
+  const originalOpenSessionOverlay = openSessionOverlay;
+  openSessionOverlay = function(idx) {
+    originalOpenSessionOverlay(idx); // Load normal overlay first
+    const s = db.sessions[idx];
+    const notesEl = document.getElementById('sessionOverlayNotes');
+    if (notesEl && s) {
+      if (s.notes) {
+        notesEl.textContent = s.notes;
+        notesEl.style.display = 'block'; // Show notes if they exist
+      } else {
+        notesEl.style.display = 'none'; // Hide if no notes
+      }
+    }
+  };
+})();
 </script>
 </body>
 </html>
