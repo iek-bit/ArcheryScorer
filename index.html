@@ -3583,10 +3583,12 @@ function generateScorecard(indices) {
     </div>
   `;
 
-  // --- MEDIAN.CO PDF WORKAROUND ---
+  // --- MEDIAN & MOBILE WEB PDF FIX ---
   const isMedianApp = navigator.userAgent.indexOf('GoNative') > -1 || (window.median && window.median.isNativeApp());
+  // Detect if the user is on a mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  if (isMedianApp) {
+  if (isMedianApp || isMobile) {
     const printEl = document.getElementById('printContainer');
     // Temporarily show the container off-screen so the PDF generator can read it
     printEl.style.display = 'block';
@@ -3604,19 +3606,29 @@ function generateScorecard(indices) {
       printEl.style.display = 'none';
       printEl.style.position = 'static';
       
-      // Use Median's native bridge to download and OPEN the PDF
-      // The native Android PDF viewer has a print button in the top right corner!
-      if (window.median && window.median.share) {
-        median.share.downloadFile({ url: pdfBase64, open: true });
+      if (isMedianApp) {
+        // 1. Median App Behavior
+        if (window.median && window.median.share) {
+          median.share.downloadFile({ url: pdfBase64, open: true });
+        } else {
+          window.location.href = 'gonative://share/downloadFile?open=true&url=' + encodeURIComponent(pdfBase64);
+        }
       } else {
-        window.location.href = 'gonative://share/downloadFile?open=true&url=' + encodeURIComponent(pdfBase64);
+        // 2. Standard Mobile Browser Behavior
+        // Creates a hidden link to force the browser to download the PDF
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pdfBase64;
+        downloadLink.download = 'Archery_Scorecard.pdf';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
       }
     });
   } else {
-    // Normal desktop/browser behavior
+    // 3. Normal Desktop Browser Behavior
     setTimeout(() => { window.print(); }, 300);
   }
-  // --------------------------------
+  // -----------------------------------
 }
 
 function deleteHomeSelected() {
