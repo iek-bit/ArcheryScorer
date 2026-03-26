@@ -174,8 +174,14 @@
     border-radius: 12px; padding: 14px 16px;
     display: flex; justify-content: space-between; align-items: center;
     cursor: pointer; transition: border-color .15s, transform .1s;
+    -webkit-user-select: none; user-select: none;
   }
   .recent-item:active { transform: scale(.98); border-color: var(--accent); }
+  .recent-item.selected {
+    border-color: var(--accent);
+    background: rgba(232,197,71,.07);
+  }
+  .recent-item.selected .ri-chevron { color: var(--accent); }
   .recent-item .ri-left span:first-child { font-size: 13px; font-weight: 500; }
   .recent-item .ri-left span:last-child { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
   .recent-item .ri-score {
@@ -438,6 +444,12 @@
   }
   .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
+  .selection-bar {
+    display: none; align-items: center; justify-content: space-between;
+    padding: 16px 16px 0;
+  }
+  .selection-bar.active { display: flex; }
+
   .filter-bar {
     display: flex; align-items: flex-start; gap: 6px; padding: 16px 16px 0;
   }
@@ -595,78 +607,6 @@
   .zone-bar-fill { height: 100%; border-radius: 5px; transition: width .5s ease; }
   .zone-bar-row .zb-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 30px; }
 
-  .coach-search-wrap {
-    padding: 16px 16px 8px;
-  }
-  .coach-search-input {
-    width: 100%;
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: var(--bg2);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    outline: none;
-  }
-  .coach-search-input::placeholder { color: var(--muted); }
-  .coach-group {
-    padding: 4px 16px 16px;
-  }
-  .coach-group-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin: 10px 4px 10px;
-  }
-  .coach-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: border-color .15s, transform .1s;
-  }
-  .coach-card:active {
-    transform: scale(.98);
-    border-color: var(--accent);
-  }
-  .coach-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .coach-card-name {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-  .coach-card-meta {
-    color: var(--muted);
-    font-size: 11px;
-    font-family: 'DM Mono', monospace;
-    line-height: 1.5;
-  }
-  .coach-card-score {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 34px;
-    line-height: 1;
-    color: var(--accent);
-    flex-shrink: 0;
-  }
-  .coach-card-type {
-    margin-top: 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 12px;
-  }
   .inline-field {
     margin-top: 14px;
     margin-bottom: 16px;
@@ -1130,7 +1070,9 @@ const ICONS = {
   users: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg>',
   edit: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
   chevronDown: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>',
-  help: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+  help: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  square: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>',
+  checkSquare: '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><polyline points="9 12 12 15 15 9"></polyline></svg>'
 };
 
 function icon(name, extraClass = '') {
@@ -1244,7 +1186,21 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="diag-header">
     <h2>HISTORY</h2>
   </div>
-  <div class="filter-bar">
+  <div class="selection-bar" id="homeSelectionBar">
+    <div style="display:flex; gap:12px; align-items:center">
+      <button class="icon-btn" onclick="exitHomeSelectMode()" title="Cancel Selection" aria-label="Cancel Selection">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+      <button class="icon-btn" id="homeSelectAllBtn" onclick="toggleHomeSelectAll()" title="Select All" aria-label="Select All">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+      </button>
+    </div>
+    <div style="font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--accent);"><span id="homeSelectCount">0</span> SELECTED</div>
+    <button class="icon-btn danger" onclick="deleteHomeSelected()" title="Delete Selected" aria-label="Delete Selected">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
+    </button>
+  </div>
+  <div class="filter-bar" id="homeFilterBar">
     <div class="filter-row" id="homeFilterRow"></div>
     <button class="sort-btn" id="homeLocationBtn" onclick="openLocationOverlay('home')">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
@@ -1327,34 +1283,6 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
-<div id="page-coach" class="page">
-  <div class="diag-header">
-    <h2>COACH</h2>
-  </div>
-  <div class="coach-search-wrap">
-    <input
-      id="coachSearchInput"
-      class="coach-search-input"
-      type="text"
-      placeholder="Search archer name"
-      autocomplete="off"
-      oninput="setCoachSearch(this.value)"
-    >
-  </div>
-  <div class="filter-bar" style="padding-top:8px;">
-    <div class="filter-row" id="coachFilterRow" style="padding-top:0"></div>
-    <button class="sort-btn" id="coachLocationBtn" onclick="openLocationOverlay('coach')">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
-      Location
-    </button>
-    <button class="sort-btn" id="coachSortBtn" onclick="openSortOverlay('coach')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-      Sort
-    </button>
-  </div>
-  <div id="coachList"></div>
-</div>
-
 <div id="page-settings" class="page">
   <div class="diag-header">
     <h2>SETTINGS</h2>
@@ -1367,14 +1295,6 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="settings-row-text">
         <div class="settings-row-title">Archer Name</div>
         <div class="settings-row-sub" id="deviceNameSummary">Not set yet</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-    <div class="settings-row" onclick="openCoachActivation()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Coach Mode</div>
-        <div class="settings-row-sub" id="coachModeSummary">Disabled on this device</div>
       </div>
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
@@ -1612,10 +1532,6 @@ const PRACTICE_TARGET_OPTIONS = [
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>
     <span>Stats</span>
   </button>
-  <button onclick="goPage('coach',this)" id="nav-coach" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg>
-    <span>Coach</span>
-  </button>
   <button onclick="goPage('settings',this)" id="nav-settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     <span>Settings</span>
@@ -1741,40 +1657,12 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
-<div class="overlay centered" id="coachPasswordOverlay">
-  <div class="modal">
-    <h3>Coach Access</h3>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Enter the coach password to unlock archer search mode.</p>
-    <input
-      id="coachPasswordInput"
-      class="modal-input"
-      type="password"
-      placeholder="Coach password"
-      autocomplete="current-password"
-    >
-    <div class="modal-help" id="coachPasswordHint">Password required.</div>
-    <button class="modal-btn primary" onclick="submitCoachPassword()">ENTER COACH MODE</button>
-    <button class="modal-btn" onclick="closeOverlay('coachPasswordOverlay')">CANCEL</button>
-  </div>
-</div>
-
-<div class="overlay centered" id="disableCoachOverlay">
-  <div class="modal">
-    <h3>Disable Coach Mode?</h3>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will remove coach access from this device. You can re-enable it with the coach password at any time.</p>
-    <button class="modal-btn danger" onclick="confirmDisableCoach()">DISABLE COACH MODE</button>
-    <button class="modal-btn" onclick="closeOverlay('disableCoachOverlay')">CANCEL</button>
-  </div>
-</div>
-
 <script>
 // ═══════════════════════════════════════════════
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
 const APP_VERSION = '1.0.0';
-const COACH_PASSWORD = 'cabeacons';
-const COACH_UNLOCK_KEY = 'achery_scorer_coach_unlock_v1';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -1783,7 +1671,7 @@ db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
 // Location Filter States
-let activeLocationFilters = { home: new Set(), diag: new Set(), coach: new Set() };
+let activeLocationFilters = { home: new Set(), diag: new Set() };
 
 const THEME_KEY = 'achery_scorer_theme_v1';
 const THEME_PRESETS = {
@@ -1869,9 +1757,6 @@ let locationInputDirty = false;
 let threeDTournamentSetup = {startAnimal: 'turkey', direction: 1};
 let pendingSessionType = null;
 let deviceNameOverlayContext = 'launch';
-let coachSearch = '';
-let coachUnlocked = localStorage.getItem(COACH_UNLOCK_KEY) === 'true';
-let activeSessionViewMode = 'default';
 
 function isTournamentSession(sessionObj) { return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament'; }
 function isThreeDSession(sessionObj) { return sessionObj?.type === '3d_tournament'; }
@@ -1998,7 +1883,6 @@ function refreshThemeSensitiveUI() {
   else drawTarget([]);
   if (document.getElementById('page-home').classList.contains('active')) renderHome();
   if (document.getElementById('page-diag').classList.contains('active')) renderDiag();
-  if (document.getElementById('page-coach')?.classList.contains('active')) renderCoach();
 }
 
 function applyTheme() {
@@ -2101,7 +1985,7 @@ function assignLocationToSession(sessionId, location) {
   if (savedSession) {
     if (savedSession.location?.manual && !location.manual) return;
     savedSession.location = {...savedSession.location, ...location};
-    save(); renderHome(); renderCoach();
+    save(); renderHome();
     if (activeSessionIdx !== null && db.sessions[activeSessionIdx]?.id === sessionId) openSessionOverlay(activeSessionIdx);
   }
 }
@@ -2183,13 +2067,6 @@ function updateDeviceNameSummary() {
   summary.textContent = getDeviceArcherName() || 'Not set yet';
 }
 
-function updateCoachModeUI() {
-  const navBtn = document.getElementById('nav-coach');
-  if (navBtn) navBtn.style.display = coachUnlocked ? '' : 'none';
-  const summary = document.getElementById('coachModeSummary');
-  if (summary) summary.textContent = coachUnlocked ? 'Enabled on this device' : 'Disabled on this device';
-}
-
 function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
 
 function openDeviceNameOverlay(context = 'launch') {
@@ -2218,7 +2095,7 @@ function submitDeviceName() {
   if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
     const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
   }
-  pendingSessionType = null; renderCoach();
+  pendingSessionType = null;
 }
 
 function ensureDeviceNameForScoring(type) {
@@ -2228,20 +2105,6 @@ function ensureDeviceNameForScoring(type) {
 
 function launchSession(type) { if (!ensureDeviceNameForScoring(type)) return; startSession(type); }
 function launchEphemeralSession() { startSession('practice', { ephemeral: true }); }
-
-function openCoachActivation() {
-  if (coachUnlocked) { document.getElementById('disableCoachOverlay').classList.add('open'); return; }
-  const input = document.getElementById('coachPasswordInput');
-  const hint = document.getElementById('coachPasswordHint');
-  input.value = ''; hint.textContent = 'Enter the coach password to enable coach mode on this device.';
-  document.getElementById('coachPasswordOverlay').classList.add('open');
-  setTimeout(() => input.focus(), 60);
-}
-
-function confirmDisableCoach() {
-  coachUnlocked = false; localStorage.removeItem(COACH_UNLOCK_KEY); closeOverlay('disableCoachOverlay'); updateCoachModeUI();
-  if (document.getElementById('page-coach')?.classList.contains('active')) goPage('score', document.getElementById('nav-score'));
-}
 
 function openFinishOverlay() {
   locationInputDirty = false;
@@ -2261,7 +2124,7 @@ function saveFinishedSession(withLocation = true) {
   else finishingSession.location = {manual: true};
   if (finishingSession.location?.label) saveChosenLocation(finishingSession.location);
   db.sessions.push(finishingSession); save(); refreshSavedLocationOptions(); finishingSession = null;
-  closeOverlay('finishOverlay'); renderHome(); renderCoach(); renderDiag(); goPage('score', document.getElementById('nav-score'));
+  closeOverlay('finishOverlay'); renderHome(); renderDiag(); goPage('score', document.getElementById('nav-score'));
 }
 
 function checkMedianAndroidLocationReady(sessionId) {
@@ -2800,16 +2663,14 @@ const FILTER_DEFS = [
 
 const homeFilters = new Set();
 const diagFilters = new Set();
-const coachFilters = new Set();
 
 let homeSort = 'newest';
-let coachSort = 'newest';
 let activeSortContext = 'home';
 let activeLocationContext = 'home';
 
 function openSortOverlay(context) {
   activeSortContext = context;
-  const current = context === 'home' ? homeSort : coachSort;
+  const current = homeSort; // Always homeSort now
   document.querySelectorAll('.sort-option').forEach(btn => btn.classList.toggle('active', btn.dataset.sort === current));
   document.getElementById('sortOverlay').classList.add('open');
 }
@@ -2818,9 +2679,8 @@ function closeSortOverlay(e) { document.getElementById('sortOverlay').classList.
 
 function setSort(key) {
   if (activeSortContext === 'home') { homeSort = key; document.getElementById('homeSortBtn').classList.toggle('active', key !== 'newest'); }
-  else { coachSort = key; document.getElementById('coachSortBtn').classList.toggle('active', key !== 'newest'); }
   closeSortOverlay();
-  if (activeSortContext === 'home') renderHome(); else renderCoach();
+  if (activeSortContext === 'home') renderHome();
 }
 
 function openLocationOverlay(context) {
@@ -2862,7 +2722,6 @@ function setLocationFilter(locLabel) {
   
   if (activeLocationContext === 'home') renderHome();
   else if (activeLocationContext === 'diag') renderDiag();
-  else if (activeLocationContext === 'coach') renderCoach();
 }
 
 function computeGroupingScore(sessionObj) {
@@ -2933,11 +2792,9 @@ function renderFilters(rowId, filters, toggleFn) {
 
 function toggleHomeFilter(key) { toggleFilter(homeFilters, key); renderHomeFilters(); renderHome(); }
 function toggleDiagFilter(key) { toggleFilter(diagFilters, key); renderDiagFilters(); renderDiag(); }
-function toggleCoachFilter(key) { toggleFilter(coachFilters, key); renderCoachFilters(); renderCoach(); }
 
 function renderHomeFilters() { renderFilters('homeFilterRow', homeFilters, 'toggleHomeFilter'); }
 function renderDiagFilters() { renderFilters('diagFilterRow', diagFilters, 'toggleDiagFilter'); }
-function renderCoachFilters() { renderFilters('coachFilterRow', coachFilters, 'toggleCoachFilter'); }
 
 function roundMatchesFilters(round, filters) {
   if (filters.size === 0) return true;
@@ -2974,10 +2831,131 @@ function sessionMatchesFilter(sessionObj, filters, context) {
   return sessionObj.rounds.some(round => roundMatchesFilters(round, filters));
 }
 
+let isHomeSelectMode = false;
+let homeSelectedSessions = new Set();
+let homeSelectTimer = null;
+let homeSelectStart = null;
+let homeSelectTargetIdx = null;
+
+function handleHomeItemPointerDown(e, idx) {
+  if (e.button !== 0 && e.pointerType === 'mouse') return; // Ignore right-clicks
+  homeSelectTargetIdx = idx;
+  homeSelectStart = { x: e.clientX, y: e.clientY };
+  
+  homeSelectTimer = setTimeout(() => {
+    if (homeSelectStart) {
+      homeSelectStart = null;
+      if (!isHomeSelectMode) {
+        isHomeSelectMode = true;
+        homeSelectedSessions.add(idx);
+        if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback on hold
+        renderHome();
+      }
+    }
+  }, 400); // 400ms long-press
+
+  document.addEventListener('pointermove', handleHomeItemPointerMove);
+  document.addEventListener('pointerup', handleHomeItemPointerUp);
+  document.addEventListener('pointercancel', handleHomeItemPointerCancel);
+}
+
+function handleHomeItemPointerMove(e) {
+  if (!homeSelectStart) return;
+  // If user scrolls or moves finger significantly, cancel the long press
+  if (Math.hypot(e.clientX - homeSelectStart.x, e.clientY - homeSelectStart.y) > 10) {
+    handleHomeItemPointerCancel();
+  }
+}
+
+function handleHomeItemPointerUp(e) {
+  cleanupHomeItemListeners();
+  if (homeSelectStart) {
+    clearTimeout(homeSelectTimer);
+    homeSelectStart = null;
+    if (isHomeSelectMode) {
+       // Toggle selection if in select mode
+       if (homeSelectedSessions.has(homeSelectTargetIdx)) {
+         homeSelectedSessions.delete(homeSelectTargetIdx);
+         if (homeSelectedSessions.size === 0) isHomeSelectMode = false;
+       } else {
+         homeSelectedSessions.add(homeSelectTargetIdx);
+       }
+       renderHome();
+    } else {
+       // Regular tap to open
+       openSessionOverlay(homeSelectTargetIdx);
+    }
+  }
+}
+
+function handleHomeItemPointerCancel() {
+  clearTimeout(homeSelectTimer);
+  homeSelectStart = null;
+  cleanupHomeItemListeners();
+}
+
+function cleanupHomeItemListeners() {
+  document.removeEventListener('pointermove', handleHomeItemPointerMove);
+  document.removeEventListener('pointerup', handleHomeItemPointerUp);
+  document.removeEventListener('pointercancel', handleHomeItemPointerCancel);
+}
+
+function exitHomeSelectMode() {
+  isHomeSelectMode = false;
+  homeSelectedSessions.clear();
+  renderHome();
+}
+
+function toggleHomeSelectAll() {
+  const visibleSessions = window.currentVisibleHomeSessions || [];
+  if (homeSelectedSessions.size === visibleSessions.length && visibleSessions.length > 0) {
+    homeSelectedSessions.clear();
+    isHomeSelectMode = false;
+  } else {
+    visibleSessions.forEach(s => {
+      homeSelectedSessions.add(db.sessions.indexOf(s));
+    });
+  }
+  renderHome();
+}
+
+function deleteHomeSelected() {
+  if (homeSelectedSessions.size === 0) return;
+  if (!confirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`)) return;
+  
+  // Splice array safely by deleting highest indices first
+  const sortedIndices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
+  sortedIndices.forEach(idx => {
+    db.sessions.splice(idx, 1);
+  });
+  
+  save();
+  isHomeSelectMode = false;
+  homeSelectedSessions.clear();
+  renderHome();
+  renderDiag();
+}
+
 function renderHome() {
   const list = document.getElementById('recentList');
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters, 'home'));
   const filtered = applySortToSessions(newestFirst, homeSort);
+  window.currentVisibleHomeSessions = filtered;
+
+  const filterBar = document.getElementById('homeFilterBar');
+  const selectBar = document.getElementById('homeSelectionBar');
+  
+  if (isHomeSelectMode) {
+    filterBar.style.display = 'none';
+    selectBar.style.display = 'flex';
+    document.getElementById('homeSelectCount').textContent = homeSelectedSessions.size;
+    const isAll = homeSelectedSessions.size === filtered.length && filtered.length > 0;
+    document.getElementById('homeSelectAllBtn').innerHTML = isAll ? icon('checkSquare') : icon('square');
+  } else {
+    filterBar.style.display = 'flex';
+    selectBar.style.display = 'none';
+  }
+
   if (!db.sessions.length) {
     list.innerHTML = `<div class="empty-state">No sessions yet.</div>`;
     return;
@@ -2990,66 +2968,25 @@ function renderHome() {
     const realIdx = db.sessions.indexOf(s);
     const total = s.rounds.reduce((x,r) => x + r.arrows.reduce((y,a) => y + a.score, 0), 0);
     const typeLabel = `<span class="session-type">${sessionTypeBadge(s)}</span>`;
-    return `<div class="recent-item" onclick="openSessionOverlay(${realIdx})">
+    const isSel = homeSelectedSessions.has(realIdx);
+    
+    return `<div class="recent-item ${isSel ? 'selected' : ''}" 
+      onpointerdown="handleHomeItemPointerDown(event, ${realIdx})" 
+      oncontextmenu="return false;"
+      style="touch-action: pan-y;">
       <div class="ri-left">
         <span>${typeLabel}</span>
         <span>${sessionMetaText(s)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="ri-score">${total}</div>
-        <span class="ri-chevron">${icon('arrowUpRight')}</span>
+        <span class="ri-chevron">${isHomeSelectMode ? (isSel ? icon('checkSquare') : icon('square')) : icon('arrowUpRight')}</span>
       </div>
     </div>`;
   }).join('');
 }
 
 function getSessionTotal(sessionObj) { return sessionObj.rounds.reduce((sum, round) => sum + round.arrows.reduce((roundSum, arrow) => roundSum + arrow.score, 0), 0); }
-
-function setCoachSearch(value) { coachSearch = value.trim().toLowerCase(); renderCoach(); }
-
-function submitCoachPassword() {
-  const input = document.getElementById('coachPasswordInput'); const hint = document.getElementById('coachPasswordHint');
-  if (input.value !== COACH_PASSWORD) { hint.textContent = 'Incorrect password.'; input.focus(); input.select(); return; }
-  coachUnlocked = true; localStorage.setItem(COACH_UNLOCK_KEY, 'true'); updateCoachModeUI(); closeOverlay('coachPasswordOverlay'); goPage('coach', document.getElementById('nav-coach'));
-}
-
-function renderCoach() {
-  const list = document.getElementById('coachList'); const input = document.getElementById('coachSearchInput');
-  if (!list || !input) return;
-
-  const namedSessions = [...db.sessions].reverse().map((sessionObj, revIdx) => ({sessionObj, idx: db.sessions.length - 1 - revIdx})).filter(({sessionObj}) => !!normalizePersonName(sessionObj.archerName));
-
-  const filteredUnsorted = namedSessions.filter(({sessionObj}) => {
-    const name = normalizePersonName(sessionObj.archerName).toLowerCase();
-    if (coachSearch && !name.includes(coachSearch)) return false;
-    return sessionMatchesFilter(sessionObj, coachFilters, 'coach');
-  });
-
-  const sortedItems = applySortToSessions(filteredUnsorted.map(item => item.sessionObj), coachSort).map(sessionObj => filteredUnsorted.find(item => item.sessionObj === sessionObj));
-
-  if (!namedSessions.length) { list.innerHTML = `<div class="empty-state">No named archer sessions yet.<br>Start scoring after setting a device name to build the coach board.</div>`; return; }
-  if (!sortedItems.length) { list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No coach results match this search or filter.</div>`; return; }
-
-  const groups = new Map();
-  sortedItems.forEach(item => {
-    const name = normalizePersonName(item.sessionObj.archerName);
-    if (!groups.has(name)) groups.set(name, []);
-    groups.get(name).push(item);
-  });
-
-  list.innerHTML = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([name, entries]) => {
-    const cards = entries.sort((a, b) => new Date(b.sessionObj.date).getTime() - new Date(a.sessionObj.date).getTime()).map(({sessionObj, idx}) => `
-      <div class="coach-card" onclick="openSessionOverlay(${idx})">
-        <div class="coach-card-top">
-          <div><div class="coach-card-name">${name}</div><div class="coach-card-meta">${sessionMetaText({...sessionObj, archerName: ''})}</div></div>
-          <div class="coach-card-score">${getSessionTotal(sessionObj)}</div>
-        </div>
-        <div class="coach-card-type">${sessionTypeBadge(sessionObj)}</div>
-      </div>
-    `).join('');
-    return `<div class="coach-group"><div class="coach-group-label">${name}</div>${cards}</div>`;
-  }).join('');
-}
 
 // ═══════════════════════════════════════════════
 //  SESSION OVERLAY
@@ -3064,7 +3001,6 @@ function pipLightText(score) { return score>=3&&score<=4 || score>=1&&score<=2; 
 
 function openSessionOverlay(idx) {
   activeSessionIdx = idx;
-  activeSessionViewMode = document.getElementById('page-coach')?.classList.contains('active') ? 'coach' : 'default';
   const s = db.sessions[idx]; const d = new Date(s.date);
   const dateStr = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
   document.getElementById('sessionOverlayTitle').innerHTML = sessionTypeBadge(s);
@@ -3072,10 +3008,6 @@ function openSessionOverlay(idx) {
   document.getElementById('sessionOverlayMeta').innerHTML = locationLabel ? `${dateStr} · ${icon('location', 'type-icon')}${locationLabel}` : dateStr;
   const owner = document.getElementById('sessionOverlayOwner'); const ownerName = normalizePersonName(s.archerName);
   owner.textContent = ownerName || 'Unassigned'; owner.classList.toggle('unassigned', !ownerName);
-  const coachView = activeSessionViewMode === 'coach';
-  document.querySelectorAll('#sessionOverlay .icon-btn.danger, #sessionOverlay .icon-btn').forEach(btn => {
-    if (btn.getAttribute('aria-label') === 'Delete session' || btn.getAttribute('aria-label') === 'Edit archer name') btn.style.display = coachView ? 'none' : '';
-  });
 
   document.getElementById('sessionOverlayTotal').textContent = getSessionTotal(s);
 
@@ -3085,41 +3017,39 @@ function openSessionOverlay(idx) {
     const pips = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
     return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})">
       <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
-      ${coachView ? '' : `<button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>`}
+      <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
     </div>`;
   }).join('');
   document.getElementById('sessionOverlay').classList.add('open');
 }
 
 function deleteCurrentSession() {
-  if (activeSessionViewMode === 'coach') return;
   if (!confirm('Delete this entire session?')) return;
-  db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderCoach(); renderDiag();
+  db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
 }
 
 function deleteRound(sessionIdx, roundIdx) {
-  if (activeSessionViewMode === 'coach') return;
   if (!confirm('Delete this round?')) return;
   db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
   if (db.sessions[sessionIdx].rounds.length === 0) { db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay'); }
   else openSessionOverlay(sessionIdx);
-  save(); renderHome(); renderCoach(); renderDiag();
+  save(); renderHome(); renderDiag();
 }
 
 function openSessionArcherOverlay() {
-  if (activeSessionViewMode === 'coach' || activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
   const input = document.getElementById('sessionArcherInput'); input.value = db.sessions[activeSessionIdx].archerName || '';
   document.getElementById('sessionArcherOverlay').classList.add('open'); setTimeout(() => { input.focus(); input.select(); }, 60);
 }
 
 function saveSessionArcherName() {
-  if (activeSessionViewMode === 'coach' || activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
+  if (activeSessionIdx === null || !db.sessions[activeSessionIdx]) return;
   const input = document.getElementById('sessionArcherInput'); const nextName = normalizePersonName(input.value); const existingName = normalizePersonName(db.sessions[activeSessionIdx].archerName);
   if (nextName && nextName.toLowerCase() !== (existingName || '').toLowerCase()) {
     const duplicate = db.sessions.some((s, i) => i !== activeSessionIdx && normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase());
     if (duplicate) { alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
   }
-  db.sessions[activeSessionIdx].archerName = nextName; save(); closeOverlay('sessionArcherOverlay'); openSessionOverlay(activeSessionIdx); renderHome(); renderCoach();
+  db.sessions[activeSessionIdx].archerName = nextName; save(); closeOverlay('sessionArcherOverlay'); openSessionOverlay(activeSessionIdx); renderHome();
 }
 
 // ═══════════════════════════════════════════════
@@ -3172,13 +3102,17 @@ function goPage(name, btn) {
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
 
+  if (name !== 'home') {
+    isHomeSelectMode = false;
+    homeSelectedSessions.clear();
+  }
+
   if(name==='score') {
     if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block'; renderScorePage(); }
     else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); }
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
-  if(name==='coach') renderCoach();
   if(name==='settings') updateDeviceNameSummary();
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
@@ -3204,7 +3138,7 @@ function uploadSave(e) {
       const parsed = JSON.parse(evt.target.result); if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
       db = { sessions: parsed.sessions.map(normalizeSessionData), savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [], deviceProfile: normalizeDeviceProfile(parsed.deviceProfile) };
       if (parsed.theme && typeof parsed.theme === 'object') { themeState = parsed.theme; persistTheme(); applyTheme(); }
-      save(); refreshSavedLocationOptions(); renderHome(); renderCoach(); renderDiag(); updateDeviceNameSummary(); updateCoachModeUI();
+      save(); refreshSavedLocationOptions(); renderHome(); renderDiag(); updateDeviceNameSummary();
       alert(`Loaded ${db.sessions.length} session(s) successfully.`);
     } catch { alert('Could not read save file. Make sure it is a valid Achery Scorer backup.'); }
   };
@@ -3215,12 +3149,11 @@ function confirmReset() { document.getElementById('resetOverlay').classList.add(
 
 function resetData() {
   db = { sessions: [], savedLocations: [], deviceProfile: {name: ''} };
-  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null; coachSearch = ''; coachFilters.clear(); coachUnlocked = false;
-  save(); localStorage.removeItem(COACH_UNLOCK_KEY); refreshSavedLocationOptions(); resetActiveSessionUI();
-  const coachSearchInput = document.getElementById('coachSearchInput'); if (coachSearchInput) coachSearchInput.value = '';
+  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
+  save(); refreshSavedLocationOptions(); resetActiveSessionUI();
   document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
   document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
-  renderCoachFilters(); renderHome(); renderCoach(); renderDiag(); updateDeviceNameSummary(); updateCoachModeUI();
+  renderHome(); renderDiag(); updateDeviceNameSummary();
   alert('All data has been reset.');
 }
 
@@ -3662,12 +3595,9 @@ applyTheme();
 refreshSavedLocationOptions();
 renderHomeFilters();
 renderDiagFilters();
-renderCoachFilters();
 renderThreeDTournamentSetup();
 updateDeviceNameSummary();
-updateCoachModeUI();
 renderHome();
-renderCoach();
 drawTarget([]);
 
 function wipeEphemeralOnExit() {
