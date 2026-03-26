@@ -770,6 +770,36 @@
     transform: scale(.95); transition: transform .2s;
     overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
   }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body { background: white !important; color: black !important; margin: 0; padding: 0; min-height: auto; }
+    body > *:not(#printContainer) { display: none !important; }
+    #printContainer {
+      display: block !important; width: 100%; max-width: 800px; margin: 0 auto;
+      font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.5; color: black; padding: 20px;
+    }
+    .print-header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px; }
+    .print-header h2 { font-size: 36px; margin-bottom: 12px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; color: black; }
+    .print-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 18px; }
+    .print-stats-summary { display: flex; justify-content: space-around; font-size: 20px; margin-bottom: 32px; border: 2px solid #eee; padding: 20px; border-radius: 12px; background: #fafafa; }
+    .print-visuals { display: flex; gap: 40px; margin-bottom: 40px; align-items: center; }
+    .print-heatmap { flex: 1; text-align: center; }
+    .print-heatmap img { max-width: 100%; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .print-zones { flex: 1.2; }
+    .print-zone-row { display: flex; align-items: center; margin-bottom: 16px; font-size: 18px; }
+    .print-z-label { width: 90px; font-weight: 500; }
+    .print-z-bar { flex: 1; height: 20px; background: #f0f0f0; margin: 0 20px; border-radius: 10px; overflow: hidden; }
+    .print-z-count { width: 140px; text-align: right; font-family: 'DM Mono', monospace; }
+    .print-sessions-list h3 { font-size: 28px; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 8px; font-family: 'Bebas Neue', sans-serif;}
+    .print-session-block { margin-bottom: 30px; page-break-inside: avoid; border: 1px solid #eee; border-radius: 12px; padding: 20px; }
+    .print-session-block h4 { font-size: 22px; margin-bottom: 16px; color: black; }
+    .print-round-row { display: flex; align-items: center; font-size: 20px; margin-bottom: 12px; }
+    .print-pips { display: flex; gap: 8px; margin: 0 20px; }
+    .print-pip { width: 36px; height: 36px; line-height: 36px; text-align: center; border: 1px solid #ccc; border-radius: 50%; font-size: 18px; font-family: 'DM Mono', monospace; font-weight: bold; background: white; }
+  }
+  #printContainer { display: none; }
+
   .detail-overlay.open .detail-modal { transform: scale(1); }
   .detail-modal-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -1247,6 +1277,9 @@ const PRACTICE_TARGET_OPTIONS = [
       <button class="icon-btn" id="homeSelectAllBtn" onclick="toggleHomeSelectAll()" title="Select All" aria-label="Select All">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
       </button>
+      <button class="icon-btn" onclick="printSelectedSessions()" title="Print Scorecards" aria-label="Print Scorecards">
+        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      </button>
     </div>
     <div style="font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--accent);"><span id="homeSelectCount">0</span> SELECTED</div>
     <button class="icon-btn danger" onclick="deleteHomeSelected()" title="Delete Selected" aria-label="Delete Selected">
@@ -1552,6 +1585,9 @@ const PRACTICE_TARGET_OPTIONS = [
         <div id="sessionOverlayMeta" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
+        <button class="icon-btn" onclick="printActiveSession()" title="Print Scorecard" aria-label="Print Scorecard">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
         <button class="icon-btn" onclick="openSessionArcherOverlay()" title="Edit archer name" aria-label="Edit archer name">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
         </button>
@@ -1600,6 +1636,8 @@ const PRACTICE_TARGET_OPTIONS = [
   </button>
 </nav>
 
+<div id="printContainer"></div>
+
 <!-- Location overlay -->
 <div class="sort-overlay" id="locationOverlay" onclick="closeOverlay('locationOverlay')">
   <div class="sort-sheet" onclick="event.stopPropagation()">
@@ -1636,6 +1674,61 @@ const PRACTICE_TARGET_OPTIONS = [
     <button class="modal-btn primary" onclick="saveEditArcher()">SAVE CHANGES</button>
     <button class="modal-btn danger" onclick="deleteArcher()">DELETE ARCHER</button>
     <button class="modal-btn" onclick="closeOverlay('editArcherOverlay')">CANCEL</button>
+  </div>
+</div>
+
+<div class="overlay centered" id="bowProfileOverlay">
+  <div class="modal">
+    <h3><span id="bowProfileArcherName"></span>'s Bow</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Track equipment and aiming references.</p>
+
+    <div class="inline-field">
+      <label>Bow Name</label>
+      <input id="bowNameInput" class="modal-input" type="text" placeholder="">
+    </div>
+
+    <div class="inline-field">
+      <label>Bow Type</label>
+      <select id="bowTypeInput" class="modal-input" style="-webkit-appearance:none; background-image:url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7a99\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'></polyline></svg>'); background-repeat:no-repeat; background-position:right 12px center; padding-right:36px;">
+        <option value="">Select Type...</option>
+        <option value="recurve">Recurve (Olympic)</option>
+        <option value="barebow">Barebow</option>
+        <option value="compound">Compound</option>
+        <option value="traditional">Traditional / Longbow</option>
+      </select>
+    </div>
+
+    <div class="inline-field">
+      <label>Draw Weight</label>
+      <input id="bowDrawWeightInput" class="modal-input" type="text" placeholder="">
+    </div>
+
+    <div class="diag-section" style="margin: 20px -16px 16px; border-radius: 0;">
+      <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')" style="margin:0 16px;">
+        <h3>Aiming Points</h3>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+      <div class="accordion-content">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">10m</label><input class="modal-input aiming-input" data-target="10m" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">15m</label><input class="modal-input aiming-input" data-target="15m" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Turkey</label><input class="modal-input aiming-input" data-target="turkey" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Coyote</label><input class="modal-input aiming-input" data-target="coyote" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Bear</label><input class="modal-input aiming-input" data-target="bear" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Deer</label><input class="modal-input aiming-input" data-target="deer" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Antelope</label><input class="modal-input aiming-input" data-target="antelope" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Ram</label><input class="modal-input aiming-input" data-target="ram" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inline-field">
+      <label>Notes</label>
+      <textarea id="bowNotesInput" class="modal-textarea" placeholder="" style="width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; resize: none;"></textarea>
+    </div>
+
+    <button class="modal-btn primary" onclick="saveBowProfile()">SAVE BOW PROFILE</button>
+    <button class="modal-btn" onclick="closeOverlay('bowProfileOverlay')">CANCEL</button>
   </div>
 </div>
 
@@ -1770,6 +1863,9 @@ if (!db.deviceProfile.archers) {
   db.deviceProfile.archers = db.deviceProfile.name ? [db.deviceProfile.name] : [];
   db.deviceProfile.activeArcher = db.deviceProfile.name || '';
 }
+if (!db.deviceProfile.bows) {
+  db.deviceProfile.bows = {};
+}
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
 // Location Filter States
@@ -1806,7 +1902,8 @@ function normalizeDeviceProfile(raw = {}) {
   return { 
     name: normalizePersonName(raw.name),
     archers: Array.isArray(raw.archers) ? raw.archers.map(normalizePersonName).filter(Boolean) : (raw.name ? [normalizePersonName(raw.name)] : []),
-    activeArcher: normalizePersonName(raw.activeArcher) || normalizePersonName(raw.name) || ''
+    activeArcher: normalizePersonName(raw.activeArcher) || normalizePersonName(raw.name) || '',
+    bows: (raw.bows && typeof raw.bows === 'object') ? raw.bows : {}
   }; 
 }
 
@@ -2199,17 +2296,47 @@ function updateDeviceNameSummary() {
     const iconBg = isActive ? 'rgba(232,197,71,.15)' : 'transparent';
     const iconCol = isActive ? 'var(--accent)' : 'var(--muted)';
     const iconSvg = isActive ? icon('checkSquare') : '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+    
+    let bowInfoHtml = '';
+    if (isActive) {
+      const bow = db.deviceProfile.bows[archer];
+      if (bow && (bow.name || bow.type || bow.drawWeight || Object.keys(bow.aimingPoints || {}).length > 0 || bow.notes)) {
+         const aimingPts = Object.entries(bow.aimingPoints || {}).map(([k,v]) => `${k.toUpperCase()}: ${v}`).join(' · ');
+         bowInfoHtml = `
+           <div style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 16px 16px 12px; font-size: 13px;">
+             ${bow.name ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Name</span><span style="color:var(--text)">${bow.name}</span></div>` : ''}
+             ${bow.type ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Type</span><span style="color:var(--text); text-transform:capitalize;">${bow.type}</span></div>` : ''}
+             ${bow.drawWeight ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Weight</span><span style="color:var(--text)">${bow.drawWeight}</span></div>` : ''}
+             ${aimingPts ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px; flex-direction:column; gap:4px;"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Aiming Points</span><span style="color:var(--text); font-size:12px; line-height:1.4;">${aimingPts}</span></div>` : ''}
+             ${bow.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); color:var(--muted); font-style:italic; font-size:12px; white-space:pre-wrap;">${bow.notes}</div>` : ''}
+           </div>
+         `;
+      } else {
+         bowInfoHtml = `
+           <div style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 12px 16px; font-size: 12px; color:var(--muted); text-align:center;">
+             No bow profile saved. Tap the bow icon to add one.
+           </div>
+         `;
+      }
+    }
+
     return `
-      <div class="settings-row" onclick="selectActiveArcher('${archer.replace(/'/g, "\\'")}')" style="margin-bottom:6px">
+      <div class="settings-row" onclick="selectActiveArcher('${archer.replace(/'/g, "\\'")}')" style="margin-bottom:${isActive ? '0' : '6px'}; ${isActive ? 'border-color:var(--accent); border-bottom-left-radius:0; border-bottom-right-radius:0;' : ''}">
         <div class="settings-row-icon" style="background:${iconBg}; color:${iconCol}; border:${isActive?'none':'1px solid var(--border)'}">${iconSvg}</div>
         <div class="settings-row-text">
           <div class="settings-row-title" style="${isActive ? 'color:var(--accent)' : ''}">${archer}</div>
           <div class="settings-row-sub">${isActive ? 'Active Profile' : 'Tap to set active'}</div>
         </div>
-        <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="margin:-6px; width:34px; height:34px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
-          ${icon('edit')}
-        </button>
+        <div style="display:flex; gap:2px; margin-right:-6px;">
+          <button class="icon-btn" onclick="event.stopPropagation(); openBowProfileOverlay('${archer.replace(/'/g, "\\'")}')" style="width:34px; height:34px; border:none; background:transparent; color:var(--accent);" title="Bow Profile" aria-label="Bow Profile">
+            ${icon('bow')}
+          </button>
+          <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="width:34px; height:34px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
+            ${icon('edit')}
+          </button>
+        </div>
       </div>
+      ${bowInfoHtml}
     `;
   }).join('');
 }
@@ -2233,6 +2360,12 @@ function saveEditArcher() {
   if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(newName.toLowerCase())) {
      appAlert('An archer with this name already exists.'); return;
   }
+  
+  if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.bows[editingArcherOldName]) {
+    db.deviceProfile.bows[newName] = db.deviceProfile.bows[editingArcherOldName];
+    delete db.deviceProfile.bows[editingArcherOldName];
+  }
+
   const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
   if (idx !== -1) db.deviceProfile.archers[idx] = newName;
   if (db.deviceProfile.activeArcher === editingArcherOldName) db.deviceProfile.activeArcher = newName;
@@ -2246,11 +2379,59 @@ function deleteArcher() {
   appConfirm(`Remove ${editingArcherOldName} from this device? Past sessions will still remain in History.`, () => {
     const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
     if (idx !== -1) db.deviceProfile.archers.splice(idx, 1);
+    
+    delete db.deviceProfile.bows[editingArcherOldName];
+    
     if (db.deviceProfile.activeArcher === editingArcherOldName) {
       db.deviceProfile.activeArcher = db.deviceProfile.archers.length > 0 ? db.deviceProfile.archers[0] : '';
     }
     save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
   });
+}
+
+let editingBowArcherName = '';
+function openBowProfileOverlay(name) {
+  editingBowArcherName = name;
+  document.getElementById('bowProfileArcherName').textContent = name;
+  const bow = db.deviceProfile.bows[name] || { aimingPoints: {} };
+  
+  document.getElementById('bowNameInput').value = bow.name || '';
+  document.getElementById('bowTypeInput').value = bow.type || '';
+  document.getElementById('bowDrawWeightInput').value = bow.drawWeight || '';
+  document.getElementById('bowNotesInput').value = bow.notes || '';
+  
+  document.querySelectorAll('.aiming-input').forEach(input => {
+     const target = input.getAttribute('data-target');
+     input.value = bow.aimingPoints[target] || '';
+  });
+  
+  document.getElementById('bowProfileOverlay').classList.add('open');
+}
+
+function saveBowProfile() {
+  const bowName = document.getElementById('bowNameInput').value.trim();
+  const bowType = document.getElementById('bowTypeInput').value;
+  const drawWeight = document.getElementById('bowDrawWeightInput').value.trim();
+  const notes = document.getElementById('bowNotesInput').value.trim();
+  
+  const aimingPoints = {};
+  document.querySelectorAll('.aiming-input').forEach(input => {
+     const target = input.getAttribute('data-target');
+     const val = input.value.trim();
+     if (val) aimingPoints[target] = val;
+  });
+  
+  db.deviceProfile.bows[editingBowArcherName] = {
+    name: bowName,
+    type: bowType,
+    drawWeight: drawWeight,
+    aimingPoints: aimingPoints,
+    notes: notes
+  };
+  
+  save();
+  closeOverlay('bowProfileOverlay');
+  appAlert(`Saved bow profile for ${editingBowArcherName}.`);
 }
 
 function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
@@ -3201,6 +3382,200 @@ function toggleHomeSelectAll() {
     });
   }
   renderHome();
+}
+
+function printSelectedSessions() {
+  if (homeSelectedSessions.size === 0) return;
+  const indices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
+  generateScorecard(indices);
+}
+
+function printActiveSession() {
+  if (activeSessionIdx === null) return;
+  generateScorecard([activeSessionIdx]);
+}
+
+function generatePrintableHeatmap(arrows) {
+  const hc = document.createElement('canvas'); 
+  const hx = hc.getContext('2d');
+  const W2 = 400, CX2 = W2/2, R2 = W2/2-10; 
+  hc.width = W2; hc.height = W2;
+
+  hx.fillStyle = '#ffffff';
+  hx.fillRect(0,0,W2,W2);
+
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2); 
+    hx.fillStyle = BULLSEYE_RINGS[i].color === '#1a1a1a' ? '#333333' : BULLSEYE_RINGS[i].color; 
+    hx.fill();
+    hx.strokeStyle='rgba(0,0,0,0.5)'; hx.lineWidth=1; hx.stroke();
+  }
+
+  if(!arrows.length) return hc.toDataURL();
+
+  const scale = 2;
+  const gridW = W2 / scale; 
+  const gridH = W2 / scale; 
+  const density = new Float32Array(gridW * gridH);
+  let maxDensity = 0;
+  
+  const kernelRadius = 12; 
+  const kernelSize = kernelRadius * 2 + 1;
+  const kernel = new Float32Array(kernelSize * kernelSize);
+  const sigma = kernelRadius / 2.5; 
+  for(let ky = -kernelRadius; ky <= kernelRadius; ky++) {
+    for(let kx = -kernelRadius; kx <= kernelRadius; kx++) {
+      const val = Math.exp(-(kx*kx + ky*ky) / (2 * sigma * sigma));
+      kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)] = val;
+    }
+  }
+
+  arrows.forEach(a => {
+    if (a.score === 0 && a.nx === 1.5 && a.ny === 1.5) return; 
+    const px = (CX2 + a.nx * R2) / scale;
+    const py = (CX2 + a.ny * R2) / scale;
+    const cx = Math.round(px);
+    const cy = Math.round(py);
+    for(let ky = -kernelRadius; ky <= kernelRadius; ky++) {
+      const y = cy + ky;
+      if (y < 0 || y >= gridH) continue;
+      for(let kx = -kernelRadius; kx <= kernelRadius; kx++) {
+        const x = cx + kx;
+        if (x < 0 || x >= gridW) continue;
+        const w = kernel[(ky + kernelRadius) * kernelSize + (kx + kernelRadius)];
+        const idx = y * gridW + x;
+        density[idx] += w;
+        if (density[idx] > maxDensity) maxDensity = density[idx];
+      }
+    }
+  });
+
+  if(maxDensity === 0) return hc.toDataURL();
+
+  const heatCanvas = document.createElement('canvas'); 
+  heatCanvas.width = gridW; 
+  heatCanvas.height = gridH;
+  const heatCtx = heatCanvas.getContext('2d');
+  const imgData = heatCtx.createImageData(gridW, gridH);
+  
+  for(let i=0; i<density.length; i++) {
+    const d = density[i];
+    if (d < 0.02) continue; 
+    const norm = Math.min(1, d / maxDensity);
+    const h = (1.0 - norm) * 0.66; 
+    const rgb = hslToRgb(h, 1.0, 0.5);
+    const p = i * 4;
+    imgData.data[p] = rgb[0];
+    imgData.data[p+1] = rgb[1];
+    imgData.data[p+2] = rgb[2];
+    imgData.data[p+3] = Math.floor(Math.min(1, norm * 2.5) * 220); 
+  }
+  heatCtx.putImageData(imgData, 0, 0);
+
+  hx.save(); 
+  hx.beginPath(); hx.arc(CX2, CX2, R2, 0, Math.PI*2); hx.clip();
+  hx.drawImage(heatCanvas, 0, 0, W2, W2); 
+  hx.restore();
+
+  for(let i=BULLSEYE_RINGS.length-1;i>=0;i--){
+    const r=R2*BULLSEYE_RINGS[i].end;
+    hx.beginPath(); hx.arc(CX2,CX2,r,0,Math.PI*2); hx.strokeStyle='rgba(0,0,0,0.3)'; hx.lineWidth=1; hx.stroke();
+  }
+
+  return hc.toDataURL();
+}
+
+function generateScorecard(indices) {
+  const sessionsToPrint = indices.map(idx => db.sessions[idx]).filter(Boolean);
+  if (!sessionsToPrint.length) return;
+
+  const allArrows = [];
+  const roundScores = [];
+  const archers = new Set();
+  const bows = new Set();
+  const locations = new Set();
+
+  let sessionsHtml = '';
+
+  sessionsToPrint.forEach(s => {
+    const archer = normalizePersonName(s.archerName) || 'Unassigned';
+    archers.add(archer);
+    if (archer !== 'Unassigned' && db.deviceProfile.bows && db.deviceProfile.bows[archer]) {
+       const b = db.deviceProfile.bows[archer];
+       let bowDesc = [b.name, b.type, b.drawWeight].filter(Boolean).join(' - ');
+       if (bowDesc) bows.add(bowDesc);
+    }
+    const loc = formatLocation(s.location);
+    if (loc) locations.add(loc);
+
+    let sessionRoundHtml = '';
+    s.rounds.forEach((r, ri) => {
+      const rScore = r.arrows.reduce((sum, a) => sum + a.score, 0);
+      roundScores.push(rScore);
+      r.arrows.forEach(a => { allArrows.push({...a}); });
+      const info = roundDescriptor(r);
+      const pips = r.arrows.map(a => `<span class="print-pip">${a.score===0?'M':a.score}</span>`).join('');
+      sessionRoundHtml += `<div class="print-round-row"><strong>R${ri+1}</strong> <span style="margin:0 10px;color:#555">(${info.shortLabel})</span>: <div class="print-pips">${pips}</div> <strong style="font-size:24px; margin-left:10px;">${rScore}</strong></div>`;
+    });
+
+    sessionsHtml += `
+      <div class="print-session-block">
+        <h4>${new Date(s.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric', year:'numeric'})} - ${sessionTypeLabel(s)}</h4>
+        ${sessionRoundHtml}
+      </div>
+    `;
+  });
+
+  const totalArrows = allArrows.length;
+  const avgScore = roundScores.length ? (roundScores.reduce((a,b)=>a+b,0) / roundScores.length).toFixed(1) : '0.0';
+  const bestScore = roundScores.length ? Math.max(...roundScores) : 0;
+
+  const archerStr = Array.from(archers).join(', ') || 'Unassigned';
+  const bowStr = Array.from(bows).join(', ') || 'Not specified';
+  const locStr = Array.from(locations).join(', ') || 'Not specified';
+
+  let zoneHtml = '';
+  ZONES.forEach(z => {
+    const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
+    const pct = totalArrows ? ((count / totalArrows) * 100).toFixed(1) : '0.0';
+    zoneHtml += `<div class="print-zone-row"><div class="print-z-label">${z.label}</div><div class="print-z-bar"><div style="width:${pct}%; background:#555;"></div></div><div class="print-z-count">${count} (${pct}%)</div></div>`;
+  });
+
+  const targetDataUrl = generatePrintableHeatmap(allArrows);
+
+  document.getElementById('printContainer').innerHTML = `
+    <div class="print-header">
+      <h2>Archery Scorecard</h2>
+      <div class="print-meta">
+        <div><strong>Archer(s):</strong> ${archerStr}</div>
+        <div><strong>Bow(s):</strong> ${bowStr}</div>
+        <div><strong>Location(s):</strong> ${locStr}</div>
+        <div><strong>Generated:</strong> ${new Date().toLocaleDateString()}</div>
+      </div>
+    </div>
+    <div class="print-stats-summary">
+      <div><strong>Total Arrows:</strong> ${totalArrows}</div>
+      <div><strong>Avg Round Score:</strong> ${avgScore}</div>
+      <div><strong>Best Round Score:</strong> ${bestScore}</div>
+    </div>
+    <div class="print-visuals">
+      <div class="print-heatmap">
+        <h3 style="margin-bottom:15px; font-size:24px; font-family:'Bebas Neue',sans-serif;">Grouping Heatmap</h3>
+        <img src="${targetDataUrl}" />
+      </div>
+      <div class="print-zones">
+        <h3 style="margin-bottom:15px; font-size:24px; font-family:'Bebas Neue',sans-serif;">Score Distribution</h3>
+        ${zoneHtml}
+      </div>
+    </div>
+    <div class="print-sessions-list">
+      <h3>Sessions Breakdown</h3>
+      ${sessionsHtml}
+    </div>
+  `;
+
+  setTimeout(() => { window.print(); }, 300);
 }
 
 function deleteHomeSelected() {
