@@ -1202,6 +1202,10 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
   <div class="filter-bar" id="homeFilterBar">
     <div class="filter-row" id="homeFilterRow"></div>
+    <button class="sort-btn" id="homeArcherBtn" onclick="openArcherFilterOverlay('home')" style="display:none">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      Archer
+    </button>
     <button class="sort-btn" id="homeLocationBtn" onclick="openLocationOverlay('home')">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
       Location
@@ -1220,6 +1224,10 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
   <div class="filter-bar" style="padding-top:8px;">
     <div class="filter-row" id="diagFilterRow" style="padding-top:0"></div>
+    <button class="sort-btn" id="diagArcherBtn" onclick="openArcherFilterOverlay('diag')" style="display:none">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      Archer
+    </button>
     <button class="sort-btn" id="diagLocationBtn" onclick="openLocationOverlay('diag')">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
       Location
@@ -1289,14 +1297,14 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 
   <div class="settings-section">
-    <div class="settings-label">ARCHER</div>
+    <div class="settings-label">ARCHERS</div>
+    <div id="settingsArchersList"></div>
     <div class="settings-row" onclick="openDeviceNameOverlay('settings')">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
       <div class="settings-row-text">
-        <div class="settings-row-title">Archer Name</div>
-        <div class="settings-row-sub" id="deviceNameSummary">Not set yet</div>
+        <div class="settings-row-title">Add Archer</div>
+        <div class="settings-row-sub">Create a new profile</div>
       </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
   </div>
 
@@ -1559,6 +1567,24 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<div class="sort-overlay" id="archerFilterOverlay" onclick="closeOverlay('archerFilterOverlay')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Filter by Archer</h4>
+    <div id="archerOptionsContainer"></div>
+  </div>
+</div>
+
+<div class="overlay centered" id="editArcherOverlay">
+  <div class="modal">
+    <h3>Edit Archer</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Update or delete this archer profile.</p>
+    <input id="editArcherInput" class="modal-input" type="text" placeholder="Archer name" autocomplete="name" maxlength="40">
+    <button class="modal-btn primary" onclick="saveEditArcher()">SAVE CHANGES</button>
+    <button class="modal-btn danger" onclick="deleteArcher()">DELETE ARCHER</button>
+    <button class="modal-btn" onclick="closeOverlay('editArcherOverlay')">CANCEL</button>
+  </div>
+</div>
+
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 
@@ -1668,10 +1694,16 @@ let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocati
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
 db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db.deviceProfile : {name: ''};
+if (!db.deviceProfile.archers) {
+  db.deviceProfile.archers = db.deviceProfile.name ? [db.deviceProfile.name] : [];
+  db.deviceProfile.activeArcher = db.deviceProfile.name || '';
+}
 const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 
 // Location Filter States
 let activeLocationFilters = { home: new Set(), diag: new Set() };
+let activeArcherFilters = { home: new Set(), diag: new Set() };
+let activeArcherFilterContext = 'home';
 
 const THEME_KEY = 'achery_scorer_theme_v1';
 const THEME_PRESETS = {
@@ -1697,7 +1729,14 @@ let themeState = (() => {
 let activeThemeColorKey = 'accent';
 
 function normalizePersonName(value) { return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 40) : ''; }
-function normalizeDeviceProfile(raw = {}) { return { name: normalizePersonName(raw.name) }; }
+
+function normalizeDeviceProfile(raw = {}) { 
+  return { 
+    name: normalizePersonName(raw.name),
+    archers: Array.isArray(raw.archers) ? raw.archers.map(normalizePersonName).filter(Boolean) : (raw.name ? [normalizePersonName(raw.name)] : []),
+    activeArcher: normalizePersonName(raw.activeArcher) || normalizePersonName(raw.name) || ''
+  }; 
+}
 
 function normalizeRound(round = {}) {
   const mode = round.mode || (round.animal ? '3d' : 'bullseye');
@@ -2059,12 +2098,67 @@ function syncFinishLocationInput() {
   input.value = formatLocation(finishingSession.location) || '';
 }
 
-function getDeviceArcherName() { return normalizePersonName(db.deviceProfile?.name); }
+function getDeviceArcherName() { return normalizePersonName(db.deviceProfile?.activeArcher); }
 
 function updateDeviceNameSummary() {
-  const summary = document.getElementById('deviceNameSummary');
-  if (!summary) return;
-  summary.textContent = getDeviceArcherName() || 'Not set yet';
+  const list = document.getElementById('settingsArchersList');
+  if (!list) return;
+  list.innerHTML = (db.deviceProfile.archers || []).map((archer) => {
+    const isActive = archer === db.deviceProfile.activeArcher;
+    const iconBg = isActive ? 'rgba(232,197,71,.15)' : 'transparent';
+    const iconCol = isActive ? 'var(--accent)' : 'var(--muted)';
+    const iconSvg = isActive ? icon('checkSquare') : '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+    return `
+      <div class="settings-row" onclick="selectActiveArcher('${archer.replace(/'/g, "\\'")}')" style="margin-bottom:6px">
+        <div class="settings-row-icon" style="background:${iconBg}; color:${iconCol}; border:${isActive?'none':'1px solid var(--border)'}">${iconSvg}</div>
+        <div class="settings-row-text">
+          <div class="settings-row-title" style="${isActive ? 'color:var(--accent)' : ''}">${archer}</div>
+          <div class="settings-row-sub">${isActive ? 'Active Profile' : 'Tap to set active'}</div>
+        </div>
+        <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="margin:-6px; width:34px; height:34px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
+          ${icon('edit')}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectActiveArcher(name) {
+  if (db.deviceProfile.activeArcher === name) return;
+  db.deviceProfile.activeArcher = name;
+  save(); updateDeviceNameSummary();
+}
+
+let editingArcherOldName = '';
+function openEditArcherOverlay(name) {
+  editingArcherOldName = name;
+  document.getElementById('editArcherInput').value = name;
+  document.getElementById('editArcherOverlay').classList.add('open');
+}
+
+function saveEditArcher() {
+  const newName = normalizePersonName(document.getElementById('editArcherInput').value);
+  if (!newName) return;
+  if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(newName.toLowerCase())) {
+     alert('An archer with this name already exists.'); return;
+  }
+  const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
+  if (idx !== -1) db.deviceProfile.archers[idx] = newName;
+  if (db.deviceProfile.activeArcher === editingArcherOldName) db.deviceProfile.activeArcher = newName;
+  db.sessions.forEach(s => {
+     if (normalizePersonName(s.archerName) === editingArcherOldName) s.archerName = newName;
+  });
+  save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
+}
+
+function deleteArcher() {
+  if (!confirm(`Remove ${editingArcherOldName} from this device? Past sessions will still remain in History.`)) return;
+  const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
+  if (idx !== -1) db.deviceProfile.archers.splice(idx, 1);
+  if (db.deviceProfile.activeArcher === editingArcherOldName) {
+    db.deviceProfile.activeArcher = db.deviceProfile.archers.length > 0 ? db.deviceProfile.archers[0] : '';
+  }
+  save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
 }
 
 function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
@@ -2072,12 +2166,12 @@ function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('dev
 function openDeviceNameOverlay(context = 'launch') {
   deviceNameOverlayContext = context;
   const existing = getDeviceArcherName();
-  document.getElementById('deviceNameOverlayTitle').textContent = context === 'settings' ? 'Edit Device Archer Name' : 'Set Archer Name';
+  document.getElementById('deviceNameOverlayTitle').textContent = context === 'settings' ? 'Add Archer' : 'Set Archer Name';
   document.getElementById('deviceNameOverlayMessage').textContent = context === 'settings'
-    ? 'Change the saved archer name for this device. Future sessions will use this name.'
+    ? 'Create a new archer profile. You can switch between them anytime.'
     : 'Before scoring your first session, enter the archer name this device should score under.';
   const input = document.getElementById('deviceNameInput');
-  input.value = existing;
+  input.value = context === 'settings' ? '' : existing;
   document.getElementById('deviceNameOverlay').classList.add('open');
   setTimeout(() => { input.focus(); input.select(); }, 60);
 }
@@ -2086,12 +2180,14 @@ function submitDeviceName() {
   const input = document.getElementById('deviceNameInput');
   const nextName = normalizePersonName(input.value);
   if (!nextName) { alert('Please enter an archer name.'); input.focus(); return; }
-  const currentName = getDeviceArcherName();
-  if (nextName.toLowerCase() !== (currentName || '').toLowerCase()) {
-    const duplicate = db.sessions.some(s => normalizePersonName(s.archerName)?.toLowerCase() === nextName.toLowerCase());
-    if (duplicate) { alert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
+  
+  db.deviceProfile.archers = db.deviceProfile.archers || [];
+  if (db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(nextName.toLowerCase())) {
+    alert('This archer already exists on this device.'); input.focus(); return;
   }
-  db.deviceProfile = normalizeDeviceProfile({name: nextName}); save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
+  db.deviceProfile.archers.push(nextName);
+  db.deviceProfile.activeArcher = nextName;
+  save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
   if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
     const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
   }
@@ -2724,6 +2820,44 @@ function setLocationFilter(locLabel) {
   else if (activeLocationContext === 'diag') renderDiag();
 }
 
+function openArcherFilterOverlay(context) {
+  activeArcherFilterContext = context;
+  const container = document.getElementById('archerOptionsContainer');
+  const uniqueArchers = [...new Set(db.sessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
+  db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
+
+  const activeSet = activeArcherFilters[context];
+  let html = `<button class="sort-option ${activeSet.size === 0 ? 'active' : ''}" onclick="setArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
+  uniqueArchers.forEach(arch => {
+    html += `<button class="sort-option ${activeSet.has(arch) ? 'active' : ''}" onclick="setArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
+  });
+  
+  if (uniqueArchers.length === 0) {
+    html += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No archers saved yet.</div>`;
+  }
+
+  container.innerHTML = html;
+  document.getElementById('archerFilterOverlay').classList.add('open');
+}
+
+function setArcherFilter(archLabel) {
+  const activeSet = activeArcherFilters[activeArcherFilterContext];
+  if (archLabel === 'all') {
+    activeSet.clear();
+  } else {
+    if (activeSet.has(archLabel)) activeSet.delete(archLabel);
+    else activeSet.add(archLabel);
+  }
+  
+  const btn = document.getElementById(`${activeArcherFilterContext}ArcherBtn`);
+  if (btn) btn.classList.toggle('active', activeSet.size > 0);
+  
+  openArcherFilterOverlay(activeArcherFilterContext);
+  
+  if (activeArcherFilterContext === 'home') renderHome();
+  else if (activeArcherFilterContext === 'diag') renderDiag();
+}
+
 function computeGroupingScore(sessionObj) {
   const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
   if (!rounds.length) return Infinity;
@@ -2812,6 +2946,11 @@ function roundMatchesFilters(round, filters) {
 function sessionMatchesFilter(sessionObj, filters, context) {
   const activeLocSet = activeLocationFilters[context];
   if (activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) {
+    return false;
+  }
+  
+  const activeArchSet = activeArcherFilters[context];
+  if (activeArchSet && activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) {
     return false;
   }
   
@@ -2941,6 +3080,9 @@ function renderHome() {
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters, 'home'));
   const filtered = applySortToSessions(newestFirst, homeSort);
   window.currentVisibleHomeSessions = filtered;
+
+  const archBtn = document.getElementById('homeArcherBtn');
+  if (archBtn) archBtn.style.display = (db.deviceProfile.archers && db.deviceProfile.archers.length > 1) ? 'flex' : 'none';
 
   const filterBar = document.getElementById('homeFilterBar');
   const selectBar = document.getElementById('homeSelectionBar');
@@ -3287,15 +3429,25 @@ function getFilteredRounds() {
     return true;
   }).filter(round => {
     const activeLocSet = activeLocationFilters.diag;
+    const sess = db.sessions.find(s => s.date === round.sessionDate) || session;
+    
     if (activeLocSet.size > 0) {
-      const sess = db.sessions.find(s => s.date === round.sessionDate) || session;
       if (sess && !activeLocSet.has(formatLocation(sess.location))) return false;
     }
+    
+    const activeArchSet = activeArcherFilters.diag;
+    if (activeArchSet && activeArchSet.size > 0) {
+      if (sess && !activeArchSet.has(normalizePersonName(sess.archerName))) return false;
+    }
+    
     return true;
   });
 }
 
 function renderDiag() {
+  const dArchBtn = document.getElementById('diagArcherBtn');
+  if (dArchBtn) dArchBtn.style.display = (db.deviceProfile.archers && db.deviceProfile.archers.length > 1) ? 'flex' : 'none';
+
   const rounds = getFilteredRounds();
   window.currentTimelineRounds = rounds; // Cache for panning
   const allArrows = rounds.flatMap(r=>r.arrows);
@@ -3586,6 +3738,18 @@ function drawZoneBars(arrows) {
       <div class="zb-count">${count}</div>
     </div>`;
   });
+}
+
+function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
+
+function resetData() {
+  db = { sessions: [], savedLocations: [], deviceProfile: {name: '', archers: [], activeArcher: ''} };
+  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
+  save(); refreshSavedLocationOptions(); resetActiveSessionUI();
+  document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
+  renderHome(); renderDiag(); updateDeviceNameSummary();
+  alert('All data has been reset.');
 }
 
 // ═══════════════════════════════════════════════
