@@ -3544,13 +3544,18 @@ function generateScorecard(indices) {
 
   const targetDataUrl = generatePrintableHeatmap(allArrows);
 
+  // Dynamically determine pluralization
+  const archerLabel = archers.size > 1 ? 'Archers' : 'Archer';
+  const bowLabel = bows.size > 1 ? 'Bows' : 'Bow';
+  const locLabel = locations.size > 1 ? 'Locations' : 'Location';
+
   document.getElementById('printContainer').innerHTML = `
     <div class="print-header">
       <h2>Archery Scorecard</h2>
       <div class="print-meta">
-        <div><strong>Archer(s):</strong> ${archerStr}</div>
-        <div><strong>Bow(s):</strong> ${bowStr}</div>
-        <div><strong>Location(s):</strong> ${locStr}</div>
+        <div><strong>${archerLabel}:</strong> ${archerStr}</div>
+        <div><strong>${bowLabel}:</strong> ${bowStr}</div>
+        <div><strong>${locLabel}:</strong> ${locStr}</div>
         <div><strong>Generated:</strong> ${new Date().toLocaleDateString()}</div>
       </div>
     </div>
