@@ -1119,6 +1119,7 @@
   .score-flash.show { transform: translate(-50%,-50%) scale(1); }
   .score-flash.hide { opacity: 0; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -3576,22 +3577,46 @@ function generateScorecard(indices) {
         ${zoneHtml}
       </div>
     </div>
-    <div class="print-sessions-list">
+   <div class="print-sessions-list">
       <h3>Sessions Breakdown</h3>
       ${sessionsHtml}
     </div>
   `;
 
-  setTimeout(() => { 
-    // --- MEDIAN.CO PRINT FIX ---
-    const isMedianApp = navigator.userAgent.indexOf('GoNative') > -1 || (window.median && window.median.isNativeApp());
-    if (isMedianApp) {
-      window.location.href = 'gonative://print/current';
-    } else {
-      window.print(); 
-    }
-    // ---------------------------
-  }, 300);
+  // --- MEDIAN.CO PDF WORKAROUND ---
+  const isMedianApp = navigator.userAgent.indexOf('GoNative') > -1 || (window.median && window.median.isNativeApp());
+
+  if (isMedianApp) {
+    const printEl = document.getElementById('printContainer');
+    // Temporarily show the container off-screen so the PDF generator can read it
+    printEl.style.display = 'block';
+    printEl.style.position = 'absolute';
+    printEl.style.left = '-9999px';
+
+    // Convert the HTML scorecard to a PDF file format
+    html2pdf().set({
+      margin: 10,
+      filename: 'Archery_Scorecard.pdf',
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(printEl).outputPdf('datauristring').then(function (pdfBase64) {
+      // Hide the container again
+      printEl.style.display = 'none';
+      printEl.style.position = 'static';
+      
+      // Use Median's native bridge to download and OPEN the PDF
+      // The native Android PDF viewer has a print button in the top right corner!
+      if (window.median && window.median.share) {
+        median.share.downloadFile({ url: pdfBase64, open: true });
+      } else {
+        window.location.href = 'gonative://share/downloadFile?open=true&url=' + encodeURIComponent(pdfBase64);
+      }
+    });
+  } else {
+    // Normal desktop/browser behavior
+    setTimeout(() => { window.print(); }, 300);
+  }
+  // --------------------------------
 }
 
 function deleteHomeSelected() {
