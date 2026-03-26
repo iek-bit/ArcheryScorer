@@ -434,6 +434,41 @@
     background: var(--bg2); border-bottom: 1px solid var(--border);
   }
   .diag-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--accent); }
+  
+  .diag-header-flex {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .smart-search-container {
+    display: flex; align-items: center; justify-content: flex-start;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; padding: 0;
+    height: 36px; width: 36px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s, border-color 0.2s;
+    overflow: hidden; cursor: pointer; flex-shrink: 0;
+  }
+  .smart-search-container:focus-within, .smart-search-container.has-text {
+    width: 220px; padding: 0 12px;
+    border-color: var(--accent);
+  }
+  .smart-search-container .ui-icon { 
+    color: var(--muted); font-size: 16px; flex-shrink: 0; 
+    margin-left: 9px; /* Centers the icon perfectly in the 36px circle */
+    transition: margin-left 0.3s;
+  }
+  .smart-search-container:focus-within .ui-icon, .smart-search-container.has-text .ui-icon {
+    margin-left: 0; /* Resets so padding handles the spacing when expanded */
+  }
+  .smart-search-container input {
+    background: transparent; border: none; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    width: 0; padding-left: 0; outline: none;
+    opacity: 0; transition: opacity 0.2s, width 0.3s, padding 0.3s; pointer-events: none;
+  }
+  .smart-search-container:focus-within input, .smart-search-container.has-text input {
+    width: 100%; padding-left: 8px;
+    opacity: 1; pointer-events: all;
+  }
+  .smart-search-container input::placeholder { color: var(--muted); font-size: 13px; }
 
   .filter-row {
     display: flex; gap: 8px; padding: 16px 16px 8px; flex-wrap: wrap;
@@ -1197,8 +1232,12 @@ const PRACTICE_TARGET_OPTIONS = [
 </div>
 
 <div id="page-home" class="page">
-  <div class="diag-header">
+  <div class="diag-header diag-header-flex">
     <h2>HISTORY</h2>
+    <div class="smart-search-container" id="homeSearchContainer" onclick="document.getElementById('homeSearchInput').focus()">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)">
+    </div>
   </div>
   <div class="selection-bar" id="homeSelectionBar">
     <div style="display:flex; gap:12px; align-items:center">
@@ -2826,8 +2865,36 @@ const homeFilters = new Set();
 const diagFilters = new Set();
 
 let homeSort = 'newest';
+let homeSearchQuery = '';
 let activeSortContext = 'home';
 let activeLocationContext = 'home';
+
+function handleHomeSearch(val) {
+  homeSearchQuery = val.toLowerCase().trim();
+  const container = document.getElementById('homeSearchContainer');
+  if (val) container.classList.add('has-text');
+  else container.classList.remove('has-text');
+  renderHome();
+}
+
+function sessionMatchesSearch(sessionObj, queryStr) {
+  if (!queryStr) return true;
+  const tokens = queryStr.split(/\s+/);
+  
+  // Build searchable corpus for this session
+  const dateStr = new Date(sessionObj.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  const typeStr = sessionTypeLabel(sessionObj);
+  const locStr = formatLocation(sessionObj.location);
+  const archerStr = sessionObj.archerName || '';
+  const sNotes = sessionObj.notes || '';
+  const rNotes = sessionObj.rounds.map(r => r.notes || '').join(' ');
+  const rDetails = sessionObj.rounds.map(r => roundDescriptor(r).shortLabel).join(' ');
+
+  const corpus = `${dateStr} ${typeStr} ${locStr} ${archerStr} ${sNotes} ${rNotes} ${rDetails}`.toLowerCase();
+
+  // Check if EVERY token is found in the corpus (allows "tournament missed" to match)
+  return tokens.every(token => corpus.includes(token));
+}
 
 function openSortOverlay(context) {
   activeSortContext = context;
@@ -3155,7 +3222,9 @@ function deleteHomeSelected() {
 
 function renderHome() {
   const list = document.getElementById('recentList');
-  const newestFirst = [...db.sessions].reverse().filter(sessionObj => sessionMatchesFilter(sessionObj, homeFilters, 'home'));
+  const newestFirst = [...db.sessions].reverse().filter(sessionObj => 
+    sessionMatchesFilter(sessionObj, homeFilters, 'home') && sessionMatchesSearch(sessionObj, homeSearchQuery)
+  );
   const filtered = applySortToSessions(newestFirst, homeSort);
   window.currentVisibleHomeSessions = filtered;
 
