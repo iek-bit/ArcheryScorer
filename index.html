@@ -3582,7 +3582,16 @@ function generateScorecard(indices) {
     </div>
   `;
 
-  setTimeout(() => { window.print(); }, 300);
+  setTimeout(() => { 
+    // --- MEDIAN.CO PRINT FIX ---
+    const isMedianApp = navigator.userAgent.indexOf('GoNative') > -1 || (window.median && window.median.isNativeApp());
+    if (isMedianApp) {
+      window.location.href = 'gonative://print/current';
+    } else {
+      window.print(); 
+    }
+    // ---------------------------
+  }, 300);
 }
 
 function deleteHomeSelected() {
