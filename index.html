@@ -2699,6 +2699,9 @@ function cancelTargetInteraction() {
 // Pure Touch Listeners (Mobile)
 canvas.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
+    // Prevent page scroll immediately so the hold-to-zoom gesture is smooth.
+    // The canvas is not a scrollable element so this is always safe.
+    if (e.cancelable) e.preventDefault();
     startTargetInteraction(e.touches[0].clientX, e.touches[0].clientY);
   }
 }, { passive: false });
@@ -2710,6 +2713,9 @@ canvas.addEventListener('touchmove', e => {
 }, { passive: false });
 
 canvas.addEventListener('touchend', e => {
+  // Prevent the browser from firing synthetic mousedown/mouseup after touch,
+  // which would cause a second arrow to be registered on mobile.
+  e.preventDefault();
   endTargetInteraction(e);
 });
 
@@ -2966,7 +2972,17 @@ function updateEndOverlay() {
 }
 
 function openEndSession() { updateEndOverlay(); document.getElementById('endOverlay').classList.add('open'); }
-function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+  // When the session history overlay is closed, clear the active index and
+  // refresh the Stats page so stale round-1 data does not linger.
+  if (id === 'sessionOverlay') {
+    activeSessionIdx = null;
+    if (document.getElementById('page-diag').classList.contains('active')) {
+      renderDiag();
+    }
+  }
+}
 function sessionHasProgress() { return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0); }
 
 function openDiscardSessionConfirm() {
