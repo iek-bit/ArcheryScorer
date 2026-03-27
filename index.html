@@ -1397,6 +1397,10 @@ const PRACTICE_TARGET_OPTIONS = [
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       Archer
     </button>
+    <button class="sort-btn" id="homeDateBtn" onclick="openDateFilterOverlay('home')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Date
+    </button>
     <button class="sort-btn" id="homeLocationBtn" onclick="openLocationOverlay('home')">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
       Location
@@ -1418,6 +1422,10 @@ const PRACTICE_TARGET_OPTIONS = [
     <button class="sort-btn" id="diagArcherBtn" onclick="openArcherFilterOverlay('diag')" style="display:none">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       Archer
+    </button>
+    <button class="sort-btn" id="diagDateBtn" onclick="openDateFilterOverlay('diag')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Date
     </button>
     <button class="sort-btn" id="diagLocationBtn" onclick="openLocationOverlay('diag')">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
@@ -1771,6 +1779,24 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<div class="sort-overlay" id="dateFilterOverlay" onclick="closeOverlay('dateFilterOverlay')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Filter by Date Range</h4>
+    <div style="padding: 0 0 12px;">
+      <div class="inline-field">
+        <label>Start Date</label>
+        <input id="dateFilterStart" class="modal-input" type="date" style="margin-bottom:8px;">
+      </div>
+      <div class="inline-field">
+        <label>End Date</label>
+        <input id="dateFilterEnd" class="modal-input" type="date" style="margin-bottom:8px;">
+      </div>
+    </div>
+    <button class="sort-option" onclick="applyDateFilter()"><span>Apply Date Filter</span><span class="so-check">✓</span></button>
+    <button class="sort-option" onclick="clearDateFilter()"><span>Clear Date Filter</span><span class="so-check">✗</span></button>
+  </div>
+</div>
+
 <div class="overlay centered" id="editArcherOverlay">
   <div class="modal">
     <h3>Edit Archer</h3>
@@ -1986,6 +2012,8 @@ const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
 // Location Filter States
 let activeLocationFilters = { home: new Set(), diag: new Set() };
 let activeArcherFilters = { home: new Set(), diag: new Set() };
+let activeDateFilters = { home: { start: null, end: null }, diag: { start: null, end: null } };
+let activeDateFilterContext = 'home';
 let activeArcherFilterContext = 'home';
 
 const THEME_KEY = 'achery_scorer_theme_v1';
@@ -3317,6 +3345,46 @@ function setArcherFilter(archLabel) {
   else if (activeArcherFilterContext === 'diag') renderDiag();
 }
 
+function openDateFilterOverlay(context) {
+  activeDateFilterContext = context;
+  const dateFilter = activeDateFilters[context];
+  
+  document.getElementById('dateFilterStart').value = dateFilter.start || '';
+  document.getElementById('dateFilterEnd').value = dateFilter.end || '';
+  
+  document.getElementById('dateFilterOverlay').classList.add('open');
+}
+
+function applyDateFilter() {
+  const startVal = document.getElementById('dateFilterStart').value;
+  const endVal = document.getElementById('dateFilterEnd').value;
+  
+  activeDateFilters[activeDateFilterContext] = {
+    start: startVal || null,
+    end: endVal || null
+  };
+  
+  const btn = document.getElementById(`${activeDateFilterContext}DateBtn`);
+  if (btn) btn.classList.toggle('active', !!(startVal || endVal));
+  
+  closeOverlay('dateFilterOverlay');
+  
+  if (activeDateFilterContext === 'home') renderHome();
+  else if (activeDateFilterContext === 'diag') renderDiag();
+}
+
+function clearDateFilter() {
+  activeDateFilters[activeDateFilterContext] = { start: null, end: null };
+  
+  const btn = document.getElementById(`${activeDateFilterContext}DateBtn`);
+  if (btn) btn.classList.remove('active');
+  
+  closeOverlay('dateFilterOverlay');
+  
+  if (activeDateFilterContext === 'home') renderHome();
+  else if (activeDateFilterContext === 'diag') renderDiag();
+}
+
 function computeGroupingScore(sessionObj) {
   const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
   if (!rounds.length) return Infinity;
@@ -3424,6 +3492,22 @@ function sessionMatchesFilter(sessionObj, filters, context) {
   const activeArchSet = activeArcherFilters[context];
   if (activeArchSet && activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) {
     return false;
+  }
+  
+  // Date filtering
+  const dateFilter = activeDateFilters[context];
+  if (dateFilter.start || dateFilter.end) {
+    const sessionDate = new Date(sessionObj.date);
+    if (dateFilter.start) {
+      const startDate = new Date(dateFilter.start);
+      startDate.setHours(0, 0, 0, 0);
+      if (sessionDate < startDate) return false;
+    }
+    if (dateFilter.end) {
+      const endDate = new Date(dateFilter.end);
+      endDate.setHours(23, 59, 59, 999);
+      if (sessionDate > endDate) return false;
+    }
   }
   
   if (filters.size === 0) return true;
@@ -4136,6 +4220,22 @@ function getFilteredRounds() {
     const activeArchSet = activeArcherFilters.diag;
     if (activeArchSet && activeArchSet.size > 0) {
       if (sess && !activeArchSet.has(normalizePersonName(sess.archerName))) return false;
+    }
+    
+    // Date filtering
+    const dateFilter = activeDateFilters.diag;
+    if (dateFilter.start || dateFilter.end) {
+      const roundDate = new Date(round.sessionDate);
+      if (dateFilter.start) {
+        const startDate = new Date(dateFilter.start);
+        startDate.setHours(0, 0, 0, 0);
+        if (roundDate < startDate) return false;
+      }
+      if (dateFilter.end) {
+        const endDate = new Date(dateFilter.end);
+        endDate.setHours(23, 59, 59, 999);
+        if (roundDate > endDate) return false;
+      }
     }
     
     return true;
