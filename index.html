@@ -9,7 +9,9 @@
 <title>Achery Scorer</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="favicon.png">
-<link rel="manifest" href="data:application/json,{%22name%22:%22Achery%20Scorer%22,%22short_name%22:%22Achery%20Scorer%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22}">
+<link rel="manifest" href="data:application/json,{%22name%22:%22Achery%20Scorer%22,%22short_name%22:%22Achery%22,%22display%22:%22standalone%22,%22start_url%22:%22.%2F%22,%22scope%22:%22.%2F%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22,%22icons%22:[{%22src%22:%22favicon.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image%2Fpng%22},{%22src%22:%22favicon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image%2Fpng%22}]}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -35,6 +37,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
     min-height: 100dvh;
     overflow-x: hidden;
     overscroll-behavior-y: contain;
@@ -45,6 +48,7 @@
   /* ── NAV ── */
   nav {
     position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(17, 24, 39, 0.92); /* fallback for older WebViews */
     background: color-mix(in srgb, var(--bg2) 85%, transparent);
     border-top: 1px solid var(--border);
     display: flex;
@@ -60,7 +64,9 @@
     font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.1;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     cursor: pointer; transition: color .2s;
+    -webkit-tap-highlight-color: transparent;
   }
+  nav button:active { opacity: .7; }
   nav button span {
     width: 100%;
     overflow: hidden;
@@ -83,8 +89,8 @@
   }
 
   .icon-btn {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     border-radius: 12px;
     border: 1px solid var(--border);
     background: rgba(255,255,255,.03);
@@ -94,6 +100,8 @@
     align-items: center;
     justify-content: center;
     transition: border-color .15s, color .15s, transform .1s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .icon-btn .ui-icon { font-size: 18px; }
   .icon-btn:active {
@@ -112,13 +120,13 @@
   }
 
   /* ── PAGES ── */
-  .page { display: none; padding: 0 0 calc(84px + env(safe-area-inset-bottom)); min-height: 100dvh; }
+  .page { display: none; padding: 0 0 calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; min-height: 100dvh; }
   .page.active { display: block; }
 
   /* ── HOME ── */
   .home-hero {
     background: linear-gradient(160deg, #0d1826 0%, #1a2540 100%);
-    padding: 60px 24px 40px;
+    padding: max(60px, calc(44px + env(safe-area-inset-top))) 24px 40px;
     position: relative; overflow: hidden;
   }
   .home-hero::before {
@@ -153,6 +161,8 @@
     transition: border-color .2s, transform .15s;
     position: relative; overflow: hidden;
     min-height: 72px; display: flex; align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
   .session-card:active { transform: scale(.98); }
   .session-card.tournament { border-color: rgba(232,197,71,.3); }
@@ -211,9 +221,12 @@
   /* Session overlay round rows */
   .sor-row {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 0; border-bottom: 1px solid var(--border);
+    padding: 12px 4px; border-bottom: 1px solid var(--border);
     cursor: pointer; transition: background .15s; border-radius: 8px;
-    margin: 0 -4px; padding-left: 4px; padding-right: 4px;
+    margin: 0 -4px;
+    min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .sor-row:last-child { border-bottom: none; }
   .sor-row:active { background: var(--bg3); }
@@ -232,11 +245,15 @@
     border: none;
     color: var(--muted);
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 0;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    margin: -8px -4px -8px 0;
   }
   .sor-del .ui-icon { font-size: 16px; }
   .sor-del:active { color: var(--red); }
@@ -269,9 +286,12 @@
     justify-content: flex-end;
   }
   .dist-btn {
-    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border);
     background: none; color: var(--muted); font-family: 'DM Mono', monospace;
     font-size: 12px; cursor: pointer; transition: all .2s;
+    min-height: 38px; display: inline-flex; align-items: center;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .dist-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
   .dist-btn:disabled { opacity: .4; cursor: not-allowed; }
@@ -287,12 +307,14 @@
   #targetCanvas {
     border-radius: 50%;
     width: 100%;
-    max-width: min(500px, calc(100dvh - 300px)); 
+    max-width: min(500px, calc(100dvh - 280px));
     aspect-ratio: 1 / 1;
     cursor: crosshair;
     display: block;
     margin: 0 auto;
     -webkit-touch-callout: none; /* Prevents iOS magnifying glass overlay */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center center;
   }
 
   /* Magnifier Tool */
@@ -337,6 +359,8 @@
     cursor: pointer;
     z-index: 10;
     transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .miss-btn:active {
     background: rgba(224, 82, 82, 0.15);
@@ -348,10 +372,6 @@
     background: rgba(232,197,71,.15);
     color: var(--accent);
     border-color: var(--accent);
-  }
-  #targetCanvas {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: center center;
   }
   #targetCanvas.ring-zoom {
     /* Scale to ~3.33x so the inner 30% fills the view */
@@ -383,6 +403,9 @@
     font-size: 20px; letter-spacing: 2px;
     cursor: pointer; transition: all .2s;
     background: var(--accent); color: #000;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    min-height: 54px;
   }
   .end-btn:disabled { opacity: .35; cursor: not-allowed; }
   .end-btn.secondary {
@@ -412,10 +435,11 @@
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 22px;
-    padding: 20px;
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
     text-align: center;
     transform: scale(.95);
     transition: transform .2s;
+    overscroll-behavior-y: contain;
   }
   .round-complete-overlay.open .round-complete-card { transform: scale(1); }
   .round-complete-card h3 {
@@ -476,7 +500,7 @@
   }
   .smart-search-container input {
     background: transparent; border: none; color: var(--text);
-    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 16px;
     width: 0; padding-left: 0; outline: none;
     opacity: 0; transition: opacity 0.2s, width 0.3s, padding 0.3s; pointer-events: none;
   }
@@ -487,13 +511,16 @@
   .smart-search-container input::placeholder { color: var(--muted); font-size: 13px; }
 
   .filter-row {
-    display: flex; gap: 8px; padding: 16px 16px 8px; flex-wrap: wrap;
+    display: flex; gap: 8px; padding: 16px 16px 10px; flex-wrap: wrap;
   }
   .filter-btn {
     padding: 9px 16px; border-radius: 20px;
     border: 1px solid var(--border); background: none;
     color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
     cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
+    min-height: 38px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
@@ -516,6 +543,9 @@
     color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px;
     cursor: pointer; transition: all .2s;
     display: flex; align-items: center; gap: 5px; white-space: nowrap;
+    min-height: 38px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
@@ -527,6 +557,8 @@
     background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
     margin: 12px 16px; transition: background .2s;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    min-height: 52px;
   }
   .accordion-header:active { background: var(--bg3); }
   .accordion-header h3 {
@@ -548,7 +580,7 @@
   .sort-overlay.open { opacity: 1; pointer-events: all; }
   .sort-sheet {
     background: var(--bg2); border-radius: 20px 20px 0 0;
-    width: 100%; max-width: 480px; max-height: 80dvh; overflow-y: auto;
+    width: 100%; max-width: 480px; max-height: 80vh; max-height: 80dvh; overflow-y: auto;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     transform: translateY(30px); transition: transform .25s;
     overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
@@ -561,11 +593,13 @@
   }
   .sort-option {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 13px 14px; border-radius: 12px; margin-bottom: 6px;
+    padding: 14px 14px; border-radius: 12px; margin-bottom: 6px;
     border: 1px solid var(--border); background: none;
     width: 100%; cursor: pointer; transition: border-color .15s, background .15s;
     color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
-    text-align: left;
+    text-align: left; min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .sort-option:active { background: var(--bg3); }
   .sort-option.active { border-color: var(--accent); background: rgba(232,197,71,.07); }
@@ -583,12 +617,16 @@
     border-radius: 14px;
     background: var(--bg3);
     color: var(--text);
-    padding: 14px 12px;
+    padding: 16px 12px;
     cursor: pointer;
     text-align: center;
     font-family: 'DM Mono', monospace;
     font-size: 12px;
     transition: transform .1s, border-color .15s, background .15s;
+    min-height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .setup-option:active { transform: scale(.98); }
   .setup-option.active {
@@ -650,8 +688,6 @@
     z-index: 9999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     white-space: nowrap;
-    transform: translate(-50%, -100%);
-    margin-top: -10px;
   }
 
   .zone-bars { display: flex; flex-direction: column; gap: 6px; }
@@ -711,7 +747,7 @@
   .overlay.open { opacity: 1; pointer-events: all; }
   .modal {
     background: var(--bg2); border-radius: 24px 24px 0 0;
-    width: 100%; max-height: 80dvh; overflow-y: auto;
+    width: 100%; max-height: 80vh; max-height: 80dvh; overflow-y: auto;
     padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
     transform: translateY(40px); transition: transform .3s;
     overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
@@ -723,6 +759,7 @@
   }
   .overlay.centered .modal {
     width: min(420px, 100%);
+    max-height: 90vh;
     max-height: 90dvh;
     border-radius: 22px;
     padding: 20px;
@@ -735,9 +772,14 @@
     font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px;
     cursor: pointer; margin-bottom: 10px;
     background: var(--bg3); color: var(--text); transition: all .2s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    min-height: 54px;
   }
   .modal-btn.primary { background: var(--accent); color: #000; }
   .modal-btn.danger { background: var(--red); color: #fff; }
+  .modal-btn:active { opacity: .82; transform: scale(.98); }
+  .end-btn:active { opacity: .82; transform: scale(.98); }
   .modal-input {
     width: 100%;
     padding: 14px 16px;
@@ -781,7 +823,7 @@
   .detail-overlay.open { opacity: 1; pointer-events: all; }
   .detail-modal {
     background: var(--bg2); border-radius: 20px;
-    width: 100%; max-width: 440px; max-height: 90dvh; overflow-y: auto;
+    width: 100%; max-width: 440px; max-height: 90vh; max-height: 90dvh; overflow-y: auto;
     padding: 20px;
     transform: scale(.95); transition: transform .2s;
     overscroll-behavior-y: contain; /* Traps scrolling inside the modal */
@@ -879,6 +921,8 @@
     border-radius: 14px; margin-bottom: 10px;
     transition: border-color .15s, transform .1s;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    min-height: 60px;
   }
   .settings-row:active { transform: scale(.98); border-color: var(--accent); }
   .settings-row.danger:active { border-color: var(--red); }
@@ -931,6 +975,8 @@
     cursor: pointer;
     text-align: left;
     transition: transform .1s, border-color .15s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .theme-preset.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,197,71,.18) inset; }
   .theme-preset:active { transform: scale(.98); }
@@ -978,6 +1024,8 @@
     gap: 10px;
     cursor: pointer;
     padding: 10px 12px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .theme-trigger:active { transform: scale(.98); }
   .theme-trigger-swatch {
@@ -1018,6 +1066,8 @@
     background: var(--option-color);
     cursor: pointer;
     transition: transform .1s, border-color .15s, box-shadow .15s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   .theme-option.active {
     border-color: var(--text);
@@ -1111,6 +1161,7 @@
       font-size: 30px;
     }
     .modal {
+      max-height: 88vh;
       max-height: 88dvh;
       padding-left: 18px;
       padding-right: 18px;
@@ -1126,6 +1177,37 @@
     #detailCanvas {
       max-width: min(280px, 100%);
     }
+  }
+
+  /* Extra-small phones (iPhone SE, Galaxy A series, etc.) */
+  @media (max-width: 375px) {
+    .home-hero h1 { font-size: 46px; }
+    .session-card h2 { font-size: 21px; }
+    .session-card { padding: 14px 16px; min-height: 60px; }
+    .round-info .ri-val { font-size: 18px; }
+    .dist-btn { font-size: 11px; padding: 6px 10px; min-height: 34px; }
+    .arrow-dot { width: 38px; height: 38px; font-size: 17px; }
+    .stat-card .sc-val { font-size: 26px; }
+    nav button { font-size: 8px; }
+    .modal h3 { font-size: 20px; }
+    .end-btn { font-size: 17px; }
+    .modal-btn { font-size: 16px; }
+  }
+
+  /* Landscape phone: stack scoring UI side-by-side to maximize canvas size */
+  @media (max-height: 500px) and (orientation: landscape) {
+    #targetCanvas {
+      max-width: min(300px, calc(100dvh - 80px));
+    }
+    .scoring-header { padding-top: 8px; padding-bottom: 8px; }
+    .round-info { margin: 6px 12px; padding: 8px 12px; }
+    .round-info .ri-val { font-size: 18px; }
+    .arrows-row { padding: 4px 12px; gap: 6px; }
+    .arrow-dot { width: 36px; height: 36px; font-size: 16px; }
+    .end-btn { padding: 10px; margin: 4px 12px; font-size: 17px; min-height: 44px; }
+    .page { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+    nav { min-height: calc(52px + env(safe-area-inset-bottom)); }
+    nav button { padding: 6px 0 4px; }
   }
 
   /* score flash */
@@ -1193,17 +1275,17 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <!-- idle: session picker -->
   <div id="scorePicker">
-    <div class="session-cards" style="padding-top:60px;">
-      <div class="session-card tournament" onclick="launchSession('bullseye_tournament')">
+    <div class="session-cards" style="padding-top: max(60px, calc(env(safe-area-inset-top) + 20px));">
+      <div class="session-card tournament" onclick="launchSession('bullseye_tournament')" role="button" tabindex="0" aria-label="Start Bullseye Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('bullseye_tournament')">
         <h2>Bullseye Tournament</h2>
       </div>
-      <div class="session-card tournament" onclick="openThreeDTournamentSetup()">
+      <div class="session-card tournament" onclick="openThreeDTournamentSetup()" role="button" tabindex="0" aria-label="Start 3D Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')openThreeDTournamentSetup()">
         <h2>3D Tournament</h2>
       </div>
-      <div class="session-card practice" onclick="launchSession('practice')">
+      <div class="session-card practice" onclick="launchSession('practice')" role="button" tabindex="0" aria-label="Start Practice session" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('practice')">
         <h2>Practice</h2>
       </div>
-      <div class="session-card" onclick="launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
+      <div class="session-card" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
         <h2 style="color:var(--muted)">Quick Score</h2>
       </div>
     </div>
@@ -1251,7 +1333,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="arrows-row" id="arrowDots"></div>
 
-    <input type="text" id="activeRoundNotes" class="modal-input" placeholder="Add round notes (optional)..." onchange="if(session && session.currentRound) session.currentRound.notes = this.value;" style="margin: 8px 16px 16px; width: calc(100% - 32px); height: 44px; font-size: 14px; background: transparent; border: 1px dashed var(--border);">
+    <input type="text" id="activeRoundNotes" class="modal-input" placeholder="Add round notes (optional)..." oninput="if(session && session.currentRound) session.currentRound.notes = this.value;" autocorrect="on" autocapitalize="sentences" spellcheck="true" inputmode="text" style="margin: 8px 16px 16px; width: calc(100% - 32px); height: 44px; background: transparent; border: 1px dashed var(--border);">
 
     <div class="diag-section" style="margin-bottom: 20px;">
       <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
@@ -1266,7 +1348,7 @@ const PRACTICE_TARGET_OPTIONS = [
 </div>
 
 <div class="round-complete-overlay" id="quickScoreSummaryOverlay">
-  <div class="round-complete-card" style="max-height:80dvh;overflow-y:auto;">
+  <div class="round-complete-card" style="max-height:80vh;max-height:80dvh;overflow-y:auto;">
     <h3>Quick Score Complete</h3>
     <p style="color:var(--muted);font-size:13px;margin-bottom:4px">This session was not saved.</p>
     <div id="quickScoreTotalDisplay" style="font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--accent);line-height:1;margin:8px 0 12px;text-align:center"></div>
@@ -1289,7 +1371,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <h2>HISTORY</h2>
     <div class="smart-search-container" id="homeSearchContainer" onclick="document.getElementById('homeSearchInput').focus()">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>
-      <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)">
+      <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search">
     </div>
   </div>
   <div class="selection-bar" id="homeSelectionBar">
@@ -1542,7 +1624,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <!-- Help Guide Overlay -->
 <div class="detail-overlay" id="helpOverlay">
-  <div class="detail-modal" style="height: 90dvh; display: flex; flex-direction: column;">
+  <div class="detail-modal" style="height: 90vh; height: 90dvh; display: flex; flex-direction: column;">
     <div class="detail-modal-header" style="flex-shrink: 0;">
       <h3>Help Guide</h3>
       <button class="detail-close" onclick="closeOverlay('helpOverlay')" aria-label="Close help guide">
@@ -1693,7 +1775,7 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="modal">
     <h3>Edit Archer</h3>
     <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Update or delete this archer profile.</p>
-    <input id="editArcherInput" class="modal-input" type="text" placeholder="Archer name" autocomplete="name" maxlength="40">
+    <input id="editArcherInput" class="modal-input" type="text" placeholder="Archer name" autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text" maxlength="40">
     <button class="modal-btn primary" onclick="saveEditArcher()">SAVE CHANGES</button>
     <button class="modal-btn danger" onclick="deleteArcher()">DELETE ARCHER</button>
     <button class="modal-btn" onclick="closeOverlay('editArcherOverlay')">CANCEL</button>
@@ -1707,7 +1789,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="inline-field">
       <label>Bow Name</label>
-      <input id="bowNameInput" class="modal-input" type="text" placeholder="">
+      <input id="bowNameInput" class="modal-input" type="text" placeholder="" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text">
     </div>
 
     <div class="inline-field">
@@ -1723,7 +1805,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="inline-field">
       <label>Draw Weight</label>
-      <input id="bowDrawWeightInput" class="modal-input" type="text" placeholder="">
+      <input id="bowDrawWeightInput" class="modal-input" type="text" placeholder="" inputmode="decimal" autocorrect="off" autocapitalize="none" spellcheck="false">
     </div>
 
     <div class="diag-section" style="margin: 20px -16px 16px; border-radius: 0;">
@@ -1733,21 +1815,21 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="accordion-content">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">10m</label><input class="modal-input aiming-input" data-target="10m" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">15m</label><input class="modal-input aiming-input" data-target="15m" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Turkey</label><input class="modal-input aiming-input" data-target="turkey" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Coyote</label><input class="modal-input aiming-input" data-target="coyote" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Bear</label><input class="modal-input aiming-input" data-target="bear" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Deer</label><input class="modal-input aiming-input" data-target="deer" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Antelope</label><input class="modal-input aiming-input" data-target="antelope" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
-          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Ram</label><input class="modal-input aiming-input" data-target="ram" type="text" style="padding:10px;font-size:14px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">10m</label><input class="modal-input aiming-input" data-target="10m" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">15m</label><input class="modal-input aiming-input" data-target="15m" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Turkey</label><input class="modal-input aiming-input" data-target="turkey" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Coyote</label><input class="modal-input aiming-input" data-target="coyote" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Bear</label><input class="modal-input aiming-input" data-target="bear" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Deer</label><input class="modal-input aiming-input" data-target="deer" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Antelope</label><input class="modal-input aiming-input" data-target="antelope" type="text" style="padding:10px;margin-bottom:0"></div>
+          <div><label style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:4px;">Ram</label><input class="modal-input aiming-input" data-target="ram" type="text" style="padding:10px;margin-bottom:0"></div>
         </div>
       </div>
     </div>
 
     <div class="inline-field">
       <label>Notes</label>
-      <textarea id="bowNotesInput" class="modal-textarea" placeholder="" style="width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; resize: none;"></textarea>
+      <textarea id="bowNotesInput" class="modal-textarea" placeholder="" style="width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; margin-bottom: 12px; outline: none; resize: none;"></textarea>
     </div>
 
     <button class="modal-btn primary" onclick="saveBowProfile()">SAVE BOW PROFILE</button>
@@ -1792,7 +1874,11 @@ const PRACTICE_TARGET_OPTIONS = [
       class="modal-input"
       type="text"
       placeholder="Enter city"
-      autocomplete="address-level2"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="words"
+      spellcheck="false"
+      inputmode="text"
       list="savedLocationOptions"
       oninput="locationInputDirty = true"
     >
@@ -1825,6 +1911,9 @@ const PRACTICE_TARGET_OPTIONS = [
       type="text"
       placeholder="Archer name"
       autocomplete="name"
+      autocorrect="off"
+      autocapitalize="words"
+      spellcheck="false"
       maxlength="40"
     >
     <div class="modal-help">This device name is saved locally and included in backups.</div>
@@ -1845,6 +1934,9 @@ const PRACTICE_TARGET_OPTIONS = [
         type="text"
         placeholder="Archer name"
         autocomplete="name"
+        autocorrect="off"
+        autocapitalize="words"
+        spellcheck="false"
         maxlength="40"
       >
     </div>
@@ -2351,10 +2443,10 @@ function updateDeviceNameSummary() {
           <div class="settings-row-sub">${isActive ? 'Active Profile' : 'Tap to set active'}</div>
         </div>
         <div style="display:flex; gap:2px; margin-right:-6px;">
-          <button class="icon-btn" onclick="event.stopPropagation(); openBowProfileOverlay('${archer.replace(/'/g, "\\'")}')" style="width:34px; height:34px; border:none; background:transparent; color:var(--accent);" title="Bow Profile" aria-label="Bow Profile">
+          <button class="icon-btn" onclick="event.stopPropagation(); openBowProfileOverlay('${archer.replace(/'/g, "\\'")}')" style="width:44px; height:44px; border:none; background:transparent; color:var(--accent);" title="Bow Profile" aria-label="Bow Profile">
             ${icon('bow')}
           </button>
-          <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="width:34px; height:34px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
+          <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="width:44px; height:44px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
             ${icon('edit')}
           </button>
         </div>
@@ -3936,7 +4028,7 @@ function attachPanZoom(containerId, wrapId, options = {}) {
     } else if (e.touches.length === 1) {
       lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  }, {passive: false});
+  }, {passive: true});
 
   container.addEventListener('touchmove', e => {
     e.preventDefault(); // Prevent scroll while pinching/panning
@@ -4319,10 +4411,18 @@ tcContainer.addEventListener('touchend', e => {
     // Position tooltip translating canvas coordinates precisely to fixed screen position
     const displayX = rect.left + (nearest.x * (rect.width / W3));
     const displayY = rect.top + (nearest.y * (rect.height / H3));
-    
-    tooltip.style.left = displayX + 'px';
-    tooltip.style.top = displayY + 'px';
+
+    // Show briefly offscreen to measure width, then clamp to viewport edges
     tooltip.style.display = 'block';
+    tooltip.style.left = '0px';
+    tooltip.style.top = '-9999px';
+    const tipW = tooltip.offsetWidth;
+    const tipH = tooltip.offsetHeight;
+    const margin = 8;
+    const clampedX = Math.max(margin, Math.min(window.innerWidth - tipW - margin, displayX - tipW / 2));
+    const clampedY = Math.max(margin, displayY - tipH - 12);
+    tooltip.style.left = clampedX + 'px';
+    tooltip.style.top = clampedY + 'px';
     
     clearTimeout(tooltipHideTimer);
     tooltipHideTimer = setTimeout(() => { tooltip.style.display = 'none'; }, 2500);
@@ -4355,18 +4455,6 @@ function drawZoneBars(arrows) {
   });
 }
 
-function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
-
-function resetData() {
-  db = { sessions: [], savedLocations: [], deviceProfile: {name: '', archers: [], activeArcher: ''} };
-  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
-  save(); refreshSavedLocationOptions(); resetActiveSessionUI();
-  document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
-  document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
-  renderHome(); renderDiag(); updateDeviceNameSummary();
-  alert('All data has been reset.');
-}
-
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
@@ -4385,19 +4473,47 @@ function wipeEphemeralOnExit() {
 window.addEventListener('beforeunload', wipeEphemeralOnExit);
 window.addEventListener('pagehide', wipeEphemeralOnExit);
 
+// ── KEYBOARD-AWARE LAYOUT ──
+// When the virtual keyboard opens (e.g. user taps the round notes field),
+// the scoring page can get pushed down. We detect this via visualViewport
+// and nudge the page back so the target stays visible.
+if (window.visualViewport) {
+  let keyboardOpen = false;
+  window.visualViewport.addEventListener('resize', () => {
+    const vvHeight = window.visualViewport.height;
+    const winHeight = window.innerHeight;
+    const isScorePage = document.getElementById('page-score').classList.contains('active');
+    const scoreActive = document.getElementById('scoreActive');
+
+    // Keyboard is open when viewport height is significantly smaller than window height
+    if (vvHeight < winHeight * 0.75) {
+      if (!keyboardOpen && isScorePage && scoreActive && scoreActive.style.display !== 'none') {
+        keyboardOpen = true;
+        // Scroll target canvas into view smoothly
+        const targetCanvas = document.getElementById('targetCanvas');
+        if (targetCanvas) {
+          setTimeout(() => targetCanvas.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+        }
+      }
+    } else {
+      keyboardOpen = false;
+    }
+  });
+}
+
 // --- NOTE TAKING PATCH ---
 (function injectNotesFeature() {
   // 1. Inject CSS safely
   const style = document.createElement('style');
   style.innerHTML = `
-    .modal-textarea { width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 12px; outline: none; resize: none; }
+    .modal-textarea { width: 100%; height: 90px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; margin-bottom: 12px; outline: none; resize: none; }
     .session-notes-box { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border); font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
   `;
   document.head.appendChild(style);
 
   // 2. Inject HTML Elements
   const datalist = document.getElementById('savedLocationOptions');
-  if (datalist) datalist.insertAdjacentHTML('beforebegin', '<textarea id="finishNotesInput" class="modal-textarea" placeholder="Add session notes (optional)..."></textarea>');
+  if (datalist) datalist.insertAdjacentHTML('beforebegin', '<textarea id="finishNotesInput" class="modal-textarea" placeholder="Add session notes (optional)..." inputmode="text" autocorrect="on" autocapitalize="sentences" spellcheck="true"></textarea>');
 
   const roundsContainer = document.getElementById('sessionOverlayRounds');
   if (roundsContainer) roundsContainer.insertAdjacentHTML('beforebegin', '<div id="sessionOverlayNotes" class="session-notes-box" style="display:none"></div>');
