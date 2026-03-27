@@ -282,6 +282,7 @@
     padding: 4px 16px 0;
     position: relative;
     width: 100%;
+    overflow: hidden;
   }
   #targetCanvas {
     border-radius: 50%;
@@ -342,6 +343,19 @@
     color: var(--red);
     border-color: var(--red);
     transform: scale(0.95);
+  }
+  #zoomRingsBtn.zoomed {
+    background: rgba(232,197,71,.15);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  #targetCanvas {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center center;
+  }
+  #targetCanvas.ring-zoom {
+    /* Scale to ~3.33x so the inner 30% fills the view */
+    transform: scale(3.33);
   }
 
   .arrows-row {
@@ -1232,6 +1246,7 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="magnifier-crosshair"></div>
       </div>
       <button id="missBtn" class="miss-btn" onclick="scoreMiss()">M</button>
+      <button id="zoomRingsBtn" class="miss-btn" onclick="toggleRingZoom()" title="Zoom rings 8–10" aria-label="Zoom rings 8–10" style="left:10px; right:auto; font-size:14px; width:44px; height:44px;">8–10</button>
     </div>
 
     <div class="arrows-row" id="arrowDots"></div>
@@ -2827,6 +2842,15 @@ function scoreMiss() {
   }
 }
 
+let ringZoomActive = false;
+function toggleRingZoom() {
+  ringZoomActive = !ringZoomActive;
+  const canvas = document.getElementById('targetCanvas');
+  const btn = document.getElementById('zoomRingsBtn');
+  canvas.classList.toggle('ring-zoom', ringZoomActive);
+  btn.classList.toggle('zoomed', ringZoomActive);
+}
+
 function undoLastArrow() {
   if (!session) return;
   const cr = session.currentRound;
@@ -2943,6 +2967,12 @@ function nextRound() {
   if(!session) return; const cr = session.currentRound;
   if(cr.locked || cr.arrows.length < 5) return;
   closeOverlay('roundCompleteOverlay');
+  // Reset ring zoom when moving to next round
+  ringZoomActive = false;
+  const zCanvas = document.getElementById('targetCanvas');
+  const zBtn = document.getElementById('zoomRingsBtn');
+  if (zCanvas) zCanvas.classList.remove('ring-zoom');
+  if (zBtn) zBtn.classList.remove('zoomed');
   session.rounds.push({...cr, arrows:[...cr.arrows]});
   if(isTournamentSession(session) && session.rounds.length===6) { endSession(); return; }
   if (isTournamentSession(session)) session.currentRound = getCurrentTournamentRoundConfig(session);
