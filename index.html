@@ -1074,6 +1074,12 @@
       margin-left: 12px;
       margin-right: 12px;
     }
+    /* Bow info panel must share the same side margins as .settings-row on mobile
+       so the left/right borders line up with the archer row above it. */
+    .bow-info-panel {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
     .stat-grid {
       gap: 10px;
       padding: 12px;
@@ -2305,7 +2311,7 @@ function updateDeviceNameSummary() {
       if (bow && (bow.name || bow.type || bow.drawWeight || Object.keys(bow.aimingPoints || {}).length > 0 || bow.notes)) {
          const aimingPts = Object.entries(bow.aimingPoints || {}).map(([k,v]) => `${k.toUpperCase()}: ${v}`).join(' · ');
          bowInfoHtml = `
-           <div style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 16px 16px 12px; font-size: 13px;">
+           <div class="bow-info-panel" style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 16px 16px 12px; font-size: 13px;">
              ${bow.name ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Name</span><span style="color:var(--text)">${bow.name}</span></div>` : ''}
              ${bow.type ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Type</span><span style="color:var(--text); text-transform:capitalize;">${bow.type}</span></div>` : ''}
              ${bow.drawWeight ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Weight</span><span style="color:var(--text)">${bow.drawWeight}</span></div>` : ''}
@@ -2315,7 +2321,7 @@ function updateDeviceNameSummary() {
          `;
       } else {
          bowInfoHtml = `
-           <div style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 12px 16px; font-size: 12px; color:var(--muted); text-align:center;">
+           <div class="bow-info-panel" style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 12px 16px; font-size: 12px; color:var(--muted); text-align:center;">
              No bow profile saved. Tap the bow icon to add one.
            </div>
          `;
@@ -3603,16 +3609,10 @@ function generateScorecard(indices) {
   // This command forces the browser to calculate the layout right now
   void printContainer.offsetHeight; 
 
-  // 2. Trigger Print IMMEDIATELY (Satisfies mobile security rules)
-  const isMedianApp = navigator.userAgent.indexOf('GoNative') > -1 || window.gonative || (window.median && window.median.isNativeApp());
-
-  if (isMedianApp) {
-    // Tells the Median app to capture the screen and open the native print/share dialog
-    window.location.href = 'gonative://print/current';
-  } else {
-    // Opens the standard mobile/desktop browser print dialog (where they can Save to PDF)
-    window.print();
-  }
+  // 2. Trigger Print — window.print() works universally across browsers and
+  // mobile WebView wrappers (Median/GoNative included). The print stylesheet
+  // hides all UI and shows only printContainer, so the scorecard renders correctly.
+  window.print();
 }
 function deleteHomeSelected() {
   if (homeSelectedSessions.size === 0) return;
