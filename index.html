@@ -1439,9 +1439,13 @@ const PRACTICE_TARGET_OPTIONS = [
     </button>
   </div>
   <div class="filter-bar" id="homeFilterBar">
-    <button class="sort-btn" onclick="openFiltersOverlay('home')" style="flex: 1; justify-content: center;">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    <button class="sort-btn" onclick="openFiltersOnlyOverlay('home')" style="flex: 1; justify-content: center;">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
       Filters
+    </button>
+    <button class="sort-btn" onclick="openSortOnlyOverlay('home')" style="flex: 1; justify-content: center;">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"></path></svg>
+      Sort
     </button>
   </div>
   <div id="recentList"></div>
@@ -1881,7 +1885,7 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
-<!-- Filters Modal -->
+<!-- Filters Modal (Combined - for Stats page) -->
 <div class="sort-overlay" id="filtersOverlay" onclick="closeOverlay('filtersOverlay')">
   <div class="sort-sheet" onclick="event.stopPropagation()">
     <h4>Filters</h4>
@@ -1921,6 +1925,51 @@ const PRACTICE_TARGET_OPTIONS = [
       <button class="sort-option" data-sort="grouping-best" onclick="setFiltersSort('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
       <button class="sort-option" data-sort="grouping-worst" onclick="setFiltersSort('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
     </div>
+  </div>
+</div>
+
+<!-- Filters Only Modal (for History page) -->
+<div class="sort-overlay" id="filtersOnlyOverlay" onclick="closeOverlay('filtersOnlyOverlay')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Filters</h4>
+    
+    <!-- Archer Filter -->
+    <div style="margin-bottom: 16px;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Archer</div>
+      <div id="filtersOnlyArcherContainer"></div>
+    </div>
+    
+    <!-- Date Filter -->
+    <div style="margin-bottom: 16px;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Date Range</div>
+      <div class="inline-field" style="margin-bottom: 8px;">
+        <input id="filtersOnlyDateStart" class="modal-input" type="date" placeholder="Start Date">
+      </div>
+      <div class="inline-field" style="margin-bottom: 8px;">
+        <input id="filtersOnlyDateEnd" class="modal-input" type="date" placeholder="End Date">
+      </div>
+      <button class="sort-option" onclick="applyFiltersOnlyDateFilter()"><span>Apply Date Filter</span><span class="so-check">✓</span></button>
+      <button class="sort-option" onclick="clearFiltersOnlyDateFilter()"><span>Clear Date Filter</span><span class="so-check">✗</span></button>
+    </div>
+    
+    <!-- Location Filter -->
+    <div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Location</div>
+      <div id="filtersOnlyLocationContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sort Only Modal (for History page) -->
+<div class="sort-overlay" id="sortOnlyOverlay" onclick="closeOverlay('sortOnlyOverlay')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Sort Sessions</h4>
+    <button class="sort-option" data-sort="newest" onclick="setSortOnly('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="oldest" onclick="setSortOnly('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-high" onclick="setSortOnly('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="score-low" onclick="setSortOnly('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-best" onclick="setSortOnly('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
+    <button class="sort-option" data-sort="grouping-worst" onclick="setSortOnly('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
   </div>
 </div>
 
@@ -3934,6 +3983,125 @@ function setFiltersSort(key) {
   
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
+}
+
+// ═══════════════════════════════════════════════
+// SEPARATE FILTERS AND SORT FUNCTIONS (for History page)
+// ═══════════════════════════════════════════════
+function openFiltersOnlyOverlay(context) {
+  activeFiltersContext = context;
+  
+  // Populate archer filter
+  const archerContainer = document.getElementById('filtersOnlyArcherContainer');
+  const uniqueArchers = [...new Set(db.sessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
+  db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
+  const activeArcherSet = activeArcherFilters[context];
+  
+  let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
+  uniqueArchers.forEach(arch => {
+    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
+  });
+  if (uniqueArchers.length === 0) {
+    archerHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No archers saved yet.</div>`;
+  }
+  archerContainer.innerHTML = archerHtml;
+  
+  // Populate location filter
+  const locationContainer = document.getElementById('filtersOnlyLocationContainer');
+  const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
+  const activeLocSet = activeLocationFilters[context];
+  
+  let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
+  uniqueLocations.forEach(loc => {
+    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+  });
+  if (uniqueLocations.length === 0) {
+    locationHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No locations saved yet.</div>`;
+  }
+  locationContainer.innerHTML = locationHtml;
+  
+  // Populate date filter
+  const dateFilter = activeDateFilters[context];
+  document.getElementById('filtersOnlyDateStart').value = dateFilter.start || '';
+  document.getElementById('filtersOnlyDateEnd').value = dateFilter.end || '';
+  
+  document.getElementById('filtersOnlyOverlay').classList.add('open');
+}
+
+function setFiltersOnlyArcherFilter(archLabel) {
+  const activeSet = activeArcherFilters[activeFiltersContext];
+  if (archLabel === 'all') {
+    activeSet.clear();
+  } else {
+    if (activeSet.has(archLabel)) activeSet.delete(archLabel);
+    else activeSet.add(archLabel);
+  }
+  
+  openFiltersOnlyOverlay(activeFiltersContext);
+  if (activeFiltersContext === 'home') renderHome();
+}
+
+function setFiltersOnlyLocationFilter(locLabel) {
+  const activeLocSet = activeLocationFilters[activeFiltersContext];
+  if (locLabel === 'all') {
+    activeLocSet.clear();
+  } else {
+    if (activeLocSet.has(locLabel)) {
+      activeLocSet.delete(locLabel);
+    } else {
+      activeLocSet.add(locLabel);
+    }
+  }
+  
+  openFiltersOnlyOverlay(activeFiltersContext);
+  if (activeFiltersContext === 'home') renderHome();
+}
+
+function applyFiltersOnlyDateFilter() {
+  const startVal = document.getElementById('filtersOnlyDateStart').value;
+  const endVal = document.getElementById('filtersOnlyDateEnd').value;
+  
+  activeDateFilters[activeFiltersContext] = {
+    start: startVal || null,
+    end: endVal || null
+  };
+  
+  if (activeFiltersContext === 'home') renderHome();
+}
+
+function clearFiltersOnlyDateFilter() {
+  activeDateFilters[activeFiltersContext] = { start: null, end: null };
+  document.getElementById('filtersOnlyDateStart').value = '';
+  document.getElementById('filtersOnlyDateEnd').value = '';
+  
+  if (activeFiltersContext === 'home') renderHome();
+}
+
+function openSortOnlyOverlay(context) {
+  activeFiltersContext = context;
+  
+  // Update sort buttons
+  const sortButtons = document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]');
+  sortButtons.forEach(btn => {
+    const sortKey = btn.getAttribute('data-sort');
+    const isActive = homeSort === sortKey;
+    btn.classList.toggle('active', isActive);
+  });
+  
+  document.getElementById('sortOnlyOverlay').classList.add('open');
+}
+
+function setSortOnly(key) {
+  homeSort = key;
+  
+  // Update sort buttons
+  const sortButtons = document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]');
+  sortButtons.forEach(btn => {
+    const sortKey = btn.getAttribute('data-sort');
+    btn.classList.toggle('active', sortKey === key);
+  });
+  
+  renderHome();
 }
 
 function computeGroupingScore(sessionObj) {
