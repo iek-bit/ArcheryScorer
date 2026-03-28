@@ -145,6 +145,64 @@
 
       // Detect scores
       const scores = await detectBubbleScores(croppedCanvas);
+      
+      // Draw debug overlay
+      const debugInfo = window.scoresheetDebugInfo;
+      if (debugInfo) {
+        displayCtx.strokeStyle = 'rgba(232, 197, 71, 0.8)';
+        displayCtx.fillStyle = 'rgba(232, 197, 71, 0.3)';
+        displayCtx.lineWidth = 2 * scale;
+        
+        debugInfo.forEach((endDebug) => {
+          endDebug.forEach((rowDebug) => {
+            rowDebug.bubbles.forEach(bubble => {
+              if (bubble.filled) {
+                displayCtx.beginPath();
+                displayCtx.arc(bubble.x * scale, bubble.y * scale, bubble.radius * scale, 0, Math.PI * 2);
+                displayCtx.fill();
+                displayCtx.stroke();
+                
+                displayCtx.fillStyle = '#000';
+                displayCtx.font = `bold ${bubble.radius * scale}px sans-serif`;
+                displayCtx.textAlign = 'center';
+                displayCtx.textBaseline = 'middle';
+                displayCtx.fillText(bubble.score, bubble.x * scale, bubble.y * scale);
+                displayCtx.fillStyle = 'rgba(232, 197, 71, 0.3)';
+              }
+            });
+          });
+        });
+        
+        // Draw row dividers
+        displayCtx.strokeStyle = 'rgba(82, 194, 120, 0.5)';
+        displayCtx.lineWidth = 1;
+        const numEnds = 6;
+        const endHeight = croppedCanvas.height / numEnds;
+        
+        for (let endIdx = 0; endIdx < numEnds; endIdx++) {
+          const endTop = endIdx * endHeight;
+          const endBottom = (endIdx + 1) * endHeight;
+          const rowHeight = (endBottom - endTop) / 5;
+          
+          displayCtx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+          displayCtx.lineWidth = 2;
+          displayCtx.beginPath();
+          displayCtx.moveTo(0, endTop * scale);
+          displayCtx.lineTo(displayCanvas.width, endTop * scale);
+          displayCtx.stroke();
+          
+          displayCtx.strokeStyle = 'rgba(82, 194, 120, 0.4)';
+          displayCtx.lineWidth = 1;
+          for (let rowIdx = 1; rowIdx < 5; rowIdx++) {
+            const rowY = endTop + rowIdx * rowHeight;
+            displayCtx.beginPath();
+            displayCtx.moveTo(0, rowY * scale);
+            displayCtx.lineTo(displayCanvas.width, rowY * scale);
+            displayCtx.stroke();
+          }
+        }
+      }
+      
       displayScores(scores);
     }
 
@@ -235,11 +293,13 @@
       const data = imageData.data;
       
       const scores = [];
+      const debugInfo = [];
       const numEnds = 6;
       const endHeight = canvas.height / numEnds;
       
       for (let endIdx = 0; endIdx < numEnds; endIdx++) {
         const endScores = [];
+        const endDebug = [];
         const endTop = endIdx * endHeight;
         const endBottom = (endIdx + 1) * endHeight;
         const rowHeight = (endBottom - endTop) / 5;
@@ -254,40 +314,103 @@
           const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
           
           const filledBubbles = [];
+          const bubbleDebug = [];
+          
           for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
             const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
             const bubbleY = rowMiddle;
             
-            const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.15);
-            let darkPixels = 0;
-            let totalPixels = 0;
+            const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.2);
+            const innerRadius = Math.floor(sampleRadius * 0.5);
+            
+            // Sample background
+            let bgBrightness = 0;
+            let bgSamples = 0;
+            const bgRadius = sampleRadius * 1.8;
+            
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+              const bgX = Math.floor(bubbleX + Math.cos(angle) * bgRadius);
+              const bgY = Math.floor(bubbleY + Math.sin(angle) * bgRadius);
+              if (bgX >= 0 && bgX < canvas.width && bgY >= 0 && bgY < canvas.height) {
+                const idx = (bgY * canvas.width + bgX) * 4;
+                bgBrightness += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                bgSamples++;
+              }
+            }
+            bgBrightness = bgSamples > 0 ? bgBrightness / bgSamples : 240;
+            
+            // Sample bubble area
+            let centerDarkPixels = 0, centerTotal = 0;
+            let ringDarkPixels = 0, ringTotal = 0;
+            let totalBrightness = 0;
             
             for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
               for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > sampleRadius) continue;
+                
                 const checkX = Math.floor(bubbleX + dx);
                 const checkY = Math.floor(bubbleY + dy);
                 if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
                   const idx = (checkY * canvas.width + checkX) * 4;
                   const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-                  totalPixels++;
-                  if (brightness < 180) darkPixels++;
+                  totalBrightness += brightness;
+                  
+                  const isDark = brightness < (bgBrightness - 30);
+                  
+                  if (distance <= innerRadius) {
+                    centerTotal++;
+                    if (isDark) centerDarkPixels++;
+                  } else {
+                    ringTotal++;
+                    if (isDark) ringDarkPixels++;
+                  }
                 }
               }
             }
             
-            const fillRatio = darkPixels / totalPixels;
-            if (fillRatio > 0.3) {
+            const centerFillRatio = centerTotal > 0 ? centerDarkPixels / centerTotal : 0;
+            const ringFillRatio = ringTotal > 0 ? ringDarkPixels / ringTotal : 0;
+            const avgBrightness = (centerTotal + ringTotal) > 0 ? totalBrightness / (centerTotal + ringTotal) : 240;
+            const contrastRatio = (bgBrightness - avgBrightness) / bgBrightness;
+            
+            const isFilled = (
+              centerFillRatio > 0.25 || 
+              (ringFillRatio > 0.20 && contrastRatio > 0.15) ||
+              (centerFillRatio > 0.15 && ringFillRatio > 0.15)
+            );
+            
+            if (isFilled) {
               filledBubbles.push(bubbleIdx);
             }
+            
+            bubbleDebug.push({
+              x: bubbleX,
+              y: bubbleY,
+              radius: sampleRadius,
+              filled: isFilled,
+              centerFill: centerFillRatio,
+              ringFill: ringFillRatio,
+              contrast: contrastRatio,
+              score: bubbleIdx
+            });
           }
           
           const score = filledBubbles.length > 0 ? Math.min(...filledBubbles) : 0;
           endScores.push(score);
+          endDebug.push({
+            rowY: rowMiddle,
+            bubbles: bubbleDebug,
+            detectedScore: score,
+            allFilled: filledBubbles
+          });
         }
         
         scores.push(endScores);
+        debugInfo.push(endDebug);
       }
       
+      window.scoresheetDebugInfo = debugInfo;
       return scores;
     }
 

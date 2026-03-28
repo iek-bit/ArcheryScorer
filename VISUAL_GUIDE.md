@@ -1,0 +1,339 @@
+# Visual Guide - Scoresheet Scan Feature
+
+## What You'll See
+
+### 1. Starting a Tournament
+
+```
+┌─────────────────────────────┐
+│  Score Entry Method         │
+│                             │
+│  Choose how you'd like to   │
+│  enter scores for this      │
+│  tournament.                │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🎯 Score Manually   │  │ ← Traditional tap-to-score
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  📷 Take Photo       │  │ ← Open camera
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  📤 Upload Gallery   │  │ ← Choose existing photo
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+```
+
+### 2. Processing Screen
+
+```
+┌─────────────────────────────┐
+│  Processing Scoresheet      │
+│                             │
+│         ⟳                   │ ← Spinner animation
+│                             │
+│  Detecting scorecard        │
+│  boundaries...              │
+└─────────────────────────────┘
+```
+
+### 3. Preview with Detection Overlay
+
+```
+┌─────────────────────────────────────┐
+│  Review Detected Scores             │
+│                                     │
+│  Tap any score to edit it.          │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ NASP Official Score Card    │   │
+│  ├─────────────────────────────┤   │ ← Blue line (End boundary)
+│  │ ●7  ●8  ●9  ●10 ●9         │   │ ← Yellow circles (detected)
+│  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │   │ ← Green line (row)
+│  │ ●6  ●7  ●8  ●9  ●10        │   │
+│  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─   │   │
+│  │ ●8  ●9  ●10 ●10 ●9         │   │
+│  ├─────────────────────────────┤   │ ← Blue line (End boundary)
+│  │ ●7  ●8  ●9  ●10 ●10        │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  ● Yellow = detected | Blue = Ends │
+│  Green = Rows                       │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ End 1 (10m)                 │   │
+│  │ [7] [8] [9] [10] [9]    45  │   │ ← Tap to edit
+│  ├─────────────────────────────┤   │
+│  │ End 2 (10m)                 │   │
+│  │ [6] [7] [8] [9] [10]    40  │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  Total: 285                         │ ← Auto-calculated
+│                                     │
+│  ┌───────────────────────────┐     │
+│  │  ✓ CONFIRM SCORES        │     │
+│  └───────────────────────────┘     │
+│  ┌───────────────────────────┐     │
+│  │  ✗ CANCEL                │     │
+│  └───────────────────────────┘     │
+└─────────────────────────────────────┘
+```
+
+## Detection Overlay Explained
+
+### Yellow Circles 🟡
+- Appear on bubbles the app detected as filled
+- Contain the score number (0-10)
+- If you see a yellow circle on the wrong bubble, tap the score below to edit
+
+### Blue Lines 🔵
+- Divide the scorecard into 6 Ends
+- Each End is one section of 5 arrows
+- Helps you see how the app divided the scorecard vertically
+
+### Green Lines 🟢
+- Divide each End into 5 rows
+- Each row is one arrow
+- Helps you see how the app divided each End horizontally
+
+## Example Scenarios
+
+### Scenario 1: Perfect Detection ✅
+
+```
+Your Scorecard:        What You See:
+┌─────────────┐       ┌─────────────┐
+│ ○ ○ ● ○ ○  │       │ ○ ○ ●7 ○ ○ │ ← Yellow circle on 7
+│ ○ ○ ○ ● ○  │       │ ○ ○ ○ ●8 ○ │ ← Yellow circle on 8
+│ ○ ○ ○ ○ ●  │       │ ○ ○ ○ ○ ●9 │ ← Yellow circle on 9
+└─────────────┘       └─────────────┘
+
+Scores shown: [7] [8] [9]
+Action: Just confirm! ✓
+```
+
+### Scenario 2: Light Pencil Mark ⚠️
+
+```
+Your Scorecard:        What You See:
+┌─────────────┐       ┌─────────────┐
+│ ○ ○ ◐ ○ ○  │       │ ○ ○ ●7 ○ ○ │ ← Detected light mark
+│ ○ ○ ○ ● ○  │       │ ○ ○ ○ ●8 ○ │
+│ ○ ○ ○ ○ ●  │       │ ○ ○ ○ ○ ●9 │
+└─────────────┘       └─────────────┘
+
+Scores shown: [7] [8] [9]
+Action: Verify the light mark was correct ✓
+```
+
+### Scenario 3: Missed Light Mark ❌
+
+```
+Your Scorecard:        What You See:
+┌─────────────┐       ┌─────────────┐
+│ ○ ○ ◐ ○ ○  │       │ ○ ○ ○ ○ ○  │ ← No yellow circle
+│ ○ ○ ○ ● ○  │       │ ○ ○ ○ ●8 ○ │
+│ ○ ○ ○ ○ ●  │       │ ○ ○ ○ ○ ●9 │
+└─────────────┘       └─────────────┘
+
+Scores shown: [0] [8] [9]  ← 0 is wrong!
+Action: Tap [0] and change to 7 ✏️
+```
+
+### Scenario 4: Smudge Detected 🔧
+
+```
+Your Scorecard:        What You See:
+┌─────────────┐       ┌─────────────┐
+│ ○ ○ ● ○ ○  │       │ ○ ○ ●7 ○ ○ │
+│ ○ ● ○ ● ○  │       │ ○ ●6 ○ ●8 ○│ ← Two circles!
+│ ○ ○ ○ ○ ●  │       │ ○ ○ ○ ○ ●9 │
+└─────────────┘       └─────────────┘
+         ↑ smudge
+
+Scores shown: [7] [6] [9]  ← Used lowest (6)
+Action: If 8 is correct, tap [6] and change to 8 ✏️
+```
+
+### Scenario 5: Partial Fill ✅
+
+```
+Your Scorecard:        What You See:
+┌─────────────┐       ┌─────────────┐
+│ ○ ○ ◑ ○ ○  │       │ ○ ○ ●7 ○ ○ │ ← Detected partial
+│ ○ ○ ○ ◑ ○  │       │ ○ ○ ○ ●8 ○ │
+│ ○ ○ ○ ○ ◑  │       │ ○ ○ ○ ○ ●9 │
+└─────────────┘       └─────────────┘
+    ↑ half-filled
+
+Scores shown: [7] [8] [9]
+Action: Verify and confirm! ✓
+```
+
+## Editing Scores
+
+### How to Edit
+
+```
+1. Tap the score box:
+   ┌─────────────────────────────┐
+   │ End 1 (10m)                 │
+   │ [7] [8] [9] [10] [9]    45  │
+   │  ↑ Tap here                 │
+   └─────────────────────────────┘
+
+2. Enter new score:
+   ┌─────────────────────────────┐
+   │ Edit score for End 1,       │
+   │ Arrow 1:                    │
+   │                             │
+   │ ┌─────┐                     │
+   │ │  7  │ ← Change this       │
+   │ └─────┘                     │
+   │                             │
+   │ [OK] [Cancel]               │
+   └─────────────────────────────┘
+
+3. Score updates:
+   ┌─────────────────────────────┐
+   │ End 1 (10m)                 │
+   │ [8] [8] [9] [10] [9]    44  │
+   │  ↑ Updated!    ↑ New total  │
+   └─────────────────────────────┘
+```
+
+## Tips for Best Results
+
+### Good Photo ✅
+```
+┌─────────────────────────┐
+│                         │
+│  ┌─────────────────┐   │ ← Entire scorecard visible
+│  │ NASP Score Card │   │
+│  │                 │   │
+│  │ [Scorecard]     │   │ ← Flat, no wrinkles
+│  │                 │   │
+│  │                 │   │ ← Even lighting
+│  └─────────────────┘   │
+│                         │
+└─────────────────────────┘
+```
+
+### Bad Photo ❌
+```
+┌─────────────────────────┐
+│  ┌──────────            │ ← Edge cut off
+│  │ NASP Sco             │
+│  │        /             │ ← Angled
+│  │ [Score  │            │
+│  │    ▓▓▓▓▓│            │ ← Shadow
+│  └─────────             │
+└─────────────────────────┘
+```
+
+## Success Confirmation
+
+After confirming, you'll see:
+
+```
+┌─────────────────────────────┐
+│  ✓ Scoresheet imported      │
+│    successfully!            │
+│                             │
+│  All 6 rounds have been     │
+│  added to your session.     │
+│                             │
+│  [OK]                       │
+└─────────────────────────────┘
+```
+
+Then you're taken to the scoring interface with all rounds loaded!
+
+## Troubleshooting Visual Guide
+
+### Problem: No yellow circles showing
+
+```
+What you see:
+┌─────────────┐
+│ ○ ○ ○ ○ ○  │ ← No yellow circles
+│ ○ ○ ○ ○ ○  │
+│ ○ ○ ○ ○ ○  │
+└─────────────┘
+
+Possible causes:
+- Pencil marks too light
+- Poor lighting in photo
+- Marks not visible in image
+
+Solution:
+1. Retake photo with better lighting
+2. Use darker pencil
+3. Or manually enter scores
+```
+
+### Problem: Wrong bubbles highlighted
+
+```
+What you see:
+┌─────────────┐
+│ ○ ●5 ○ ●7 ○│ ← Two circles (smudge?)
+│ ○ ○ ○ ●8 ○ │
+│ ○ ○ ○ ○ ●9 │
+└─────────────┘
+
+Score shown: [5] ← Used lowest
+
+Solution:
+Tap [5] and change to correct score
+```
+
+### Problem: Cropping looks wrong
+
+```
+What you see:
+┌─────────────┐
+│ ╔═══════    │ ← Scorecard cut off
+│ ║ NASP      │
+│ ║ [Sco      │
+└─────────────┘
+
+Solution:
+1. Cancel and retake photo
+2. Ensure entire scorecard is visible
+3. Include all edges in frame
+```
+
+## Mobile vs Desktop
+
+### Mobile Experience
+```
+📱 Phone Screen:
+┌─────────────────┐
+│ [Preview]       │ ← Scrollable
+│                 │
+│ [Scores List]   │ ← Tap to edit
+│                 │
+│ Total: 285      │
+│                 │
+│ [CONFIRM]       │
+│ [CANCEL]        │
+└─────────────────┘
+```
+
+### Desktop Experience
+```
+💻 Desktop Screen:
+┌───────────────────────────────────┐
+│ [Preview]        [Scores List]    │ ← Side by side
+│                                   │
+│                  Total: 285       │
+│                                   │
+│                  [CONFIRM]        │
+│                  [CANCEL]         │
+└───────────────────────────────────┘
+```
+
+Both experiences provide the same functionality, just optimized for screen size!

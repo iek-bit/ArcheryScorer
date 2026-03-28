@@ -2232,6 +2232,11 @@ const PRACTICE_TARGET_OPTIONS = [
     <h3>Review Detected Scores</h3>
     <p>Tap any score to edit it. Verify all scores before confirming.</p>
     <canvas id="scoresheetPreviewCanvas" class="scoresheet-preview-canvas"></canvas>
+    <div style="font-size:11px; color:var(--muted); text-align:center; margin:-8px 0 12px; font-family:'DM Mono',monospace">
+      <span style="color:#e8c547">● Yellow circles</span> = detected marks | 
+      <span style="color:#3b82f6">Blue lines</span> = Ends | 
+      <span style="color:#52c278">Green lines</span> = Rows
+    </div>
     <div class="scoresheet-edit-container" id="scoresheetEditContainer"></div>
     <div style="text-align:center; margin:16px 0; font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--accent)">
       Total: <span id="scoresheetTotalScore">0</span>
@@ -3234,7 +3239,10 @@ async function processScoresheetImage(imageDataUrl) {
       // Detect and crop using the registration marks (black dashes on left)
       const croppedCanvas = await detectAndCropScorecard(canvas);
       
-      document.getElementById('scoresheetProcessingStatus').textContent = 'Reading scores...';
+      // Show detected scorecard type
+      const scorecardType = window.scorecardType || 'red';
+      const typeLabel = scorecardType === 'green' ? 'Green' : 'Pink/Red';
+      document.getElementById('scoresheetProcessingStatus').textContent = `Detected ${typeLabel} scorecard. Reading scores...`;
       
       // Detect filled bubbles
       const detectedScores = await detectBubbleScores(croppedCanvas);
@@ -3256,6 +3264,199 @@ async function processScoresheetImage(imageDataUrl) {
 }
 
 async function detectAndCropScorecard(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Step 1: Detect scorecard corners for perspective correction
+  const corners = detectScorecardCorners(imageData);
+  
+  // Step 2: Apply perspective correction if corners found
+  let correctedCanvas = canvas;
+  if (corners) {
+    correctedCanvas = applyPerspectiveCorrection(canvas, corners);
+  }
+  
+  // Step 3: Detect scorecard type (pink/red or green)
+  const scorecardType = detectScorecardType(correctedCanvas);
+  window.scorecardType = scorecardType; // Store for later use
+  
+  // Step 4: Crop to scorecard boundaries
+  const croppedCanvas = cropToScorecardBounds(correctedCanvas, scorecardType);
+  
+  return croppedCanvas;
+}
+
+function detectScorecardCorners(imageData) {
+  const { width, height, data } = imageData;
+  
+  // Find the black registration marks on the left edge
+  const darkThreshold = 80;
+  const leftMarks = [];
+  
+  // Scan left 10% of image for dark vertical lines
+  const scanWidth = Math.floor(width * 0.1);
+  for (let x = 0; x < scanWidth; x++) {
+    let darkPixels = 0;
+    const darkPositions = [];
+    
+    for (let y = 0; y < height; y++) {
+      const idx = (y * width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < darkThreshold) {
+        darkPixels++;
+        darkPositions.push(y);
+      }
+    }
+    
+    if (darkPixels > height * 0.2) { // If >20% of column is dark
+      leftMarks.push({ x, positions: darkPositions });
+    }
+  }
+  
+  if (leftMarks.length === 0) return null;
+  
+  // Find the leftmost consistent dark line
+  const leftEdge = Math.min(...leftMarks.map(m => m.x));
+  const leftMarkPositions = leftMarks.find(m => m.x === leftEdge)?.positions || [];
+  
+  if (leftMarkPositions.length < 2) return null;
+  
+  // Top-left: first dark mark
+  const topY = Math.min(...leftMarkPositions);
+  
+  // Bottom-left: last dark mark
+  const bottomY = Math.max(...leftMarkPositions);
+  
+  // Find right edge by scanning for content
+  let rightEdge = width;
+  for (let x = width - 1; x > width * 0.5; x--) {
+    let contentPixels = 0;
+    for (let y = topY; y < bottomY; y++) {
+      const idx = (y * width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < 240) contentPixels++;
+    }
+    if (contentPixels > (bottomY - topY) * 0.05) {
+      rightEdge = x + Math.floor(width * 0.02);
+      break;
+    }
+  }
+  
+  // Return four corners (clockwise from top-left)
+  return {
+    topLeft: { x: leftEdge, y: topY },
+    topRight: { x: rightEdge, y: topY },
+    bottomRight: { x: rightEdge, y: bottomY },
+    bottomLeft: { x: leftEdge, y: bottomY }
+  };
+}
+
+function applyPerspectiveCorrection(canvas, corners) {
+  // Calculate target dimensions
+  const leftHeight = Math.sqrt(
+    Math.pow(corners.bottomLeft.x - corners.topLeft.x, 2) +
+    Math.pow(corners.bottomLeft.y - corners.topLeft.y, 2)
+  );
+  const rightHeight = Math.sqrt(
+    Math.pow(corners.bottomRight.x - corners.topRight.x, 2) +
+    Math.pow(corners.bottomRight.y - corners.topRight.y, 2)
+  );
+  const topWidth = Math.sqrt(
+    Math.pow(corners.topRight.x - corners.topLeft.x, 2) +
+    Math.pow(corners.topRight.y - corners.topLeft.y, 2)
+  );
+  const bottomWidth = Math.sqrt(
+    Math.pow(corners.bottomRight.x - corners.bottomLeft.x, 2) +
+    Math.pow(corners.bottomRight.y - corners.bottomLeft.y, 2)
+  );
+  
+  const targetWidth = Math.max(topWidth, bottomWidth);
+  const targetHeight = Math.max(leftHeight, rightHeight);
+  
+  // Create output canvas
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = targetWidth;
+  outputCanvas.height = targetHeight;
+  const outputCtx = outputCanvas.getContext('2d');
+  
+  // Simple perspective transform using bilinear interpolation
+  const srcCtx = canvas.getContext('2d');
+  const srcData = srcCtx.getImageData(0, 0, canvas.width, canvas.height);
+  const dstData = outputCtx.createImageData(targetWidth, targetHeight);
+  
+  // Map each destination pixel to source using bilinear interpolation
+  for (let dy = 0; dy < targetHeight; dy++) {
+    for (let dx = 0; dx < targetWidth; dx++) {
+      // Normalized coordinates (0 to 1)
+      const u = dx / targetWidth;
+      const v = dy / targetHeight;
+      
+      // Bilinear interpolation of corner positions
+      const sx = 
+        corners.topLeft.x * (1 - u) * (1 - v) +
+        corners.topRight.x * u * (1 - v) +
+        corners.bottomLeft.x * (1 - u) * v +
+        corners.bottomRight.x * u * v;
+      
+      const sy = 
+        corners.topLeft.y * (1 - u) * (1 - v) +
+        corners.topRight.y * u * (1 - v) +
+        corners.bottomLeft.y * (1 - u) * v +
+        corners.bottomRight.y * u * v;
+      
+      // Sample source pixel (with bounds checking)
+      const srcX = Math.floor(sx);
+      const srcY = Math.floor(sy);
+      
+      if (srcX >= 0 && srcX < canvas.width && srcY >= 0 && srcY < canvas.height) {
+        const srcIdx = (srcY * canvas.width + srcX) * 4;
+        const dstIdx = (dy * targetWidth + dx) * 4;
+        
+        dstData.data[dstIdx] = srcData.data[srcIdx];
+        dstData.data[dstIdx + 1] = srcData.data[srcIdx + 1];
+        dstData.data[dstIdx + 2] = srcData.data[srcIdx + 2];
+        dstData.data[dstIdx + 3] = srcData.data[srcIdx + 3];
+      }
+    }
+  }
+  
+  outputCtx.putImageData(dstData, 0, 0);
+  return outputCanvas;
+}
+
+function detectScorecardType(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Sample the colored bar area (left side, should be red/pink or green)
+  let redCount = 0, greenCount = 0;
+  const sampleWidth = Math.floor(canvas.width * 0.15);
+  const sampleHeight = Math.floor(canvas.height * 0.3);
+  
+  for (let y = 0; y < sampleHeight; y++) {
+    for (let x = 0; x < sampleWidth; x++) {
+      const idx = (y * canvas.width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      
+      // Check if pixel is reddish (pink/red scorecard)
+      if (r > 150 && r > g + 30 && r > b + 30) {
+        redCount++;
+      }
+      // Check if pixel is greenish (green scorecard)
+      if (g > 150 && g > r + 30 && g > b + 30) {
+        greenCount++;
+      }
+    }
+  }
+  
+  return greenCount > redCount ? 'green' : 'red';
+}
+
+function cropToScorecardBounds(canvas, scorecardType) {
   const ctx = canvas.getContext('2d');
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
@@ -3348,29 +3549,86 @@ async function detectBubbleScores(canvas) {
   const data = imageData.data;
   
   const scores = []; // Will contain 6 ends, each with 5 arrows
+  const debugInfo = []; // Store detection info for visualization
   
-  // Find the blue vertical bars that mark each End
-  const blueThreshold = { r: [50, 150], g: [100, 200], b: [180, 255] };
+  // Detect colored vertical bars that mark each End (red/pink or green depending on scorecard type)
+  const scorecardType = window.scorecardType || 'red';
+  let colorThreshold;
+  
+  if (scorecardType === 'green') {
+    // Green scorecard: look for green bars
+    colorThreshold = { r: [50, 180], g: [120, 255], b: [50, 180] };
+  } else {
+    // Red/pink scorecard: look for red/pink bars
+    colorThreshold = { r: [150, 255], g: [50, 200], b: [100, 220] };
+  }
+  
   const endMarkers = [];
   
-  // Scan for blue vertical bars
+  // Scan for colored vertical bars (red/pink or green)
   for (let x = 0; x < Math.floor(canvas.width * 0.2); x++) {
-    let bluePixels = 0;
+    let coloredPixels = 0;
     for (let y = 0; y < canvas.height; y++) {
       const idx = (y * canvas.width + x) * 4;
       const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-      if (r >= blueThreshold.r[0] && r <= blueThreshold.r[1] &&
-          g >= blueThreshold.g[0] && g <= blueThreshold.g[1] &&
-          b >= blueThreshold.b[0] && b <= blueThreshold.b[1]) {
-        bluePixels++;
+      if (r >= colorThreshold.r[0] && r <= colorThreshold.r[1] &&
+          g >= colorThreshold.g[0] && g <= colorThreshold.g[1] &&
+          b >= colorThreshold.b[0] && b <= colorThreshold.b[1]) {
+        coloredPixels++;
       }
     }
-    if (bluePixels > canvas.height * 0.05) {
+    if (coloredPixels > canvas.height * 0.05) {
       endMarkers.push(x);
     }
   }
   
-  // Group consecutive blue columns into End markers
+  // Also scan for black horizontal bars that separate Ends
+  const blackHorizontalBars = [];
+  const darkThreshold = 60; // Very dark pixels
+  
+  for (let y = 0; y < canvas.height; y++) {
+    let darkPixels = 0;
+    let totalPixels = 0;
+    
+    // Scan across the middle portion of the scorecard
+    const scanStart = Math.floor(canvas.width * 0.15);
+    const scanEnd = Math.floor(canvas.width * 0.85);
+    
+    for (let x = scanStart; x < scanEnd; x++) {
+      const idx = (y * canvas.width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      totalPixels++;
+      if (brightness < darkThreshold) {
+        darkPixels++;
+      }
+    }
+    
+    // If >40% of the row is very dark, it's likely a separator bar
+    if (darkPixels / totalPixels > 0.4) {
+      blackHorizontalBars.push(y);
+    }
+  }
+  
+  // Group consecutive dark rows into bars
+  const horizontalBarPositions = [];
+  if (blackHorizontalBars.length > 0) {
+    let currentBar = [blackHorizontalBars[0]];
+    for (let i = 1; i < blackHorizontalBars.length; i++) {
+      if (blackHorizontalBars[i] - blackHorizontalBars[i-1] < 3) {
+        currentBar.push(blackHorizontalBars[i]);
+      } else {
+        if (currentBar.length > 2) { // Must be at least 3 pixels tall
+          horizontalBarPositions.push(Math.floor(currentBar.reduce((a,b) => a+b) / currentBar.length));
+        }
+        currentBar = [blackHorizontalBars[i]];
+      }
+    }
+    if (currentBar.length > 2) {
+      horizontalBarPositions.push(Math.floor(currentBar.reduce((a,b) => a+b) / currentBar.length));
+    }
+  }
+  
+  // Group consecutive colored columns into End markers
   const endSections = [];
   if (endMarkers.length > 0) {
     let currentSection = [endMarkers[0]];
@@ -3387,15 +3645,30 @@ async function detectBubbleScores(canvas) {
     }
   }
   
-  // If we found End markers, use them to divide the scorecard
-  // Otherwise, divide evenly into 6 sections
+  // Determine End boundaries using both horizontal bars and vertical markers
+  let endBoundaries = [];
+  
+  if (horizontalBarPositions.length >= 5) {
+    // Use horizontal bars as primary End separators
+    // We expect 5 bars to separate 6 Ends
+    endBoundaries = [0, ...horizontalBarPositions.slice(0, 5), canvas.height];
+  } else {
+    // Fall back to even division
+    const numEnds = 6;
+    const endHeight = canvas.height / numEnds;
+    for (let i = 0; i <= numEnds; i++) {
+      endBoundaries.push(i * endHeight);
+    }
+  }
+  
+  // Process each End
   const numEnds = 6;
-  const endHeight = canvas.height / numEnds;
   
   for (let endIdx = 0; endIdx < numEnds; endIdx++) {
     const endScores = [];
-    const endTop = endIdx * endHeight;
-    const endBottom = (endIdx + 1) * endHeight;
+    const endDebug = [];
+    const endTop = endBoundaries[endIdx];
+    const endBottom = endBoundaries[endIdx + 1];
     const rowHeight = (endBottom - endTop) / 5;
     
     for (let rowIdx = 0; rowIdx < 5; rowIdx++) {
@@ -3410,41 +3683,119 @@ async function detectBubbleScores(canvas) {
       const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
       
       const filledBubbles = [];
+      const bubbleDebug = [];
+      
       for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
         const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
         const bubbleY = rowMiddle;
         
-        // Check if this bubble is filled (darker than background)
-        const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.15);
-        let darkPixels = 0;
-        let totalPixels = 0;
+        // Enhanced detection: Check multiple areas of the bubble
+        // 1. Center area (for complete fills)
+        // 2. Ring area (for partial fills)
+        // 3. Use adaptive thresholding based on local contrast
+        
+        const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.2);
+        const innerRadius = Math.floor(sampleRadius * 0.5);
+        
+        // Sample the background (area around bubble) to get baseline brightness
+        let bgBrightness = 0;
+        let bgSamples = 0;
+        const bgRadius = sampleRadius * 1.8;
+        
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+          const bgX = Math.floor(bubbleX + Math.cos(angle) * bgRadius);
+          const bgY = Math.floor(bubbleY + Math.sin(angle) * bgRadius);
+          if (bgX >= 0 && bgX < canvas.width && bgY >= 0 && bgY < canvas.height) {
+            const idx = (bgY * canvas.width + bgX) * 4;
+            bgBrightness += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+            bgSamples++;
+          }
+        }
+        bgBrightness = bgSamples > 0 ? bgBrightness / bgSamples : 240;
+        
+        // Sample the bubble area with multiple strategies
+        let centerDarkPixels = 0, centerTotal = 0;
+        let ringDarkPixels = 0, ringTotal = 0;
+        let totalBrightness = 0;
         
         for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
           for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > sampleRadius) continue;
+            
             const checkX = Math.floor(bubbleX + dx);
             const checkY = Math.floor(bubbleY + dy);
             if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
               const idx = (checkY * canvas.width + checkX) * 4;
               const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              totalPixels++;
-              if (brightness < 180) darkPixels++;
+              totalBrightness += brightness;
+              
+              // Adaptive threshold: darker than background by at least 30 units
+              const isDark = brightness < (bgBrightness - 30);
+              
+              if (distance <= innerRadius) {
+                // Center area
+                centerTotal++;
+                if (isDark) centerDarkPixels++;
+              } else {
+                // Ring area (catches partial fills)
+                ringTotal++;
+                if (isDark) ringDarkPixels++;
+              }
             }
           }
         }
         
-        const fillRatio = darkPixels / totalPixels;
-        if (fillRatio > 0.3) { // If >30% of bubble area is dark, consider it filled
+        const centerFillRatio = centerTotal > 0 ? centerDarkPixels / centerTotal : 0;
+        const ringFillRatio = ringTotal > 0 ? ringDarkPixels / ringTotal : 0;
+        const avgBrightness = (centerTotal + ringTotal) > 0 ? totalBrightness / (centerTotal + ringTotal) : 240;
+        
+        // A bubble is filled if:
+        // 1. Center has significant darkness (>25%) OR
+        // 2. Ring has moderate darkness (>20%) AND average brightness is notably darker than background
+        // 3. Overall contrast is significant
+        const contrastRatio = (bgBrightness - avgBrightness) / bgBrightness;
+        
+        const isFilled = (
+          centerFillRatio > 0.25 || 
+          (ringFillRatio > 0.20 && contrastRatio > 0.15) ||
+          (centerFillRatio > 0.15 && ringFillRatio > 0.15)
+        );
+        
+        if (isFilled) {
           filledBubbles.push(bubbleIdx);
         }
+        
+        // Store debug info
+        bubbleDebug.push({
+          x: bubbleX,
+          y: bubbleY,
+          radius: sampleRadius,
+          filled: isFilled,
+          centerFill: centerFillRatio,
+          ringFill: ringFillRatio,
+          contrast: contrastRatio,
+          score: bubbleIdx
+        });
       }
       
       // If multiple bubbles detected, use the lower score
       const score = filledBubbles.length > 0 ? Math.min(...filledBubbles) : 0;
       endScores.push(score);
+      endDebug.push({
+        rowY: rowMiddle,
+        bubbles: bubbleDebug,
+        detectedScore: score,
+        allFilled: filledBubbles
+      });
     }
     
     scores.push(endScores);
+    debugInfo.push(endDebug);
   }
+  
+  // Store debug info globally for visualization
+  window.scoresheetDebugInfo = debugInfo;
   
   return scores;
 }
@@ -3452,14 +3803,113 @@ async function detectBubbleScores(canvas) {
 function showScoresheetPreview(canvas, detectedScores) {
   closeOverlay('scoresheetProcessingOverlay');
   
-  // Show preview image
+  // Create a debug visualization canvas
+  const debugCanvas = document.createElement('canvas');
+  debugCanvas.width = canvas.width;
+  debugCanvas.height = canvas.height;
+  const debugCtx = debugCanvas.getContext('2d');
+  
+  // Draw the cropped image
+  debugCtx.drawImage(canvas, 0, 0);
+  
+  // Draw debug overlays showing detection areas
+  const debugInfo = window.scoresheetDebugInfo;
+  if (debugInfo) {
+    debugCtx.strokeStyle = 'rgba(232, 197, 71, 0.8)'; // Yellow for detected
+    debugCtx.fillStyle = 'rgba(232, 197, 71, 0.3)';
+    debugCtx.lineWidth = 2;
+    
+    debugInfo.forEach((endDebug, endIdx) => {
+      endDebug.forEach((rowDebug, rowIdx) => {
+        rowDebug.bubbles.forEach(bubble => {
+          if (bubble.filled) {
+            // Draw circle around detected bubble
+            debugCtx.beginPath();
+            debugCtx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+            debugCtx.fill();
+            debugCtx.stroke();
+            
+            // Draw score number
+            debugCtx.fillStyle = '#000';
+            debugCtx.font = `bold ${bubble.radius}px sans-serif`;
+            debugCtx.textAlign = 'center';
+            debugCtx.textBaseline = 'middle';
+            debugCtx.fillText(bubble.score, bubble.x, bubble.y);
+            debugCtx.fillStyle = 'rgba(232, 197, 71, 0.3)';
+          }
+        });
+      });
+    });
+    
+    // Draw End boundaries and row dividers
+    debugCtx.strokeStyle = 'rgba(82, 194, 120, 0.5)'; // Green for rows
+    debugCtx.lineWidth = 1;
+    
+    // Get the End boundaries from debug info
+    const numEnds = debugInfo.length;
+    
+    for (let endIdx = 0; endIdx < numEnds; endIdx++) {
+      const endDebug = debugInfo[endIdx];
+      if (!endDebug || endDebug.length === 0) continue;
+      
+      // Calculate End boundaries from row positions
+      const firstRow = endDebug[0];
+      const lastRow = endDebug[endDebug.length - 1];
+      
+      if (!firstRow || !lastRow) continue;
+      
+      const endTop = firstRow.rowY - (endDebug.length > 1 ? (endDebug[1].rowY - firstRow.rowY) / 2 : 20);
+      const endBottom = lastRow.rowY + (endDebug.length > 1 ? (lastRow.rowY - endDebug[endDebug.length - 2].rowY) / 2 : 20);
+      
+      // Draw End boundary (thick blue line)
+      debugCtx.strokeStyle = 'rgba(59, 130, 246, 0.7)'; // Blue for End boundaries
+      debugCtx.lineWidth = 3;
+      debugCtx.beginPath();
+      debugCtx.moveTo(0, endTop);
+      debugCtx.lineTo(canvas.width, endTop);
+      debugCtx.stroke();
+      
+      // Draw row dividers (thin green lines)
+      debugCtx.strokeStyle = 'rgba(82, 194, 120, 0.4)';
+      debugCtx.lineWidth = 1;
+      for (let rowIdx = 0; rowIdx < endDebug.length; rowIdx++) {
+        const rowY = endDebug[rowIdx].rowY;
+        
+        // Draw line above each row (except first)
+        if (rowIdx > 0) {
+          const prevRowY = endDebug[rowIdx - 1].rowY;
+          const dividerY = (rowY + prevRowY) / 2;
+          debugCtx.beginPath();
+          debugCtx.moveTo(0, dividerY);
+          debugCtx.lineTo(canvas.width, dividerY);
+          debugCtx.stroke();
+        }
+      }
+    }
+    
+    // Draw final End boundary at bottom
+    if (numEnds > 0 && debugInfo[numEnds - 1].length > 0) {
+      const lastEnd = debugInfo[numEnds - 1];
+      const lastRow = lastEnd[lastEnd.length - 1];
+      const endBottom = lastRow.rowY + (lastEnd.length > 1 ? (lastRow.rowY - lastEnd[lastEnd.length - 2].rowY) / 2 : 20);
+      
+      debugCtx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+      debugCtx.lineWidth = 3;
+      debugCtx.beginPath();
+      debugCtx.moveTo(0, endBottom);
+      debugCtx.lineTo(canvas.width, endBottom);
+      debugCtx.stroke();
+    }
+  }
+  
+  // Show preview image with debug overlay
   const previewCanvas = document.getElementById('scoresheetPreviewCanvas');
   const previewCtx = previewCanvas.getContext('2d');
   const maxWidth = 400;
-  const scale = Math.min(1, maxWidth / canvas.width);
-  previewCanvas.width = canvas.width * scale;
-  previewCanvas.height = canvas.height * scale;
-  previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+  const scale = Math.min(1, maxWidth / debugCanvas.width);
+  previewCanvas.width = debugCanvas.width * scale;
+  previewCanvas.height = debugCanvas.height * scale;
+  previewCtx.drawImage(debugCanvas, 0, 0, previewCanvas.width, previewCanvas.height);
   
   // Store detected scores globally for editing
   window.scoresheetDetectedScores = detectedScores;
