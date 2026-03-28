@@ -211,15 +211,18 @@
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
+      // Use ONLY black registration marks on the sides to crop
       let leftEdge = 0;
       let rightEdge = canvas.width;
       let topEdge = 0;
       let bottomEdge = canvas.height;
       
-      const darkThreshold = 80;
-      const leftScanWidth = Math.floor(canvas.width * 0.15);
+      const darkThreshold = 80; // RGB values below this are considered black marks
       
-      let darkColumns = [];
+      // Find LEFT edge: Look for the leftmost black vertical marks (registration marks)
+      const leftScanWidth = Math.floor(canvas.width * 0.2);
+      let leftDarkColumns = [];
+      
       for (let x = 0; x < leftScanWidth; x++) {
         let darkPixels = 0;
         for (let y = 0; y < canvas.height; y++) {
@@ -227,53 +230,77 @@
           const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
           if (brightness < darkThreshold) darkPixels++;
         }
-        if (darkPixels > canvas.height * 0.3) {
-          darkColumns.push(x);
+        // Black registration marks should be >20% of column height
+        if (darkPixels > canvas.height * 0.2) {
+          leftDarkColumns.push(x);
         }
       }
       
-      if (darkColumns.length > 0) {
-        leftEdge = Math.min(...darkColumns);
+      if (leftDarkColumns.length > 0) {
+        // Find the leftmost black mark
+        leftEdge = Math.min(...leftDarkColumns);
       }
       
-      const rightScanStart = Math.floor(canvas.width * 0.7);
+      // Find RIGHT edge: Look for black marks on the right side
+      const rightScanStart = Math.floor(canvas.width * 0.8);
+      let rightDarkColumns = [];
+      
       for (let x = canvas.width - 1; x > rightScanStart; x--) {
         let darkPixels = 0;
         for (let y = 0; y < canvas.height; y++) {
           const idx = (y * canvas.width + x) * 4;
           const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-          if (brightness < 200) darkPixels++;
+          if (brightness < darkThreshold) darkPixels++;
         }
-        if (darkPixels > canvas.height * 0.1) {
-          rightEdge = x + Math.floor(canvas.width * 0.05);
-          break;
+        if (darkPixels > canvas.height * 0.2) {
+          rightDarkColumns.push(x);
         }
       }
       
-      for (let y = 0; y < canvas.height; y++) {
+      if (rightDarkColumns.length > 0) {
+        // Find the rightmost black mark and add small margin
+        rightEdge = Math.max(...rightDarkColumns) + 5;
+      }
+      
+      // Find TOP edge: Look for black horizontal marks at the top
+      const topScanHeight = Math.floor(canvas.height * 0.15);
+      let topDarkRows = [];
+      
+      for (let y = 0; y < topScanHeight; y++) {
         let darkPixels = 0;
         for (let x = leftEdge; x < rightEdge; x++) {
           const idx = (y * canvas.width + x) * 4;
           const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-          if (brightness < 200) darkPixels++;
+          if (brightness < darkThreshold) darkPixels++;
         }
-        if (darkPixels > (rightEdge - leftEdge) * 0.1) {
-          topEdge = Math.max(0, y - 10);
-          break;
+        // Black marks should be >15% of row width
+        if (darkPixels > (rightEdge - leftEdge) * 0.15) {
+          topDarkRows.push(y);
         }
       }
       
-      for (let y = canvas.height - 1; y > 0; y--) {
+      if (topDarkRows.length > 0) {
+        topEdge = Math.min(...topDarkRows);
+      }
+      
+      // Find BOTTOM edge: Look for black horizontal marks at the bottom
+      const bottomScanStart = Math.floor(canvas.height * 0.85);
+      let bottomDarkRows = [];
+      
+      for (let y = canvas.height - 1; y > bottomScanStart; y--) {
         let darkPixels = 0;
         for (let x = leftEdge; x < rightEdge; x++) {
           const idx = (y * canvas.width + x) * 4;
           const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-          if (brightness < 200) darkPixels++;
+          if (brightness < darkThreshold) darkPixels++;
         }
-        if (darkPixels > (rightEdge - leftEdge) * 0.1) {
-          bottomEdge = Math.min(canvas.height, y + 10);
-          break;
+        if (darkPixels > (rightEdge - leftEdge) * 0.15) {
+          bottomDarkRows.push(y);
         }
+      }
+      
+      if (bottomDarkRows.length > 0) {
+        bottomEdge = Math.max(...bottomDarkRows) + 5;
       }
       
       const croppedCanvas = document.createElement('canvas');
@@ -288,6 +315,7 @@
     }
 
     async function detectBubbleScores(canvas) {
+      // Scantron-style optical mark recognition
       const ctx = canvas.getContext('2d');
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
@@ -296,6 +324,15 @@
       const debugInfo = [];
       const numEnds = 6;
       const endHeight = canvas.height / numEnds;
+      
+      // SCANTRON DETECTION: Find the actual bubble grid
+      const bubbleAreaLeft = Math.floor(canvas.width * 0.20);
+      const bubbleAreaRight = Math.floor(canvas.width * 0.95);
+      const bubbleAreaWidth = bubbleAreaRight - bubbleAreaLeft;
+      
+      const numBubbles = 11;
+      const bubbleSpacing = bubbleAreaWidth / numBubbles;
+      const estimatedBubbleRadius = Math.floor(bubbleSpacing * 0.25);
       
       for (let endIdx = 0; endIdx < numEnds; endIdx++) {
         const endScores = [];
@@ -309,89 +346,26 @@
           const rowBottom = endTop + (rowIdx + 1) * rowHeight;
           const rowMiddle = (rowTop + rowBottom) / 2;
           
-          const bubbleStartX = Math.floor(canvas.width * 0.25);
-          const bubbleEndX = Math.floor(canvas.width * 0.95);
-          const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
-          
           const filledBubbles = [];
           const bubbleDebug = [];
           
           for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
-            const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
+            const bubbleX = bubbleAreaLeft + (bubbleIdx + 0.5) * bubbleSpacing;
             const bubbleY = rowMiddle;
             
-            const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.2);
-            const innerRadius = Math.floor(sampleRadius * 0.5);
+            const result = detectScantronMark(data, canvas.width, canvas.height, bubbleX, bubbleY, estimatedBubbleRadius);
             
-            // Sample background
-            let bgBrightness = 0;
-            let bgSamples = 0;
-            const bgRadius = sampleRadius * 1.8;
-            
-            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-              const bgX = Math.floor(bubbleX + Math.cos(angle) * bgRadius);
-              const bgY = Math.floor(bubbleY + Math.sin(angle) * bgRadius);
-              if (bgX >= 0 && bgX < canvas.width && bgY >= 0 && bgY < canvas.height) {
-                const idx = (bgY * canvas.width + bgX) * 4;
-                bgBrightness += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-                bgSamples++;
-              }
-            }
-            bgBrightness = bgSamples > 0 ? bgBrightness / bgSamples : 240;
-            
-            // Sample bubble area
-            let centerDarkPixels = 0, centerTotal = 0;
-            let ringDarkPixels = 0, ringTotal = 0;
-            let totalBrightness = 0;
-            
-            for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
-              for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > sampleRadius) continue;
-                
-                const checkX = Math.floor(bubbleX + dx);
-                const checkY = Math.floor(bubbleY + dy);
-                if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
-                  const idx = (checkY * canvas.width + checkX) * 4;
-                  const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-                  totalBrightness += brightness;
-                  
-                  const isDark = brightness < (bgBrightness - 30);
-                  
-                  if (distance <= innerRadius) {
-                    centerTotal++;
-                    if (isDark) centerDarkPixels++;
-                  } else {
-                    ringTotal++;
-                    if (isDark) ringDarkPixels++;
-                  }
-                }
-              }
-            }
-            
-            const centerFillRatio = centerTotal > 0 ? centerDarkPixels / centerTotal : 0;
-            const ringFillRatio = ringTotal > 0 ? ringDarkPixels / ringTotal : 0;
-            const avgBrightness = (centerTotal + ringTotal) > 0 ? totalBrightness / (centerTotal + ringTotal) : 240;
-            const contrastRatio = (bgBrightness - avgBrightness) / bgBrightness;
-            
-            const isFilled = (
-              centerFillRatio > 0.25 || 
-              (ringFillRatio > 0.20 && contrastRatio > 0.15) ||
-              (centerFillRatio > 0.15 && ringFillRatio > 0.15)
-            );
-            
-            if (isFilled) {
+            if (result.isFilled) {
               filledBubbles.push(bubbleIdx);
             }
             
             bubbleDebug.push({
               x: bubbleX,
               y: bubbleY,
-              radius: sampleRadius,
-              filled: isFilled,
-              centerFill: centerFillRatio,
-              ringFill: ringFillRatio,
-              contrast: contrastRatio,
+              radius: estimatedBubbleRadius,
+              filled: result.isFilled,
+              darkRatio: result.darkRatio,
+              avgBrightness: result.avgBrightness,
               score: bubbleIdx
             });
           }
@@ -412,6 +386,57 @@
       
       window.scoresheetDebugInfo = debugInfo;
       return scores;
+    }
+    
+    function detectScantronMark(data, width, height, centerX, centerY, radius) {
+      let darkPixelCount = 0;
+      let totalPixelCount = 0;
+      let totalBrightness = 0;
+      let minBrightness = 255;
+      
+      const sampleRadius = Math.floor(radius * 0.8);
+      
+      for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+        for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance > sampleRadius) continue;
+          
+          const x = Math.floor(centerX + dx);
+          const y = Math.floor(centerY + dy);
+          
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const brightness = (r + g + b) / 3;
+            
+            totalPixelCount++;
+            totalBrightness += brightness;
+            minBrightness = Math.min(minBrightness, brightness);
+            
+            if (brightness < 100) {
+              darkPixelCount++;
+            }
+          }
+        }
+      }
+      
+      const avgBrightness = totalPixelCount > 0 ? totalBrightness / totalPixelCount : 255;
+      const darkRatio = totalPixelCount > 0 ? darkPixelCount / totalPixelCount : 0;
+      
+      const isFilled = (
+        darkRatio > 0.25 ||
+        (darkRatio > 0.15 && avgBrightness < 120) ||
+        (darkRatio > 0.10 && minBrightness < 60)
+      );
+      
+      return {
+        isFilled,
+        darkRatio,
+        avgBrightness,
+        minBrightness
+      };
     }
 
     function displayScores(scores) {

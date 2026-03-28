@@ -3430,8 +3430,8 @@ function detectScorecardType(canvas) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   
-  // Sample the colored bar area (left side, should be red/pink or green)
-  let redCount = 0, greenCount = 0;
+  // Sample the colored bar area (left side, should be red/pink, green, or blue)
+  let redCount = 0, greenCount = 0, blueCount = 0;
   const sampleWidth = Math.floor(canvas.width * 0.15);
   const sampleHeight = Math.floor(canvas.height * 0.3);
   
@@ -3450,10 +3450,21 @@ function detectScorecardType(canvas) {
       if (g > 150 && g > r + 30 && g > b + 30) {
         greenCount++;
       }
+      // Check if pixel is blueish (blue scorecard)
+      if (b > 150 && b > r + 30 && b > g + 30) {
+        blueCount++;
+      }
     }
   }
   
-  return greenCount > redCount ? 'green' : 'red';
+  // Return the most common color
+  if (blueCount > redCount && blueCount > greenCount) {
+    return 'blue';
+  } else if (greenCount > redCount) {
+    return 'green';
+  } else {
+    return 'red';
+  }
 }
 
 function cropToScorecardBounds(canvas, scorecardType) {
@@ -3461,17 +3472,18 @@ function cropToScorecardBounds(canvas, scorecardType) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   
-  // Find the leftmost black vertical marks (registration marks)
+  // Use ONLY black registration marks on the sides to crop
   let leftEdge = 0;
   let rightEdge = canvas.width;
   let topEdge = 0;
   let bottomEdge = canvas.height;
   
-  // Scan for dark vertical lines on the left side (registration marks)
-  const darkThreshold = 80; // RGB values below this are considered dark
-  const leftScanWidth = Math.floor(canvas.width * 0.15); // Scan left 15% of image
+  const darkThreshold = 80; // RGB values below this are considered black marks
   
-  let darkColumns = [];
+  // Find LEFT edge: Look for the leftmost black vertical marks (registration marks)
+  const leftScanWidth = Math.floor(canvas.width * 0.2);
+  let leftDarkColumns = [];
+  
   for (let x = 0; x < leftScanWidth; x++) {
     let darkPixels = 0;
     for (let y = 0; y < canvas.height; y++) {
@@ -3479,55 +3491,77 @@ function cropToScorecardBounds(canvas, scorecardType) {
       const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
       if (brightness < darkThreshold) darkPixels++;
     }
-    if (darkPixels > canvas.height * 0.3) { // If >30% of column is dark
-      darkColumns.push(x);
+    // Black registration marks should be >20% of column height
+    if (darkPixels > canvas.height * 0.2) {
+      leftDarkColumns.push(x);
     }
   }
   
-  if (darkColumns.length > 0) {
-    leftEdge = Math.min(...darkColumns);
+  if (leftDarkColumns.length > 0) {
+    // Find the leftmost black mark
+    leftEdge = Math.min(...leftDarkColumns);
   }
   
-  // Find right edge by looking for the end of content
-  const rightScanStart = Math.floor(canvas.width * 0.7);
+  // Find RIGHT edge: Look for black marks on the right side
+  const rightScanStart = Math.floor(canvas.width * 0.8);
+  let rightDarkColumns = [];
+  
   for (let x = canvas.width - 1; x > rightScanStart; x--) {
     let darkPixels = 0;
     for (let y = 0; y < canvas.height; y++) {
       const idx = (y * canvas.width + x) * 4;
       const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-      if (brightness < 200) darkPixels++;
+      if (brightness < darkThreshold) darkPixels++;
     }
-    if (darkPixels > canvas.height * 0.1) {
-      rightEdge = x + Math.floor(canvas.width * 0.05);
-      break;
+    if (darkPixels > canvas.height * 0.2) {
+      rightDarkColumns.push(x);
     }
   }
   
-  // Find top and bottom edges
-  for (let y = 0; y < canvas.height; y++) {
+  if (rightDarkColumns.length > 0) {
+    // Find the rightmost black mark and add small margin
+    rightEdge = Math.max(...rightDarkColumns) + 5;
+  }
+  
+  // Find TOP edge: Look for black horizontal marks at the top
+  const topScanHeight = Math.floor(canvas.height * 0.15);
+  let topDarkRows = [];
+  
+  for (let y = 0; y < topScanHeight; y++) {
     let darkPixels = 0;
     for (let x = leftEdge; x < rightEdge; x++) {
       const idx = (y * canvas.width + x) * 4;
       const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-      if (brightness < 200) darkPixels++;
+      if (brightness < darkThreshold) darkPixels++;
     }
-    if (darkPixels > (rightEdge - leftEdge) * 0.1) {
-      topEdge = Math.max(0, y - 10);
-      break;
+    // Black marks should be >15% of row width
+    if (darkPixels > (rightEdge - leftEdge) * 0.15) {
+      topDarkRows.push(y);
     }
   }
   
-  for (let y = canvas.height - 1; y > 0; y--) {
+  if (topDarkRows.length > 0) {
+    topEdge = Math.min(...topDarkRows);
+  }
+  
+  // Find BOTTOM edge: Look for black horizontal marks at the bottom
+  const bottomScanStart = Math.floor(canvas.height * 0.85);
+  let bottomDarkRows = [];
+  
+  for (let y = canvas.height - 1; y > bottomScanStart; y--) {
     let darkPixels = 0;
     for (let x = leftEdge; x < rightEdge; x++) {
       const idx = (y * canvas.width + x) * 4;
       const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-      if (brightness < 200) darkPixels++;
+      if (brightness < darkThreshold) darkPixels++;
     }
-    if (darkPixels > (rightEdge - leftEdge) * 0.1) {
-      bottomEdge = Math.min(canvas.height, y + 10);
-      break;
+    if (darkPixels > (rightEdge - leftEdge) * 0.15) {
+      bottomDarkRows.push(y);
     }
+  }
+  
+  if (bottomDarkRows.length > 0) {
+    bottomEdge = Math.max(...bottomDarkRows) + 5;
   }
   
   // Create cropped canvas
@@ -3543,29 +3577,29 @@ function cropToScorecardBounds(canvas, scorecardType) {
 }
 
 async function detectBubbleScores(canvas) {
-  // The scorecard has 6 Ends, each with 5 rows, each row has 11 bubbles (0-10)
+  // Scantron-style optical mark recognition
   const ctx = canvas.getContext('2d');
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   
-  const scores = []; // Will contain 6 ends, each with 5 arrows
-  const debugInfo = []; // Store detection info for visualization
+  const scores = [];
+  const debugInfo = [];
   
-  // Detect colored vertical bars that mark each End (red/pink or green depending on scorecard type)
+  // Detect scorecard type for colored bars
   const scorecardType = window.scorecardType || 'red';
   let colorThreshold;
   
   if (scorecardType === 'green') {
-    // Green scorecard: look for green bars
     colorThreshold = { r: [50, 180], g: [120, 255], b: [50, 180] };
+  } else if (scorecardType === 'blue') {
+    colorThreshold = { r: [50, 180], g: [100, 220], b: [150, 255] };
   } else {
-    // Red/pink scorecard: look for red/pink bars
     colorThreshold = { r: [150, 255], g: [50, 200], b: [100, 220] };
   }
   
   const endMarkers = [];
   
-  // Scan for colored vertical bars (red/pink or green)
+  // Scan for colored vertical bars
   for (let x = 0; x < Math.floor(canvas.width * 0.2); x++) {
     let coloredPixels = 0;
     for (let y = 0; y < canvas.height; y++) {
@@ -3582,15 +3616,14 @@ async function detectBubbleScores(canvas) {
     }
   }
   
-  // Also scan for black horizontal bars that separate Ends
+  // Scan for black horizontal bars (End separators)
   const blackHorizontalBars = [];
-  const darkThreshold = 60; // Very dark pixels
+  const darkThreshold = 60;
   
   for (let y = 0; y < canvas.height; y++) {
     let darkPixels = 0;
     let totalPixels = 0;
     
-    // Scan across the middle portion of the scorecard
     const scanStart = Math.floor(canvas.width * 0.15);
     const scanEnd = Math.floor(canvas.width * 0.85);
     
@@ -3603,7 +3636,6 @@ async function detectBubbleScores(canvas) {
       }
     }
     
-    // If >40% of the row is very dark, it's likely a separator bar
     if (darkPixels / totalPixels > 0.4) {
       blackHorizontalBars.push(y);
     }
@@ -3617,7 +3649,7 @@ async function detectBubbleScores(canvas) {
       if (blackHorizontalBars[i] - blackHorizontalBars[i-1] < 3) {
         currentBar.push(blackHorizontalBars[i]);
       } else {
-        if (currentBar.length > 2) { // Must be at least 3 pixels tall
+        if (currentBar.length > 2) {
           horizontalBarPositions.push(Math.floor(currentBar.reduce((a,b) => a+b) / currentBar.length));
         }
         currentBar = [blackHorizontalBars[i]];
@@ -3628,38 +3660,33 @@ async function detectBubbleScores(canvas) {
     }
   }
   
-  // Group consecutive colored columns into End markers
-  const endSections = [];
-  if (endMarkers.length > 0) {
-    let currentSection = [endMarkers[0]];
-    for (let i = 1; i < endMarkers.length; i++) {
-      if (endMarkers[i] - endMarkers[i-1] < 5) {
-        currentSection.push(endMarkers[i]);
-      } else {
-        endSections.push(Math.floor(currentSection.reduce((a,b) => a+b) / currentSection.length));
-        currentSection = [endMarkers[i]];
-      }
-    }
-    if (currentSection.length > 0) {
-      endSections.push(Math.floor(currentSection.reduce((a,b) => a+b) / currentSection.length));
-    }
-  }
-  
-  // Determine End boundaries using both horizontal bars and vertical markers
+  // Determine End boundaries
   let endBoundaries = [];
   
   if (horizontalBarPositions.length >= 5) {
-    // Use horizontal bars as primary End separators
-    // We expect 5 bars to separate 6 Ends
     endBoundaries = [0, ...horizontalBarPositions.slice(0, 5), canvas.height];
   } else {
-    // Fall back to even division
     const numEnds = 6;
     const endHeight = canvas.height / numEnds;
     for (let i = 0; i <= numEnds; i++) {
       endBoundaries.push(i * endHeight);
     }
   }
+  
+  // SCANTRON DETECTION: Find the actual bubble grid
+  // Step 1: Detect the bubble area boundaries
+  const bubbleAreaLeft = Math.floor(canvas.width * 0.20);  // After colored bars
+  const bubbleAreaRight = Math.floor(canvas.width * 0.95); // Before right edge
+  const bubbleAreaWidth = bubbleAreaRight - bubbleAreaLeft;
+  
+  // Step 2: Calculate precise bubble positions
+  // Scantron sheets have 11 bubbles (0-10) with equal spacing
+  const numBubbles = 11;
+  const bubbleSpacing = bubbleAreaWidth / numBubbles;
+  
+  // Step 3: Estimate bubble size by sampling
+  // Look at the printed circles to determine size
+  const estimatedBubbleRadius = Math.floor(bubbleSpacing * 0.25); // Bubbles are ~25% of spacing
   
   // Process each End
   const numEnds = 6;
@@ -3676,105 +3703,29 @@ async function detectBubbleScores(canvas) {
       const rowBottom = endTop + (rowIdx + 1) * rowHeight;
       const rowMiddle = (rowTop + rowBottom) / 2;
       
-      // Scan horizontally across the row to find filled bubbles
-      // Bubbles are in the right portion of the scorecard
-      const bubbleStartX = Math.floor(canvas.width * 0.25);
-      const bubbleEndX = Math.floor(canvas.width * 0.95);
-      const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
-      
       const filledBubbles = [];
       const bubbleDebug = [];
       
+      // SCANTRON TECHNIQUE: Sample each bubble position precisely
       for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
-        const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
+        // Calculate exact bubble center
+        const bubbleX = bubbleAreaLeft + (bubbleIdx + 0.5) * bubbleSpacing;
         const bubbleY = rowMiddle;
         
-        // Enhanced detection: Check multiple areas of the bubble
-        // 1. Center area (for complete fills)
-        // 2. Ring area (for partial fills)
-        // 3. Use adaptive thresholding based on local contrast
+        // Sample the bubble using scantron detection method
+        const result = detectScantronMark(data, canvas.width, canvas.height, bubbleX, bubbleY, estimatedBubbleRadius);
         
-        const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.2);
-        const innerRadius = Math.floor(sampleRadius * 0.5);
-        
-        // Sample the background (area around bubble) to get baseline brightness
-        let bgBrightness = 0;
-        let bgSamples = 0;
-        const bgRadius = sampleRadius * 1.8;
-        
-        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-          const bgX = Math.floor(bubbleX + Math.cos(angle) * bgRadius);
-          const bgY = Math.floor(bubbleY + Math.sin(angle) * bgRadius);
-          if (bgX >= 0 && bgX < canvas.width && bgY >= 0 && bgY < canvas.height) {
-            const idx = (bgY * canvas.width + bgX) * 4;
-            bgBrightness += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-            bgSamples++;
-          }
-        }
-        bgBrightness = bgSamples > 0 ? bgBrightness / bgSamples : 240;
-        
-        // Sample the bubble area with multiple strategies
-        let centerDarkPixels = 0, centerTotal = 0;
-        let ringDarkPixels = 0, ringTotal = 0;
-        let totalBrightness = 0;
-        
-        for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
-          for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > sampleRadius) continue;
-            
-            const checkX = Math.floor(bubbleX + dx);
-            const checkY = Math.floor(bubbleY + dy);
-            if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
-              const idx = (checkY * canvas.width + checkX) * 4;
-              const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              totalBrightness += brightness;
-              
-              // Adaptive threshold: darker than background by at least 30 units
-              const isDark = brightness < (bgBrightness - 30);
-              
-              if (distance <= innerRadius) {
-                // Center area
-                centerTotal++;
-                if (isDark) centerDarkPixels++;
-              } else {
-                // Ring area (catches partial fills)
-                ringTotal++;
-                if (isDark) ringDarkPixels++;
-              }
-            }
-          }
-        }
-        
-        const centerFillRatio = centerTotal > 0 ? centerDarkPixels / centerTotal : 0;
-        const ringFillRatio = ringTotal > 0 ? ringDarkPixels / ringTotal : 0;
-        const avgBrightness = (centerTotal + ringTotal) > 0 ? totalBrightness / (centerTotal + ringTotal) : 240;
-        
-        // A bubble is filled if:
-        // 1. Center has significant darkness (>25%) OR
-        // 2. Ring has moderate darkness (>20%) AND average brightness is notably darker than background
-        // 3. Overall contrast is significant
-        const contrastRatio = (bgBrightness - avgBrightness) / bgBrightness;
-        
-        const isFilled = (
-          centerFillRatio > 0.25 || 
-          (ringFillRatio > 0.20 && contrastRatio > 0.15) ||
-          (centerFillRatio > 0.15 && ringFillRatio > 0.15)
-        );
-        
-        if (isFilled) {
+        if (result.isFilled) {
           filledBubbles.push(bubbleIdx);
         }
         
-        // Store debug info
         bubbleDebug.push({
           x: bubbleX,
           y: bubbleY,
-          radius: sampleRadius,
-          filled: isFilled,
-          centerFill: centerFillRatio,
-          ringFill: ringFillRatio,
-          contrast: contrastRatio,
+          radius: estimatedBubbleRadius,
+          filled: result.isFilled,
+          darkRatio: result.darkRatio,
+          avgBrightness: result.avgBrightness,
           score: bubbleIdx
         });
       }
@@ -3794,10 +3745,66 @@ async function detectBubbleScores(canvas) {
     debugInfo.push(endDebug);
   }
   
-  // Store debug info globally for visualization
   window.scoresheetDebugInfo = debugInfo;
-  
   return scores;
+}
+
+// Scantron optical mark detection
+function detectScantronMark(data, width, height, centerX, centerY, radius) {
+  let darkPixelCount = 0;
+  let totalPixelCount = 0;
+  let totalBrightness = 0;
+  let minBrightness = 255;
+  
+  // Sample in a circular pattern (scantron bubbles are circles)
+  const sampleRadius = Math.floor(radius * 0.8); // Sample slightly inside the bubble edge
+  
+  for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+    for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > sampleRadius) continue; // Only sample within circle
+      
+      const x = Math.floor(centerX + dx);
+      const y = Math.floor(centerY + dy);
+      
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        const idx = (y * width + x) * 4;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const brightness = (r + g + b) / 3;
+        
+        totalPixelCount++;
+        totalBrightness += brightness;
+        minBrightness = Math.min(minBrightness, brightness);
+        
+        // Scantron marks are very dark (black pen/marker)
+        // Threshold: < 100 for black marks
+        if (brightness < 100) {
+          darkPixelCount++;
+        }
+      }
+    }
+  }
+  
+  const avgBrightness = totalPixelCount > 0 ? totalBrightness / totalPixelCount : 255;
+  const darkRatio = totalPixelCount > 0 ? darkPixelCount / totalPixelCount : 0;
+  
+  // Scantron detection criteria:
+  // A bubble is filled if it has significant dark pixels
+  // More lenient than before since we're sampling precisely
+  const isFilled = (
+    darkRatio > 0.25 ||                           // 25%+ of bubble is very dark
+    (darkRatio > 0.15 && avgBrightness < 120) || // 15%+ dark + low avg brightness
+    (darkRatio > 0.10 && minBrightness < 60)     // 10%+ dark + solid black present
+  );
+  
+  return {
+    isFilled,
+    darkRatio,
+    avgBrightness,
+    minBrightness
+  };
 }
 
 function showScoresheetPreview(canvas, detectedScores) {
