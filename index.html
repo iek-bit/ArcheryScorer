@@ -2268,9 +2268,11 @@ function performMigration() {
 
 function completeMigration(archerName) {
   // Add archerName to all sessions without it
+  const sessionsToShare = [];
   db.sessions.forEach(session => {
     if (!session.archerName || session.archerName === '') {
       session.archerName = archerName;
+      sessionsToShare.push(session);
     }
     // Generate sessionId for sessions that lack one
     if (!session.sessionId) {
@@ -2287,6 +2289,11 @@ function completeMigration(archerName) {
   } catch (error) {
     console.warn('Failed to set migration completed flag:', error);
   }
+  
+  // Share all migrated sessions to GitHub
+  sessionsToShare.forEach(session => {
+    shareSessionToGitHub(session);
+  });
 }
 
 function mergeSharedSessions(sharedData) {
