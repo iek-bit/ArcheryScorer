@@ -12,6 +12,7 @@
 <link rel="manifest" href="data:application/json,{%22name%22:%22Achery%20Scorer%22,%22short_name%22:%22Achery%22,%22display%22:%22standalone%22,%22start_url%22:%22.%2F%22,%22scope%22:%22.%2F%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22,%22icons%22:[{%22src%22:%22favicon.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image%2Fpng%22},{%22src%22:%22favicon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image%2Fpng%22}]}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -1263,6 +1264,135 @@
   }
   .score-flash.show { transform: translate(-50%,-50%) scale(1); }
   .score-flash.hide { opacity: 0; }
+
+  /* Scoresheet Upload */
+  .scoresheet-choice-modal {
+    background: var(--bg2);
+    border-radius: 22px;
+    width: min(420px, calc(100vw - 32px));
+    padding: 24px;
+    border: 1px solid var(--border);
+    transform: scale(.95);
+    transition: transform .2s;
+  }
+  .detail-overlay.open .scoresheet-choice-modal { transform: scale(1); }
+  .scoresheet-choice-modal h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .scoresheet-choice-modal p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .scoresheet-btn {
+    width: 100%;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 60px;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+  .scoresheet-btn:active { transform: scale(.98); border-color: var(--accent); }
+  .scoresheet-btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .scoresheet-preview-canvas {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 16px auto;
+    display: block;
+  }
+  .scoresheet-processing {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .scoresheet-processing .spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .scoresheet-edit-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .scoresheet-edit-grid:last-child { border-bottom: none; }
+  .scoresheet-edit-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 80px;
+  }
+  .scoresheet-edit-arrows {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .scoresheet-edit-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .scoresheet-edit-arrow:active { transform: scale(.95); border-color: var(--accent); }
+  .scoresheet-edit-arrow.error {
+    border-color: var(--red);
+    background: rgba(224,82,82,.1);
+  }
+  .scoresheet-edit-total {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--accent);
+    width: 40px;
+    text-align: right;
+  }
+  .scoresheet-edit-container {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 16px 0;
+    padding: 0 4px;
+  }
 </style>
 </head>
 <body>
@@ -2060,6 +2190,54 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="setup-option-grid" id="threeDDirectionOptions" style="grid-template-columns:1fr 1fr"></div>
     <button class="modal-btn primary" onclick="confirmThreeDTournamentSetup()">START 3D TOURNAMENT</button>
     <button class="modal-btn" onclick="closeOverlay('threeDTournamentOverlay')">CANCEL</button>
+  </div>
+</div>
+
+<!-- Scoresheet Upload Choice -->
+<div class="detail-overlay" id="scoresheetChoiceOverlay">
+  <div class="scoresheet-choice-modal">
+    <h3>Score Entry Method</h3>
+    <p>Choose how you'd like to enter scores for this tournament.</p>
+    <input type="file" id="scoresheetFileInput" accept="image/*" style="display:none" onchange="handleScoresheetFile(event)">
+    <input type="file" id="scoresheetCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleScoresheetFile(event)">
+    <button class="scoresheet-btn primary" onclick="chooseManualScoring()">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+      Score Manually
+    </button>
+    <button class="scoresheet-btn" id="scoresheetCameraBtn" onclick="openScoresheetCamera()" style="display:none">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+      Take Photo
+    </button>
+    <button class="scoresheet-btn" onclick="document.getElementById('scoresheetFileInput').click()">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg>
+      Upload from Gallery
+    </button>
+  </div>
+</div>
+
+<!-- Scoresheet Processing -->
+<div class="detail-overlay" id="scoresheetProcessingOverlay">
+  <div class="scoresheet-choice-modal">
+    <div class="scoresheet-processing">
+      <div class="spinner"></div>
+      <h3 style="margin-bottom:8px">Processing Scoresheet</h3>
+      <p id="scoresheetProcessingStatus">Analyzing image...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Scoresheet Preview & Edit -->
+<div class="detail-overlay" id="scoresheetPreviewOverlay">
+  <div class="scoresheet-choice-modal" style="max-width:500px; max-height:90vh; overflow-y:auto">
+    <h3>Review Detected Scores</h3>
+    <p>Tap any score to edit it. Verify all scores before confirming.</p>
+    <canvas id="scoresheetPreviewCanvas" class="scoresheet-preview-canvas"></canvas>
+    <div class="scoresheet-edit-container" id="scoresheetEditContainer"></div>
+    <div style="text-align:center; margin:16px 0; font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--accent)">
+      Total: <span id="scoresheetTotalScore">0</span>
+    </div>
+    <button class="modal-btn primary" onclick="confirmScoresheetScores()">CONFIRM SCORES</button>
+    <button class="modal-btn" onclick="cancelScoresheetUpload()">CANCEL</button>
   </div>
 </div>
 
@@ -2985,8 +3163,400 @@ function startSession(type, options = {}) {
     session.tournamentSequence = getThreeDTournamentSequence(threeDTournamentSetup.startAnimal, threeDTournamentSetup.direction);
     session.currentRound = getCurrentTournamentRoundConfig(session);
   }
-  document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block';
-  goPage('score', document.getElementById('nav-score')); renderScorePage(); requestSessionLocation(session.id);
+  
+  // For tournament sessions, offer scoresheet upload option
+  if (isTournamentSession(session)) {
+    showScoresheetChoice();
+  } else {
+    proceedWithManualScoring();
+  }
+}
+
+function showScoresheetChoice() {
+  // Show camera button only on mobile devices
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const cameraBtn = document.getElementById('scoresheetCameraBtn');
+  if (cameraBtn) {
+    cameraBtn.style.display = isMobile ? 'flex' : 'none';
+  }
+  
+  document.getElementById('scoresheetChoiceOverlay').classList.add('open');
+}
+
+function chooseManualScoring() {
+  closeOverlay('scoresheetChoiceOverlay');
+  proceedWithManualScoring();
+}
+
+function proceedWithManualScoring() {
+  document.getElementById('scorePicker').style.display = 'none'; 
+  document.getElementById('scoreActive').style.display = 'block';
+  goPage('score', document.getElementById('nav-score')); 
+  renderScorePage(); 
+  requestSessionLocation(session.id);
+}
+
+function openScoresheetCamera() {
+  document.getElementById('scoresheetCameraInput').click();
+}
+
+function handleScoresheetFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  closeOverlay('scoresheetChoiceOverlay');
+  document.getElementById('scoresheetProcessingOverlay').classList.add('open');
+  document.getElementById('scoresheetProcessingStatus').textContent = 'Loading image...';
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    processScoresheetImage(e.target.result);
+  };
+  reader.readAsDataURL(file);
+  
+  // Reset file input
+  event.target.value = '';
+}
+
+async function processScoresheetImage(imageDataUrl) {
+  try {
+    const img = new Image();
+    img.onload = async () => {
+      document.getElementById('scoresheetProcessingStatus').textContent = 'Detecting scorecard boundaries...';
+      
+      // Create canvas for image processing
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      // Detect and crop using the registration marks (black dashes on left)
+      const croppedCanvas = await detectAndCropScorecard(canvas);
+      
+      document.getElementById('scoresheetProcessingStatus').textContent = 'Reading scores...';
+      
+      // Detect filled bubbles
+      const detectedScores = await detectBubbleScores(croppedCanvas);
+      
+      // Show preview with editable scores
+      showScoresheetPreview(croppedCanvas, detectedScores);
+      
+    };
+    img.onerror = () => {
+      closeOverlay('scoresheetProcessingOverlay');
+      appAlert('Failed to load image. Please try again.');
+    };
+    img.src = imageDataUrl;
+  } catch (error) {
+    console.error('Scoresheet processing error:', error);
+    closeOverlay('scoresheetProcessingOverlay');
+    appAlert('Failed to process scoresheet. Please try manual scoring.');
+  }
+}
+
+async function detectAndCropScorecard(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Find the leftmost black vertical marks (registration marks)
+  let leftEdge = 0;
+  let rightEdge = canvas.width;
+  let topEdge = 0;
+  let bottomEdge = canvas.height;
+  
+  // Scan for dark vertical lines on the left side (registration marks)
+  const darkThreshold = 80; // RGB values below this are considered dark
+  const leftScanWidth = Math.floor(canvas.width * 0.15); // Scan left 15% of image
+  
+  let darkColumns = [];
+  for (let x = 0; x < leftScanWidth; x++) {
+    let darkPixels = 0;
+    for (let y = 0; y < canvas.height; y++) {
+      const idx = (y * canvas.width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < darkThreshold) darkPixels++;
+    }
+    if (darkPixels > canvas.height * 0.3) { // If >30% of column is dark
+      darkColumns.push(x);
+    }
+  }
+  
+  if (darkColumns.length > 0) {
+    leftEdge = Math.min(...darkColumns);
+  }
+  
+  // Find right edge by looking for the end of content
+  const rightScanStart = Math.floor(canvas.width * 0.7);
+  for (let x = canvas.width - 1; x > rightScanStart; x--) {
+    let darkPixels = 0;
+    for (let y = 0; y < canvas.height; y++) {
+      const idx = (y * canvas.width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < 200) darkPixels++;
+    }
+    if (darkPixels > canvas.height * 0.1) {
+      rightEdge = x + Math.floor(canvas.width * 0.05);
+      break;
+    }
+  }
+  
+  // Find top and bottom edges
+  for (let y = 0; y < canvas.height; y++) {
+    let darkPixels = 0;
+    for (let x = leftEdge; x < rightEdge; x++) {
+      const idx = (y * canvas.width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < 200) darkPixels++;
+    }
+    if (darkPixels > (rightEdge - leftEdge) * 0.1) {
+      topEdge = Math.max(0, y - 10);
+      break;
+    }
+  }
+  
+  for (let y = canvas.height - 1; y > 0; y--) {
+    let darkPixels = 0;
+    for (let x = leftEdge; x < rightEdge; x++) {
+      const idx = (y * canvas.width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      if (brightness < 200) darkPixels++;
+    }
+    if (darkPixels > (rightEdge - leftEdge) * 0.1) {
+      bottomEdge = Math.min(canvas.height, y + 10);
+      break;
+    }
+  }
+  
+  // Create cropped canvas
+  const croppedCanvas = document.createElement('canvas');
+  const croppedWidth = rightEdge - leftEdge;
+  const croppedHeight = bottomEdge - topEdge;
+  croppedCanvas.width = croppedWidth;
+  croppedCanvas.height = croppedHeight;
+  const croppedCtx = croppedCanvas.getContext('2d');
+  croppedCtx.drawImage(canvas, leftEdge, topEdge, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+  
+  return croppedCanvas;
+}
+
+async function detectBubbleScores(canvas) {
+  // The scorecard has 6 Ends, each with 5 rows, each row has 11 bubbles (0-10)
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  const scores = []; // Will contain 6 ends, each with 5 arrows
+  
+  // Find the blue vertical bars that mark each End
+  const blueThreshold = { r: [50, 150], g: [100, 200], b: [180, 255] };
+  const endMarkers = [];
+  
+  // Scan for blue vertical bars
+  for (let x = 0; x < Math.floor(canvas.width * 0.2); x++) {
+    let bluePixels = 0;
+    for (let y = 0; y < canvas.height; y++) {
+      const idx = (y * canvas.width + x) * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      if (r >= blueThreshold.r[0] && r <= blueThreshold.r[1] &&
+          g >= blueThreshold.g[0] && g <= blueThreshold.g[1] &&
+          b >= blueThreshold.b[0] && b <= blueThreshold.b[1]) {
+        bluePixels++;
+      }
+    }
+    if (bluePixels > canvas.height * 0.05) {
+      endMarkers.push(x);
+    }
+  }
+  
+  // Group consecutive blue columns into End markers
+  const endSections = [];
+  if (endMarkers.length > 0) {
+    let currentSection = [endMarkers[0]];
+    for (let i = 1; i < endMarkers.length; i++) {
+      if (endMarkers[i] - endMarkers[i-1] < 5) {
+        currentSection.push(endMarkers[i]);
+      } else {
+        endSections.push(Math.floor(currentSection.reduce((a,b) => a+b) / currentSection.length));
+        currentSection = [endMarkers[i]];
+      }
+    }
+    if (currentSection.length > 0) {
+      endSections.push(Math.floor(currentSection.reduce((a,b) => a+b) / currentSection.length));
+    }
+  }
+  
+  // If we found End markers, use them to divide the scorecard
+  // Otherwise, divide evenly into 6 sections
+  const numEnds = 6;
+  const endHeight = canvas.height / numEnds;
+  
+  for (let endIdx = 0; endIdx < numEnds; endIdx++) {
+    const endScores = [];
+    const endTop = endIdx * endHeight;
+    const endBottom = (endIdx + 1) * endHeight;
+    const rowHeight = (endBottom - endTop) / 5;
+    
+    for (let rowIdx = 0; rowIdx < 5; rowIdx++) {
+      const rowTop = endTop + rowIdx * rowHeight;
+      const rowBottom = endTop + (rowIdx + 1) * rowHeight;
+      const rowMiddle = (rowTop + rowBottom) / 2;
+      
+      // Scan horizontally across the row to find filled bubbles
+      // Bubbles are in the right portion of the scorecard
+      const bubbleStartX = Math.floor(canvas.width * 0.25);
+      const bubbleEndX = Math.floor(canvas.width * 0.95);
+      const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
+      
+      const filledBubbles = [];
+      for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
+        const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
+        const bubbleY = rowMiddle;
+        
+        // Check if this bubble is filled (darker than background)
+        const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.15);
+        let darkPixels = 0;
+        let totalPixels = 0;
+        
+        for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+          for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+            const checkX = Math.floor(bubbleX + dx);
+            const checkY = Math.floor(bubbleY + dy);
+            if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
+              const idx = (checkY * canvas.width + checkX) * 4;
+              const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+              totalPixels++;
+              if (brightness < 180) darkPixels++;
+            }
+          }
+        }
+        
+        const fillRatio = darkPixels / totalPixels;
+        if (fillRatio > 0.3) { // If >30% of bubble area is dark, consider it filled
+          filledBubbles.push(bubbleIdx);
+        }
+      }
+      
+      // If multiple bubbles detected, use the lower score
+      const score = filledBubbles.length > 0 ? Math.min(...filledBubbles) : 0;
+      endScores.push(score);
+    }
+    
+    scores.push(endScores);
+  }
+  
+  return scores;
+}
+
+function showScoresheetPreview(canvas, detectedScores) {
+  closeOverlay('scoresheetProcessingOverlay');
+  
+  // Show preview image
+  const previewCanvas = document.getElementById('scoresheetPreviewCanvas');
+  const previewCtx = previewCanvas.getContext('2d');
+  const maxWidth = 400;
+  const scale = Math.min(1, maxWidth / canvas.width);
+  previewCanvas.width = canvas.width * scale;
+  previewCanvas.height = canvas.height * scale;
+  previewCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+  
+  // Store detected scores globally for editing
+  window.scoresheetDetectedScores = detectedScores;
+  
+  // Render editable score grid
+  renderScoresheetEditGrid();
+  
+  document.getElementById('scoresheetPreviewOverlay').classList.add('open');
+}
+
+function renderScoresheetEditGrid() {
+  const container = document.getElementById('scoresheetEditContainer');
+  const scores = window.scoresheetDetectedScores;
+  
+  let html = '';
+  let totalScore = 0;
+  
+  for (let endIdx = 0; endIdx < scores.length; endIdx++) {
+    const endScores = scores[endIdx];
+    const endTotal = endScores.reduce((a, b) => a + b, 0);
+    totalScore += endTotal;
+    
+    html += `<div class="scoresheet-edit-grid">
+      <div class="scoresheet-edit-label">End ${endIdx + 1}</div>
+      <div class="scoresheet-edit-arrows">`;
+    
+    for (let arrowIdx = 0; arrowIdx < endScores.length; arrowIdx++) {
+      const score = endScores[arrowIdx];
+      html += `<div class="scoresheet-edit-arrow" onclick="editScoresheetScore(${endIdx}, ${arrowIdx})">${score}</div>`;
+    }
+    
+    html += `</div>
+      <div class="scoresheet-edit-total">${endTotal}</div>
+    </div>`;
+  }
+  
+  container.innerHTML = html;
+  document.getElementById('scoresheetTotalScore').textContent = totalScore;
+}
+
+function editScoresheetScore(endIdx, arrowIdx) {
+  const currentScore = window.scoresheetDetectedScores[endIdx][arrowIdx];
+  const newScore = prompt(`Edit score for End ${endIdx + 1}, Arrow ${arrowIdx + 1}:`, currentScore);
+  
+  if (newScore !== null) {
+    const parsed = parseInt(newScore);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 10) {
+      window.scoresheetDetectedScores[endIdx][arrowIdx] = parsed;
+      renderScoresheetEditGrid();
+    } else {
+      appAlert('Please enter a score between 0 and 10.');
+    }
+  }
+}
+
+function confirmScoresheetScores() {
+  const scores = window.scoresheetDetectedScores;
+  
+  // Convert detected scores into session rounds
+  // For bullseye tournament: first 3 ends are 10m, last 3 are 15m
+  session.rounds = [];
+  
+  for (let endIdx = 0; endIdx < scores.length; endIdx++) {
+    const distance = endIdx < 3 ? 10 : 15;
+    const arrows = scores[endIdx].map(score => {
+      // Convert score to normalized coordinates
+      // This is a simplified conversion - scores are placed at appropriate ring positions
+      const ringRadius = (10 - score) * 0.1; // 10 = center (0.0), 0 = outer (1.0)
+      const angle = Math.random() * Math.PI * 2; // Random angle
+      return {
+        nx: Math.cos(angle) * ringRadius,
+        ny: Math.sin(angle) * ringRadius,
+        score: score
+      };
+    });
+    
+    session.rounds.push({
+      mode: 'bullseye',
+      distance: distance,
+      arrows: arrows,
+      locked: true
+    });
+  }
+  
+  // Set current round for potential additional scoring
+  session.currentRound = createRound('bullseye', 15);
+  
+  closeOverlay('scoresheetPreviewOverlay');
+  proceedWithManualScoring();
+  
+  appAlert('Scoresheet imported successfully! All 6 rounds have been added to your session.');
+}
+
+function cancelScoresheetUpload() {
+  closeOverlay('scoresheetPreviewOverlay');
+  window.scoresheetDetectedScores = null;
+  showScoresheetChoice();
 }
 
 function sessionRoundNumber() { return session.rounds.length + 1; }

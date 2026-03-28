@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoresheet Scanner Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #0a0f1a;
+      color: #e8eaf0;
+    }
+    h1 { color: #e8c547; }
+    .test-section {
+      background: #111827;
+      border: 1px solid #2a3a50;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    button {
+      background: #e8c547;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover { opacity: 0.9; }
+    canvas {
+      max-width: 100%;
+      border: 1px solid #2a3a50;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .score-cell {
+      background: #1e2a3a;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-family: monospace;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+      color: #e8eaf0;
+    }
+    pre {
+      background: #0a0f1a;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Scoresheet Scanner Test</h1>
+  
+  <div class="test-section">
+    <h2>1. Upload Scorecard Image</h2>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="processImage()">Process Image</button>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Original Image</h2>
+    <canvas id="originalCanvas"></canvas>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Cropped Scorecard</h2>
+    <canvas id="croppedCanvas"></canvas>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Detected Scores</h2>
+    <div id="scoresOutput"></div>
+    <pre id="scoresJson"></pre>
+  </div>
+
+  <script>
+    let originalImage = null;
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          originalImage = img;
+          displayOriginalImage(img);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function displayOriginalImage(img) {
+      const canvas = document.getElementById('originalCanvas');
+      const ctx = canvas.getContext('2d');
+      const maxWidth = 600;
+      const scale = Math.min(1, maxWidth / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+    async function processImage() {
+      if (!originalImage) {
+        alert('Please upload an image first');
+        return;
+      }
+
+      // Create full-size canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = originalImage.width;
+      canvas.height = originalImage.height;
+      ctx.drawImage(originalImage, 0, 0);
+
+      // Crop the scorecard
+      const croppedCanvas = await detectAndCropScorecard(canvas);
+      
+      // Display cropped image
+      const displayCanvas = document.getElementById('croppedCanvas');
+      const displayCtx = displayCanvas.getContext('2d');
+      const maxWidth = 600;
+      const scale = Math.min(1, maxWidth / croppedCanvas.width);
+      displayCanvas.width = croppedCanvas.width * scale;
+      displayCanvas.height = croppedCanvas.height * scale;
+      displayCtx.drawImage(croppedCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
+
+      // Detect scores
+      const scores = await detectBubbleScores(croppedCanvas);
+      displayScores(scores);
+    }
+
+    async function detectAndCropScorecard(canvas) {
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      let leftEdge = 0;
+      let rightEdge = canvas.width;
+      let topEdge = 0;
+      let bottomEdge = canvas.height;
+      
+      const darkThreshold = 80;
+      const leftScanWidth = Math.floor(canvas.width * 0.15);
+      
+      let darkColumns = [];
+      for (let x = 0; x < leftScanWidth; x++) {
+        let darkPixels = 0;
+        for (let y = 0; y < canvas.height; y++) {
+          const idx = (y * canvas.width + x) * 4;
+          const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          if (brightness < darkThreshold) darkPixels++;
+        }
+        if (darkPixels > canvas.height * 0.3) {
+          darkColumns.push(x);
+        }
+      }
+      
+      if (darkColumns.length > 0) {
+        leftEdge = Math.min(...darkColumns);
+      }
+      
+      const rightScanStart = Math.floor(canvas.width * 0.7);
+      for (let x = canvas.width - 1; x > rightScanStart; x--) {
+        let darkPixels = 0;
+        for (let y = 0; y < canvas.height; y++) {
+          const idx = (y * canvas.width + x) * 4;
+          const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          if (brightness < 200) darkPixels++;
+        }
+        if (darkPixels > canvas.height * 0.1) {
+          rightEdge = x + Math.floor(canvas.width * 0.05);
+          break;
+        }
+      }
+      
+      for (let y = 0; y < canvas.height; y++) {
+        let darkPixels = 0;
+        for (let x = leftEdge; x < rightEdge; x++) {
+          const idx = (y * canvas.width + x) * 4;
+          const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          if (brightness < 200) darkPixels++;
+        }
+        if (darkPixels > (rightEdge - leftEdge) * 0.1) {
+          topEdge = Math.max(0, y - 10);
+          break;
+        }
+      }
+      
+      for (let y = canvas.height - 1; y > 0; y--) {
+        let darkPixels = 0;
+        for (let x = leftEdge; x < rightEdge; x++) {
+          const idx = (y * canvas.width + x) * 4;
+          const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          if (brightness < 200) darkPixels++;
+        }
+        if (darkPixels > (rightEdge - leftEdge) * 0.1) {
+          bottomEdge = Math.min(canvas.height, y + 10);
+          break;
+        }
+      }
+      
+      const croppedCanvas = document.createElement('canvas');
+      const croppedWidth = rightEdge - leftEdge;
+      const croppedHeight = bottomEdge - topEdge;
+      croppedCanvas.width = croppedWidth;
+      croppedCanvas.height = croppedHeight;
+      const croppedCtx = croppedCanvas.getContext('2d');
+      croppedCtx.drawImage(canvas, leftEdge, topEdge, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+      
+      return croppedCanvas;
+    }
+
+    async function detectBubbleScores(canvas) {
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      const scores = [];
+      const numEnds = 6;
+      const endHeight = canvas.height / numEnds;
+      
+      for (let endIdx = 0; endIdx < numEnds; endIdx++) {
+        const endScores = [];
+        const endTop = endIdx * endHeight;
+        const endBottom = (endIdx + 1) * endHeight;
+        const rowHeight = (endBottom - endTop) / 5;
+        
+        for (let rowIdx = 0; rowIdx < 5; rowIdx++) {
+          const rowTop = endTop + rowIdx * rowHeight;
+          const rowBottom = endTop + (rowIdx + 1) * rowHeight;
+          const rowMiddle = (rowTop + rowBottom) / 2;
+          
+          const bubbleStartX = Math.floor(canvas.width * 0.25);
+          const bubbleEndX = Math.floor(canvas.width * 0.95);
+          const bubbleWidth = (bubbleEndX - bubbleStartX) / 11;
+          
+          const filledBubbles = [];
+          for (let bubbleIdx = 0; bubbleIdx <= 10; bubbleIdx++) {
+            const bubbleX = bubbleStartX + bubbleIdx * bubbleWidth + bubbleWidth / 2;
+            const bubbleY = rowMiddle;
+            
+            const sampleRadius = Math.floor(Math.min(bubbleWidth, rowHeight) * 0.15);
+            let darkPixels = 0;
+            let totalPixels = 0;
+            
+            for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+              for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+                const checkX = Math.floor(bubbleX + dx);
+                const checkY = Math.floor(bubbleY + dy);
+                if (checkX >= 0 && checkX < canvas.width && checkY >= 0 && checkY < canvas.height) {
+                  const idx = (checkY * canvas.width + checkX) * 4;
+                  const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                  totalPixels++;
+                  if (brightness < 180) darkPixels++;
+                }
+              }
+            }
+            
+            const fillRatio = darkPixels / totalPixels;
+            if (fillRatio > 0.3) {
+              filledBubbles.push(bubbleIdx);
+            }
+          }
+          
+          const score = filledBubbles.length > 0 ? Math.min(...filledBubbles) : 0;
+          endScores.push(score);
+        }
+        
+        scores.push(endScores);
+      }
+      
+      return scores;
+    }
+
+    function displayScores(scores) {
+      let html = '';
+      let totalScore = 0;
+      
+      for (let endIdx = 0; endIdx < scores.length; endIdx++) {
+        const endScores = scores[endIdx];
+        const endTotal = endScores.reduce((a, b) => a + b, 0);
+        totalScore += endTotal;
+        
+        html += `<h3>End ${endIdx + 1} (${endIdx < 3 ? '10m' : '15m'}): ${endTotal}</h3>`;
+        html += '<div class="score-grid">';
+        endScores.forEach((score, idx) => {
+          html += `<div class="score-cell">Arrow ${idx + 1}: <strong>${score}</strong></div>`;
+        });
+        html += '</div>';
+      }
+      
+      html += `<h2 style="color: #e8c547;">Total Score: ${totalScore}</h2>`;
+      
+      document.getElementById('scoresOutput').innerHTML = html;
+      document.getElementById('scoresJson').textContent = JSON.stringify(scores, null, 2);
+    }
+  </script>
+</body>
+</html>
