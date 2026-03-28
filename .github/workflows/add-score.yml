@@ -1,0 +1,76 @@
+name: Add Score
+
+on:
+  workflow_dispatch:
+    inputs:
+      archer_name:
+        description: 'Archer name'
+        required: true
+        type: string
+      session_data:
+        description: 'Session JSON'
+        required: true
+        type: string
+
+jobs:
+  add-score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Add score to scores.json
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+          from datetime import datetime
+          
+          archer_name = """${{ github.event.inputs.archer_name }}"""
+          session_json = """${{ github.event.inputs.session_data }}"""
+          
+          try:
+            # Parse session
+            session = json.loads(session_json)
+            
+            # Load or create scores.json
+            try:
+              with open('scores.json', 'r') as f:
+                data = json.load(f)
+            except FileNotFoundError:
+              data = {'version': '1.0', 'lastUpdated': '', 'sessions': []}
+            
+            # Validate session has required fields
+            if not session.get('sessionId'):
+              print("Error: Session missing sessionId")
+              sys.exit(1)
+            
+            # Check for duplicates
+            existing_ids = [s.get('sessionId') for s in data.get('sessions', [])]
+            if session.get('sessionId') not in existing_ids:
+              data['sessions'].append(session)
+              data['lastUpdated'] = datetime.utcnow().isoformat() + 'Z'
+              
+              with open('scores.json', 'w') as f:
+                json.dump(data, f, indent=2)
+              print(f"Successfully added score from {archer_name}")
+            else:
+              print(f"Score already exists (duplicate sessionId)")
+          except json.JSONDecodeError as e:
+            print(f"Error parsing session JSON: {e}")
+            sys.exit(1)
+          except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+          EOF
+      
+      - name: Commit changes
+        run: |
+          git config user.name "Archery Bot"
+          git config user.email "bot@archery.local"
+          git add scores.json
+          if ! git diff --quiet && ! git diff --staged --quiet; then
+            git commit -m "Add score from ${{ github.event.inputs.archer_name }}"
+            git push
+          else
+            echo "No changes to commit"
+          fi

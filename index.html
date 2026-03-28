@@ -1604,6 +1604,42 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 
   <div class="settings-section">
+    <div class="settings-label">GITHUB SHARING</div>
+    <div class="settings-card">
+      <div style="padding: 16px;">
+        <div class="inline-field">
+          <label for="githubOwnerInput">GitHub Username</label>
+          <input 
+            type="text" 
+            id="githubOwnerInput" 
+            class="modal-input" 
+            placeholder="e.g., your-username"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            oninput="localStorage.setItem('githubOwner', this.value)"
+          >
+          <div class="modal-help">Your GitHub username (the part before the slash in github.com/username/repo)</div>
+        </div>
+        <div class="inline-field">
+          <label for="githubRepoInput">Repository Name</label>
+          <input 
+            type="text" 
+            id="githubRepoInput" 
+            class="modal-input" 
+            placeholder="e.g., archery-scores"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            oninput="localStorage.setItem('githubRepo', this.value)"
+          >
+          <div class="modal-help">The name of your GitHub repository</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
     <div class="settings-label">THEME</div>
     <div class="theme-card">
       <div class="theme-grid" id="themePresetGrid"></div>
@@ -2276,6 +2312,14 @@ db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
 
 // Initialize app on DOM ready
 function initializeApp() {
+  // Set default GitHub configuration if not already set
+  if (!localStorage.getItem('githubOwner')) {
+    localStorage.setItem('githubOwner', 'iek-bit');
+  }
+  if (!localStorage.getItem('githubRepo')) {
+    localStorage.setItem('githubRepo', 'ArcheryScorer');
+  }
+  
   // Check if migration is needed and perform it
   const migrationStatus = detectMigrationNeeded();
   if (migrationStatus.needed) {
@@ -2717,6 +2761,17 @@ function initializeArcherNameInput() {
   });
 }
 
+function initializeGitHubSettings() {
+  const ownerInput = document.getElementById('githubOwnerInput');
+  const repoInput = document.getElementById('githubRepoInput');
+  
+  if (!ownerInput || !repoInput) return;
+  
+  // Load saved values from localStorage
+  ownerInput.value = localStorage.getItem('githubOwner') || '';
+  repoInput.value = localStorage.getItem('githubRepo') || '';
+}
+
 function selectActiveArcher(name) {
   if (db.deviceProfile.activeArcher === name) return;
   db.deviceProfile.activeArcher = name;
@@ -2887,8 +2942,45 @@ function saveFinishedSession(withLocation = true) {
   else if (finishingSession.location?.label) finishingSession.location = {...finishingSession.location, label: finishingSession.location.label.trim()};
   else finishingSession.location = {manual: true};
   if (finishingSession.location?.label) saveChosenLocation(finishingSession.location);
-  db.sessions.push(finishingSession); save(); refreshSavedLocationOptions(); finishingSession = null;
+  db.sessions.push(finishingSession);
+  
+  // Auto-share to GitHub if configured (not a quick score)
+  if (!finishingSession.ephemeral) {
+    shareSessionToGitHub(finishingSession);
+  }
+  
+  save(); refreshSavedLocationOptions(); finishingSession = null;
   closeOverlay('finishOverlay'); renderHome(); renderDiag(); goPage('score', document.getElementById('nav-score'));
+}
+
+async function shareSessionToGitHub(session) {
+  if (!session) return;
+  
+  try {
+    const owner = localStorage.getItem('githubOwner') || '';
+    const repo = localStorage.getItem('githubRepo') || '';
+    
+    // Silently fail if GitHub is not configured
+    if (!owner || !repo) return;
+    
+    await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/actions/workflows/add-score.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: { 'Accept': 'application/vnd.github.v3+json' },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {
+            archer_name: session.archerName || 'Unknown',
+            session_data: JSON.stringify(session)
+          }
+        })
+      }
+    );
+  } catch (error) {
+    // Silently fail - don't interrupt user experience
+    console.warn('Failed to share session to GitHub:', error);
+  }
 }
 
 function checkMedianAndroidLocationReady(sessionId) {
@@ -4354,7 +4446,7 @@ function goPage(name, btn) {
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
-  if(name==='settings') updateDeviceNameSummary();
+  if(name==='settings') { updateDeviceNameSummary(); initializeGitHubSettings(); }
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
