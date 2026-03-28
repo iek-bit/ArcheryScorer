@@ -1619,6 +1619,15 @@ const PRACTICE_TARGET_OPTIONS = [
         </div>
       </div>
     </div>
+    
+    <div class="settings-row" onclick="exportForSharing()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Export for Sharing</div>
+        <div class="settings-row-sub">Download scores.json to upload to GitHub</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
   </div>
 
   <div class="settings-section">
@@ -3020,13 +3029,47 @@ function saveFinishedSession(withLocation = true) {
   if (finishingSession.location?.label) saveChosenLocation(finishingSession.location);
   db.sessions.push(finishingSession);
   
-  // Auto-share to GitHub if configured (not a quick score)
+  // Auto-export scores.json for sharing (not for quick scores)
   if (!finishingSession.ephemeral) {
-    shareSessionToGitHub(finishingSession);
+    exportScoresJsonAndOpenGitHub();
   }
   
   save(); refreshSavedLocationOptions(); finishingSession = null;
   closeOverlay('finishOverlay'); renderHome(); renderDiag(); goPage('score', document.getElementById('nav-score'));
+}
+
+function exportScoresJsonAndOpenGitHub() {
+  // Export scores.json format for easy GitHub upload
+  const payload = {
+    version: '1.0',
+    lastUpdated: new Date().toISOString(),
+    sessions: db.sessions.map(s => ({
+      ...s,
+      archerName: s.archerName || getDeviceArcherName() || 'Unknown',
+      sessionId: s.sessionId || generateSessionId()
+    }))
+  };
+  
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'scores.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  // Open GitHub upload page
+  const owner = localStorage.getItem('githubOwner') || 'iek-bit';
+  const repo = localStorage.getItem('githubRepo') || 'ArcheryScorer';
+  const githubUploadUrl = `https://github.com/${owner}/${repo}/upload/main`;
+  
+  // Small delay to ensure download starts first
+  setTimeout(() => {
+    window.open(githubUploadUrl, '_blank');
+  }, 500);
+  
+  console.log('scores.json downloaded. Upload page opened - drag and drop the file to share your scores!');
 }
 
 async function shareSessionToGitHub(session) {
@@ -3044,7 +3087,7 @@ async function shareSessionToGitHub(session) {
     });
     
     // Create a GitHub issue with the session data
-    // This doesn't require authentication for public repos
+    // The issue will trigger a GitHub Action that adds the score
     const issueTitle = `[SCORE] ${session.archerName} - ${new Date(session.date).toLocaleDateString()}`;
     const issueBody = `Automatic score submission\n\n\`\`\`json\n${JSON.stringify(session, null, 2)}\n\`\`\``;
     
@@ -3069,6 +3112,10 @@ async function shareSessionToGitHub(session) {
     } else {
       const errorData = await response.json();
       console.error('Failed to create issue:', response.status, errorData.message);
+      
+      // If it fails due to auth, that's expected - the workflow will still work
+      // when issues are created manually or through other means
+      console.log('Note: Automatic issue creation requires authentication. Scores will be shared when you manually create issues or use the export feature.');
     }
   } catch (error) {
     console.warn('Failed to share session to GitHub:', error);
@@ -4801,7 +4848,7 @@ function downloadSave() {
 }
 
 function exportForSharing() {
-  // Export only sessions in scores.json format
+  // Export scores.json and open GitHub upload page
   const payload = {
     version: '1.0',
     lastUpdated: new Date().toISOString(),
@@ -4817,11 +4864,20 @@ function exportForSharing() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `scores-export-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = 'scores.json';
   a.click();
   URL.revokeObjectURL(url);
   
-  appAlert(`Exported ${db.sessions.length} session(s). Upload this file to your GitHub repository as scores.json to share your scores.`);
+  // Open GitHub upload page
+  const owner = localStorage.getItem('githubOwner') || 'iek-bit';
+  const repo = localStorage.getItem('githubRepo') || 'ArcheryScorer';
+  const githubUploadUrl = `https://github.com/${owner}/${repo}/upload/main`;
+  
+  setTimeout(() => {
+    window.open(githubUploadUrl, '_blank');
+  }, 500);
+  
+  appAlert(`Exported ${db.sessions.length} session(s). Upload the scores.json file on the GitHub page that just opened.`);
 }
 
 function uploadSave(e) {

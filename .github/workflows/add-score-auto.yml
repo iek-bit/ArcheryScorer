@@ -1,0 +1,91 @@
+name: Add Score Automatically
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  add-score:
+    if: startsWith(github.event.issue.title, '[SCORE]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ARCHERY_TOKEN }}
+      
+      - name: Extract and add score
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+          import re
+          from datetime import datetime
+          
+          # Extract JSON from issue body
+          issue_body = """${{ github.event.issue.body }}"""
+          
+          # Find JSON block
+          json_match = re.search(r'```json\s*\n(.*?)\n```', issue_body, re.DOTALL)
+          if not json_match:
+            print("No JSON found in issue body")
+            sys.exit(1)
+          
+          try:
+            session = json.loads(json_match.group(1))
+            
+            # Load scores.json
+            try:
+              with open('scores.json', 'r') as f:
+                data = json.load(f)
+            except FileNotFoundError:
+              data = {'version': '1.0', 'lastUpdated': '', 'sessions': []}
+            
+            # Check for duplicates
+            existing_ids = [s.get('sessionId') for s in data.get('sessions', [])]
+            if session.get('sessionId') not in existing_ids:
+              data['sessions'].append(session)
+              data['lastUpdated'] = datetime.utcnow().isoformat() + 'Z'
+              
+              with open('scores.json', 'w') as f:
+                json.dump(data, f, indent=2)
+              print(f"Added score from {session.get('archerName', 'Unknown')}")
+            else:
+              print("Score already exists")
+          except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+          EOF
+      
+      - name: Commit changes
+        run: |
+          git config user.name "Archery Bot"
+          git config user.email "bot@archery.local"
+          git add scores.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add score from issue #${{ github.event.issue.number }}"
+            git push
+          fi
+      
+      - name: Close issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.ARCHERY_TOKEN }}
+          script: |
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ Score added successfully!'
+            });
