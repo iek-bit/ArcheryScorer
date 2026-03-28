@@ -296,6 +296,49 @@
   .dist-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
   .dist-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+  /* History View Toggle */
+  .history-view-toggle {
+    display: flex;
+    gap: 0;
+    padding: 12px 16px 8px;
+    justify-content: center;
+  }
+  .view-toggle-btn {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    flex: 1;
+    max-width: 160px;
+  }
+  .view-toggle-btn:first-child {
+    border-radius: 20px 0 0 20px;
+    border-right: none;
+  }
+  .view-toggle-btn:last-child {
+    border-radius: 0 20px 20px 0;
+    border-left: none;
+  }
+  .view-toggle-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .view-toggle-btn.active + .view-toggle-btn {
+    border-left-color: var(--accent);
+  }
+
   /* Target */
   .target-wrap {
     display: flex; justify-content: center;
@@ -1374,6 +1417,10 @@ const PRACTICE_TARGET_OPTIONS = [
       <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search">
     </div>
   </div>
+  <div class="history-view-toggle">
+    <button class="view-toggle-btn active" id="viewTogglePersonal" onclick="setHistoryView('personal')">Personal</button>
+    <button class="view-toggle-btn" id="viewTogglePublic" onclick="setHistoryView('public')">Public</button>
+  </div>
   <div class="selection-bar" id="homeSelectionBar">
     <div style="display:flex; gap:12px; align-items:center">
       <button class="icon-btn" onclick="exitHomeSelectMode()" title="Cancel Selection" aria-label="Cancel Selection">
@@ -1497,6 +1544,23 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <div class="settings-section">
     <div class="settings-label">ARCHERS</div>
+    
+    <div class="settings-card">
+      <div style="padding: 16px;">
+        <div class="inline-field">
+          <label for="archerNameInput">Archer Name</label>
+          <input 
+            type="text" 
+            id="archerNameInput" 
+            class="modal-input" 
+            placeholder="Enter your name"
+            maxlength="40"
+            style="margin-bottom: 0;"
+          >
+        </div>
+      </div>
+    </div>
+    
     <div id="settingsArchersList"></div>
     <div class="settings-row" onclick="openDeviceNameOverlay('settings')">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
@@ -1678,6 +1742,12 @@ const PRACTICE_TARGET_OPTIONS = [
       <button class="detail-close" onclick="closeOverlay('detailOverlay')" aria-label="Close round detail">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
       </button>
+    </div>
+    <div class="session-owner-row" id="detailOwnerRow" style="display:none">
+      <div>
+        <div class="session-owner-label">Archer</div>
+        <div class="session-owner-name" id="detailOwnerName">Unassigned</div>
+      </div>
     </div>
     <canvas id="detailCanvas" width="600" height="600"></canvas>
     <div class="detail-arrow-row" id="detailArrows"></div>
@@ -2007,7 +2077,14 @@ if (!db.deviceProfile.archers) {
 if (!db.deviceProfile.bows) {
   db.deviceProfile.bows = {};
 }
-const save = () => localStorage.setItem(DB_KEY, JSON.stringify(db));
+const save = () => {
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+  } catch (error) {
+    console.warn('Failed to save to localStorage:', error);
+    // Continue silently - app will still work with in-memory data
+  }
+};
 
 // Location Filter States
 let activeLocationFilters = { home: new Set(), diag: new Set() };
@@ -2077,10 +2154,16 @@ function normalizeSessionType(type) {
   return 'practice';
 }
 
+function generateSessionId() {
+  // Timestamp + random 4-digit suffix for collision avoidance
+  return Date.now() * 10000 + Math.floor(Math.random() * 10000);
+}
+
 function normalizeSessionData(raw = {}) {
   const type = normalizeSessionType(raw.type);
   return {
     id: raw.id || Date.now(),
+    sessionId: raw.sessionId || generateSessionId(),
     type,
     date: raw.date || new Date().toISOString(),
     location: raw.location || null,
@@ -2095,8 +2178,118 @@ function normalizeSessionData(raw = {}) {
   };
 }
 
+async function fetchSharedScores() {
+  try {
+    const response = await fetch('./scores.json', {
+      cache: 'no-cache',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to fetch shared scores:', error);
+    return null;
+  }
+}
+
+function detectMigrationNeeded() {
+  // Check if migration has already been completed
+  const migrationCompleted = localStorage.getItem('migration_completed_v1');
+  if (migrationCompleted === 'true') {
+    return { needed: false, unmigrated: [] };
+  }
+  
+  // Check for sessions without archerName field
+  const unmigrated = db.sessions.filter(session => !session.archerName || session.archerName === '');
+  
+  return {
+    needed: unmigrated.length > 0,
+    unmigrated: unmigrated
+  };
+}
+
+function performMigration() {
+  // Check if migration has already been completed
+  const migrationCompleted = localStorage.getItem('migration_completed_v1');
+  if (migrationCompleted === 'true') {
+    return; // Migration already done
+  }
+  
+  // Ensure archer name is set before migrating
+  let archerName = getDeviceArcherName();
+  if (!archerName) {
+    // Prompt user for archer name
+    return new Promise((resolve) => {
+      // Store the resolve callback to be called after user sets name
+      window.migrationResolveCallback = resolve;
+      openDeviceNameOverlay('migration');
+    });
+  }
+  
+  // Perform the actual migration
+  completeMigration(archerName);
+}
+
+function completeMigration(archerName) {
+  // Add archerName to all sessions without it
+  db.sessions.forEach(session => {
+    if (!session.archerName || session.archerName === '') {
+      session.archerName = archerName;
+    }
+    // Generate sessionId for sessions that lack one
+    if (!session.sessionId) {
+      session.sessionId = generateSessionId();
+    }
+  });
+  
+  // Save the migrated sessions
+  save();
+  
+  // Set migration complete flag
+  try {
+    localStorage.setItem('migration_completed_v1', 'true');
+  } catch (error) {
+    console.warn('Failed to set migration completed flag:', error);
+  }
+}
+
+function mergeSharedSessions(sharedData) {
+  // Validate structure: must have sessions array
+  if (!sharedData || typeof sharedData !== 'object') return;
+  if (!Array.isArray(sharedData.sessions)) return;
+  
+  // Get existing session IDs to avoid duplicates
+  const existingIds = new Set(db.sessions.map(s => s.sessionId));
+  
+  // Filter out sessions with duplicate IDs and normalize new sessions
+  const newSessions = sharedData.sessions
+    .filter(s => !existingIds.has(s.sessionId))
+    .map(normalizeSessionData);
+  
+  // Append new sessions to local storage
+  db.sessions.push(...newSessions);
+  save();
+}
+
 db.sessions = db.sessions.map(normalizeSessionData);
 db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
+
+// Initialize app on DOM ready
+function initializeApp() {
+  // Check if migration is needed and perform it
+  const migrationStatus = detectMigrationNeeded();
+  if (migrationStatus.needed) {
+    performMigration();
+  }
+}
+
+// Run initialization when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  // DOM is already loaded
+  initializeApp();
+}
 
 // Custom Dialog Utilities
 function appAlert(message) {
@@ -2177,7 +2370,13 @@ function getCurrentTournamentRoundConfig(sessionObj = session) {
 
 function isMedianAndroidAvailable() { return !!window.median?.android?.geoLocation; }
 
-function persistTheme() { localStorage.setItem(THEME_KEY, JSON.stringify(themeState)); }
+function persistTheme() {
+  try {
+    localStorage.setItem(THEME_KEY, JSON.stringify(themeState));
+  } catch (error) {
+    console.warn('Failed to save theme:', error);
+  }
+}
 
 function resolveThemePreset(name) {
   if (name === 'auto') return systemThemeQuery?.matches ? THEME_PRESETS.dark : THEME_PRESETS.white;
@@ -2403,7 +2602,10 @@ function sessionMetaText(sessionObj) {
 function buildFinishedSession() {
   if (!session) return null;
   const finished = {
-    id: session.id, type: session.type, date: session.date,
+    id: session.id, 
+    sessionId: session.sessionId,
+    type: session.type, 
+    date: session.date,
     location: session.location ? {...session.location} : null,
     archerName: session.archerName || '',
     rounds: session.rounds.map(r => ({...r, arrows: [...r.arrows]})),
@@ -2430,6 +2632,13 @@ function syncFinishLocationInput() {
 }
 
 function getDeviceArcherName() { return normalizePersonName(db.deviceProfile?.activeArcher); }
+
+function setDeviceArcherName(name) {
+  const normalized = normalizePersonName(name);
+  if (db.deviceProfile.activeArcher === normalized) return;
+  db.deviceProfile.activeArcher = normalized;
+  save();
+}
 
 function updateDeviceNameSummary() {
   const list = document.getElementById('settingsArchersList');
@@ -2482,6 +2691,30 @@ function updateDeviceNameSummary() {
       ${bowInfoHtml}
     `;
   }).join('');
+  
+  // Initialize archer name input field
+  initializeArcherNameInput();
+}
+
+function initializeArcherNameInput() {
+  const input = document.getElementById('archerNameInput');
+  if (!input) return;
+  
+  // Display current archer name if set
+  const currentName = getDeviceArcherName();
+  input.value = currentName || '';
+  
+  // Wire up input to device profile storage
+  input.addEventListener('input', function() {
+    const newName = this.value.trim();
+    setDeviceArcherName(newName);
+  });
+  
+  input.addEventListener('blur', function() {
+    // Ensure the displayed value is normalized
+    const normalized = getDeviceArcherName();
+    this.value = normalized || '';
+  });
 }
 
 function selectActiveArcher(name) {
@@ -2582,12 +2815,20 @@ function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('dev
 function openDeviceNameOverlay(context = 'launch') {
   deviceNameOverlayContext = context;
   const existing = getDeviceArcherName();
-  document.getElementById('deviceNameOverlayTitle').textContent = context === 'settings' ? 'Add Archer' : 'Set Archer Name';
-  document.getElementById('deviceNameOverlayMessage').textContent = context === 'settings'
-    ? 'Create a new archer profile. You can switch between them anytime.'
-    : 'Before scoring your first session, enter the archer name this device should score under.';
+  
+  if (context === 'migration') {
+    document.getElementById('deviceNameOverlayTitle').textContent = 'Migrate Your Sessions';
+    document.getElementById('deviceNameOverlayMessage').textContent = 'Your existing sessions need to be tagged with an archer name. Enter the name to use for these sessions.';
+  } else if (context === 'settings') {
+    document.getElementById('deviceNameOverlayTitle').textContent = 'Add Archer';
+    document.getElementById('deviceNameOverlayMessage').textContent = 'Create a new archer profile. You can switch between them anytime.';
+  } else {
+    document.getElementById('deviceNameOverlayTitle').textContent = 'Set Archer Name';
+    document.getElementById('deviceNameOverlayMessage').textContent = 'Before scoring your first session, enter the archer name this device should score under.';
+  }
+  
   const input = document.getElementById('deviceNameInput');
-  input.value = context === 'settings' ? '' : existing;
+  input.value = (context === 'settings' || context === 'migration') ? '' : existing;
   document.getElementById('deviceNameOverlay').classList.add('open');
   setTimeout(() => { input.focus(); input.select(); }, 60);
 }
@@ -2604,6 +2845,17 @@ function submitDeviceName() {
   db.deviceProfile.archers.push(nextName);
   db.deviceProfile.activeArcher = nextName;
   save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
+  
+  // Handle migration context
+  if (deviceNameOverlayContext === 'migration') {
+    completeMigration(nextName);
+    if (window.migrationResolveCallback) {
+      window.migrationResolveCallback();
+      window.migrationResolveCallback = null;
+    }
+    return;
+  }
+  
   if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
     const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
   }
@@ -2682,9 +2934,15 @@ window.median_geolocation_ready = function medianGeolocationReady() {
 function startSession(type, options = {}) {
   const normalizedType = normalizeSessionType(type);
   session = {
-    id: Date.now(), type: normalizedType, date: new Date().toISOString(), location: null,
-    archerName: options.ephemeral ? '' : getDeviceArcherName(), ephemeral: options.ephemeral || false,
-    rounds: [], currentRound: createRound('bullseye', 10)
+    id: Date.now(), 
+    sessionId: generateSessionId(),
+    type: normalizedType, 
+    date: new Date().toISOString(), 
+    location: null,
+    archerName: getDeviceArcherName() || '', 
+    ephemeral: options.ephemeral || false,
+    rounds: [], 
+    currentRound: createRound('bullseye', 10)
   };
   if (normalizedType === '3d_tournament') {
     session.startAnimal = threeDTournamentSetup.startAnimal; session.direction = threeDTournamentSetup.direction;
@@ -3221,8 +3479,40 @@ const diagFilters = new Set();
 
 let homeSort = 'newest';
 let homeSearchQuery = '';
+let historyViewMode = localStorage.getItem('historyViewMode') || 'personal';
 let activeSortContext = 'home';
 let activeLocationContext = 'home';
+
+function setHistoryView(mode) {
+  historyViewMode = mode;
+  try {
+    localStorage.setItem('historyViewMode', mode);
+  } catch (error) {
+    console.warn('Failed to save history view mode:', error);
+  }
+  
+  // Update button states
+  document.getElementById('viewTogglePersonal').classList.toggle('active', mode === 'personal');
+  document.getElementById('viewTogglePublic').classList.toggle('active', mode === 'public');
+  
+  // Re-render the home view with the new filter
+  renderHome();
+}
+
+function filterSessionsByView(sessions) {
+  const activeArcher = normalizePersonName(db.deviceProfile?.activeArcher);
+  
+  if (historyViewMode === 'personal') {
+    // Personal view: show only sessions where archerName matches activeArcher
+    return sessions.filter(session => normalizePersonName(session.archerName) === activeArcher);
+  } else if (historyViewMode === 'public') {
+    // Public view: show only sessions where archerName does NOT match activeArcher
+    return sessions.filter(session => normalizePersonName(session.archerName) !== activeArcher);
+  }
+  
+  // Default: return all sessions (fallback)
+  return sessions;
+}
 
 function handleHomeSearch(val) {
   homeSearchQuery = val.toLowerCase().trim();
@@ -3842,7 +4132,8 @@ function renderHome() {
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => 
     sessionMatchesFilter(sessionObj, homeFilters, 'home') && sessionMatchesSearch(sessionObj, homeSearchQuery)
   );
-  const filtered = applySortToSessions(newestFirst, homeSort);
+  const viewFiltered = filterSessionsByView(newestFirst);
+  const filtered = applySortToSessions(viewFiltered, homeSort);
   window.currentVisibleHomeSessions = filtered;
 
   const archBtn = document.getElementById('homeArcherBtn');
@@ -3915,6 +4206,16 @@ function openSessionOverlay(idx) {
   const owner = document.getElementById('sessionOverlayOwner'); const ownerName = normalizePersonName(s.archerName);
   owner.textContent = ownerName || 'Unassigned'; owner.classList.toggle('unassigned', !ownerName);
 
+  // Check ownership for access control
+  const activeArcher = normalizePersonName(db.deviceProfile?.activeArcher);
+  const isOwner = normalizePersonName(s.archerName) === activeArcher;
+  
+  // Hide edit/delete buttons if not owner
+  const editBtn = document.querySelector('[onclick="openSessionArcherOverlay()"]');
+  const deleteBtn = document.querySelector('[onclick="deleteCurrentSession()"]');
+  if (editBtn) editBtn.style.display = isOwner ? 'flex' : 'none';
+  if (deleteBtn) deleteBtn.style.display = isOwner ? 'flex' : 'none';
+
   document.getElementById('sessionOverlayTotal').textContent = getSessionTotal(s);
 
   const container = document.getElementById('sessionOverlayRounds');
@@ -3922,14 +4223,21 @@ function openSessionOverlay(idx) {
     const rs = r.arrows.reduce((x,a)=>x+a.score,0); const info = roundDescriptor(r);
     const pips = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
     const notesHtml = r.notes ? `<div style="width:100%; font-size:12px; color:var(--muted); margin-top:6px; padding-left:66px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${r.notes}</div>` : '';
+    // Hide delete button for rounds if not owner
+    const deleteBtn = isOwner ? `<button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>` : '';
     return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})" style="flex-wrap:wrap;">
       <div style="display:flex; width:100%; align-items:center; gap:10px;">
         <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
-        <button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>
+        ${deleteBtn}
       </div>
       ${notesHtml}
     </div>`;
   }).join('');
+  
+  // Hide edit button in session owner row if not owner
+  const ownerEditBtn = document.querySelector('.session-owner-row .icon-btn');
+  if (ownerEditBtn) ownerEditBtn.style.display = isOwner ? 'flex' : 'none';
+  
   document.getElementById('sessionOverlay').classList.add('open');
 }
 
@@ -3972,7 +4280,17 @@ const dctx = detailCanvas.getContext('2d');
 
 function openRoundDetail(sessionIdx, roundIdx) {
   const r = db.sessions[sessionIdx].rounds[roundIdx];
+  const s = db.sessions[sessionIdx];
   document.getElementById('detailTitle').textContent = `Round ${roundIdx+1} · ${roundDescriptor(r).shortLabel}`;
+  
+  // Display session owner
+  const ownerRow = document.getElementById('detailOwnerRow');
+  const ownerName = document.getElementById('detailOwnerName');
+  const normalizedOwner = normalizePersonName(s.archerName);
+  ownerName.textContent = normalizedOwner || 'Unassigned';
+  ownerName.classList.toggle('unassigned', !normalizedOwner);
+  ownerRow.style.display = 'flex';
+  
   drawTargetOnCtx(dctx, 600, r.arrows, r.mode);
   document.getElementById('detailArrows').innerHTML = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="detail-pip${lt?' dark-text':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
   
@@ -4564,6 +4882,11 @@ renderHomeFilters();
 renderDiagFilters();
 renderThreeDTournamentSetup();
 updateDeviceNameSummary();
+
+// Initialize history view toggle state
+document.getElementById('viewTogglePersonal').classList.toggle('active', historyViewMode === 'personal');
+document.getElementById('viewTogglePublic').classList.toggle('active', historyViewMode === 'public');
+
 renderHome();
 drawTarget([]);
 
