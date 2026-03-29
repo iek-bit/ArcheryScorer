@@ -1671,22 +1671,6 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="settings-section">
     <div class="settings-label">ARCHERS</div>
     
-    <div class="settings-card">
-      <div style="padding: 16px;">
-        <div class="inline-field">
-          <label for="archerNameInput">Archer Name</label>
-          <input 
-            type="text" 
-            id="archerNameInput" 
-            class="modal-input" 
-            placeholder="Enter your name"
-            maxlength="40"
-            style="margin-bottom: 0;"
-          >
-        </div>
-      </div>
-    </div>
-    
     <div id="settingsArchersList"></div>
     <div class="settings-row" onclick="openDeviceNameOverlay('settings')">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
@@ -2367,7 +2351,7 @@ function markSynced(id) {
     localStorage.setItem(SYNCED_KEY, JSON.stringify([...s]));
   } catch {}
 }
-function cfReady() { return !!getCfSecret(); }
+function cfReady() { return true; }
 
 function cfHeaders(withSecret = false) {
   const h = { 'Content-Type': 'application/json', 'X-Club-Pin': getCfPin() };
@@ -2456,7 +2440,6 @@ async function autoSyncUnsyncedSessions() {
 
 // Manual sync button in settings
 async function syncUnsyncedSessions() {
-  if (!cfReady()) { appAlert('Add your Worker URL and Club Secret in Settings first.'); return; }
   if (!getCfPin()) { openClubPinOverlay(() => syncUnsyncedSessions()); return; }
   const synced  = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
@@ -2515,10 +2498,6 @@ function switchHistoryTab(tab) {
   if (tab === 'my') { renderHome(); return; }
 
   // Club tab: require PIN first
-  if (!cfReady()) {
-    showClubError('Add your Worker URL and Club Secret in Settings to use Club History.');
-    return;
-  }
   if (!getCfPin()) { openClubPinOverlay(() => switchHistoryTab('club')); return; }
   loadClubHistory();
 }
@@ -3223,30 +3202,6 @@ function updateDeviceNameSummary() {
       ${bowInfoHtml}
     `;
   }).join('');
-  
-  // Initialize archer name input field
-  initializeArcherNameInput();
-}
-
-function initializeArcherNameInput() {
-  const input = document.getElementById('archerNameInput');
-  if (!input) return;
-  
-  // Display current archer name if set
-  const currentName = getDeviceArcherName();
-  input.value = currentName || '';
-  
-  // Wire up input to device profile storage
-  input.addEventListener('input', function() {
-    const newName = this.value.trim();
-    setDeviceArcherName(newName);
-  });
-  
-  input.addEventListener('blur', function() {
-    // Ensure the displayed value is normalized
-    const normalized = getDeviceArcherName();
-    this.value = normalized || '';
-  });
 }
 
 function selectActiveArcher(name) {
