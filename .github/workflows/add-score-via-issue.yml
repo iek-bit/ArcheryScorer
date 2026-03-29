@@ -17,15 +17,18 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Extract and add score
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           python3 << 'EOF'
           import json
           import sys
           import re
+          import os
           from datetime import datetime
           
           # Extract JSON from issue body
-          issue_body = """${{ github.event.issue.body }}"""
+          issue_body = os.environ.get("ISSUE_BODY", "")
           
           # Find JSON block
           json_match = re.search(r'```json\s*\n(.*?)\n```', issue_body, re.DOTALL)
