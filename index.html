@@ -1121,6 +1121,110 @@
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
   }
 
+  /* ── CLUB / GLOBAL HISTORY ── */
+  .history-tab-toggle {
+    display: flex;
+    gap: 0;
+    padding: 10px 16px 0;
+  }
+  .history-tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .history-tab-btn:first-child { border-radius: 20px 0 0 20px; border-right: none; }
+  .history-tab-btn:last-child  { border-radius: 0 20px 20px 0; border-left: none; }
+  .history-tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .history-tab-btn.active + .history-tab-btn { border-left-color: var(--accent); }
+
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .club-error-banner {
+    margin: 10px 16px 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(224,82,82,.1);
+    border: 1px solid rgba(224,82,82,.3);
+    color: var(--red);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .global-item {
+    margin: 0 16px 10px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .global-item:active { transform: scale(.98); border-color: var(--accent); }
+  .global-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .global-item-archer {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .global-item-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--accent);
+  }
+  .global-item-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Club PIN overlay */
+  .club-pin-modal {
+    background: var(--bg2);
+    border-radius: 22px;
+    width: min(380px, calc(100vw - 32px));
+    padding: 24px;
+    border: 1px solid var(--border);
+    transform: scale(.95);
+    transition: transform .2s;
+  }
+  .detail-overlay.open .club-pin-modal { transform: scale(1); }
+
   @media (max-width: 430px) {
     nav button {
       font-size: 9px;
@@ -1251,6 +1355,14 @@
     .page { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
     nav { min-height: calc(52px + env(safe-area-inset-bottom)); }
     nav button { padding: 6px 0 4px; }
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
 
   /* score flash */
@@ -1418,34 +1530,69 @@ const PRACTICE_TARGET_OPTIONS = [
       <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search">
     </div>
   </div>
-  <div class="selection-bar" id="homeSelectionBar">
-    <div style="display:flex; gap:12px; align-items:center">
-      <button class="icon-btn" onclick="exitHomeSelectMode()" title="Cancel Selection" aria-label="Cancel Selection">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-      </button>
-      <button class="icon-btn" id="homeSelectAllBtn" onclick="toggleHomeSelectAll()" title="Select All" aria-label="Select All">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-      </button>
-      <button class="icon-btn" onclick="printSelectedSessions()" title="Print Scorecards" aria-label="Print Scorecards">
-        <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+
+  <!-- My / Club toggle -->
+  <div class="history-tab-toggle">
+    <button class="history-tab-btn active" id="tabMyHistory" onclick="switchHistoryTab('my')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      My History
+    </button>
+    <button class="history-tab-btn" id="tabClubHistory" onclick="switchHistoryTab('club')">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="9.5" cy="7" r="3"></circle><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 4.13a3 3 0 0 1 0 5.74"></path></svg>
+      Club
+    </button>
+  </div>
+
+  <!-- MY HISTORY panel -->
+  <div id="myHistoryPanel">
+    <div class="selection-bar" id="homeSelectionBar">
+      <div style="display:flex; gap:12px; align-items:center">
+        <button class="icon-btn" onclick="exitHomeSelectMode()" title="Cancel Selection" aria-label="Cancel Selection">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+        <button class="icon-btn" id="homeSelectAllBtn" onclick="toggleHomeSelectAll()" title="Select All" aria-label="Select All">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+        </button>
+        <button class="icon-btn" onclick="printSelectedSessions()" title="Print Scorecards" aria-label="Print Scorecards">
+          <svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        </button>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--accent);"><span id="homeSelectCount">0</span> SELECTED</div>
+      <button class="icon-btn danger" onclick="deleteHomeSelected()" title="Delete Selected" aria-label="Delete Selected">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
       </button>
     </div>
-    <div style="font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; color:var(--accent);"><span id="homeSelectCount">0</span> SELECTED</div>
-    <button class="icon-btn danger" onclick="deleteHomeSelected()" title="Delete Selected" aria-label="Delete Selected">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
-    </button>
+    <div class="filter-bar" id="homeFilterBar">
+      <button class="sort-btn" onclick="openFiltersOnlyOverlay('home')" style="flex: 1; justify-content: center;">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
+        Filters
+      </button>
+      <button class="sort-btn" onclick="openSortOnlyOverlay('home')" style="flex: 1; justify-content: center;">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"></path></svg>
+        Sort
+      </button>
+    </div>
+    <div id="recentList"></div>
   </div>
-  <div class="filter-bar" id="homeFilterBar">
-    <button class="sort-btn" onclick="openFiltersOnlyOverlay('home')" style="flex: 1; justify-content: center;">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
-      Filters
-    </button>
-    <button class="sort-btn" onclick="openSortOnlyOverlay('home')" style="flex: 1; justify-content: center;">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"></path></svg>
-      Sort
-    </button>
+
+  <!-- CLUB HISTORY panel -->
+  <div id="clubHistoryPanel" style="display:none">
+    <div id="clubErrorBanner" style="display:none" class="club-error-banner">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <span id="clubErrorMsg">Could not reach the club server.</span>
+    </div>
+    <div class="filter-bar" id="clubFilterBar">
+      <button class="sort-btn" onclick="openFiltersOnlyOverlay('club')" style="flex: 1; justify-content: center;">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
+        Filters
+      </button>
+      <button class="sort-btn" onclick="openSortOnlyOverlay('club')" style="flex: 1; justify-content: center;">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"></path></svg>
+        Sort
+      </button>
+    </div>
+    <div id="clubList"></div>
   </div>
-  <div id="recentList"></div>
 </div>
 
 <div id="page-diag" class="page">
@@ -1547,6 +1694,39 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="settings-row-title">Add Archer</div>
         <div class="settings-row-sub">Create a new profile</div>
       </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-label">CLUB SYNC</div>
+    <div class="settings-card">
+      <div style="padding: 16px;">
+        <div class="inline-field">
+          <label for="cfWorkerUrl">Club Server URL</label>
+          <input type="url" id="cfWorkerUrl" class="modal-input" placeholder="https://your-worker.workers.dev" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Paste the Worker URL your club admin gave you. The Club PIN is entered when you first open the Club tab.</p>
+      </div>
+    </div>
+
+    <div class="settings-label" style="margin-top:16px;">ADMIN ONLY</div>
+    <div class="settings-card">
+      <div style="padding: 16px;">
+        <div class="inline-field">
+          <label for="cfSecret">Club Secret</label>
+          <input type="password" id="cfSecret" class="modal-input" placeholder="Only needed to delete sessions" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Only the club admin needs this. Required to delete sessions or reset data globally. Never share this.</p>
+      </div>
+    </div>
+
+    <div class="settings-row" onclick="syncUnsyncedSessions()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Sync Old Sessions</div>
+        <div class="settings-row-sub">Push unsynced local sessions to club</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
   </div>
 
@@ -1774,6 +1954,50 @@ const PRACTICE_TARGET_OPTIONS = [
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
       <span id="sessionOverlayTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Club PIN overlay -->
+<div class="detail-overlay" id="clubPinOverlay">
+  <div class="club-pin-modal">
+    <div class="detail-modal-header" style="margin-bottom:16px">
+      <div>
+        <h3>Club Access</h3>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Enter your club PIN to view shared history</div>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('clubPinOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <input id="clubPinInput" class="modal-input" type="password" inputmode="numeric" placeholder="Club PIN" maxlength="12" autocomplete="off">
+    <button class="modal-btn primary" onclick="submitClubPin()">ACCESS CLUB HISTORY</button>
+    <button class="modal-btn" onclick="closeOverlay('clubPinOverlay')">CANCEL</button>
+  </div>
+</div>
+
+<!-- Global session detail overlay (read-only) -->
+<div class="detail-overlay" id="globalSessionOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <div>
+        <h3 id="globalSessionTitle">Session</h3>
+        <div id="globalSessionMeta" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('globalSessionOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="session-owner-row">
+      <div>
+        <div class="session-owner-label">Archer</div>
+        <div class="session-owner-name" id="globalSessionOwner"></div>
+      </div>
+    </div>
+    <div id="globalSessionRounds"></div>
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
+      <span id="globalSessionTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
     </div>
   </div>
 </div>
@@ -2127,6 +2351,287 @@ const PRACTICE_TARGET_OPTIONS = [
 </div>
 
 <script>
+// ═══════════════════════════════════════════════
+//  CLOUDFLARE SYNC LAYER
+// ═══════════════════════════════════════════════
+const CF_URL_KEY    = 'achery_cf_url';
+const CF_SECRET_KEY = 'achery_cf_secret';
+const CF_PIN_KEY    = 'achery_cf_pin';    // stored after successful auth
+const SYNCED_KEY    = 'achery_synced_ids'; // set of session IDs already pushed
+
+function getCfUrl()    { try { return localStorage.getItem(CF_URL_KEY)    || ''; } catch { return ''; } }
+function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
+function getCfPin()    { try { return localStorage.getItem(CF_PIN_KEY)    || ''; } catch { return ''; } }
+function getSyncedIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) || '[]')); } catch { return new Set(); }
+}
+function markSynced(id) {
+  try {
+    const s = getSyncedIds(); s.add(String(id));
+    localStorage.setItem(SYNCED_KEY, JSON.stringify([...s]));
+  } catch {}
+}
+function cfReady() { return !!(getCfUrl() && getCfSecret()); }
+
+function cfHeaders(withSecret = false) {
+  const h = { 'Content-Type': 'application/json', 'X-Club-Pin': getCfPin() };
+  if (withSecret) h['X-Club-Secret'] = getCfSecret();
+  return h;
+}
+
+async function cfFetch(path, opts = {}) {
+  const url = getCfUrl().replace(/\/$/, '') + path;
+  const res = await fetch(url, { ...opts, headers: { ...cfHeaders(opts.withSecret), ...(opts.headers || {}) } });
+  if (!res.ok) throw new Error(`CF ${res.status}`);
+  return res.json();
+}
+
+// Push one session to Cloudflare (fire-and-forget, silent on error)
+async function cfPushSession(sessionObj) {
+  if (!cfReady() || !getCfPin()) return;
+  try {
+    await cfFetch('/sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionObj)
+    });
+    markSynced(sessionObj.id);
+  } catch (e) { console.warn('CF push failed:', e.message); }
+}
+
+// Delete one session from Cloudflare
+async function cfDeleteSession(id) {
+  if (!cfReady() || !getCfPin()) return;
+  try { await cfFetch(`/sessions/${id}`, { method: 'DELETE', withSecret: true }); } catch {}
+}
+
+// Pull all sessions from Cloudflare
+async function cfPullSessions() {
+  if (!cfReady() || !getCfPin()) throw new Error('Not configured');
+  return cfFetch('/sessions');
+}
+
+// Delete everything for an archer from Cloudflare
+async function cfDeleteArcher(name) {
+  if (!cfReady() || !getCfPin()) return;
+  try {
+    await cfFetch(`/archer/${encodeURIComponent(name)}`, { method: 'DELETE', withSecret: true });
+  } catch {}
+}
+
+// Check if a name is taken on the club server
+async function cfCheckName(name) {
+  if (!cfReady() || !getCfPin()) return false;
+  try {
+    const res = await cfFetch(`/check-name?name=${encodeURIComponent(name)}`);
+    return res.taken;
+  } catch { return false; }
+}
+
+// Register a name on the club server
+async function cfRegisterName(name) {
+  if (!cfReady() || !getCfPin()) return;
+  try {
+    await cfFetch('/register-name', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+  } catch {}
+}
+
+function saveCloudflareConfig() {
+  try {
+    const url    = document.getElementById('cfWorkerUrl')?.value.trim() || '';
+    const secret = document.getElementById('cfSecret')?.value.trim() || '';
+    localStorage.setItem(CF_URL_KEY, url);
+    localStorage.setItem(CF_SECRET_KEY, secret);
+  } catch {}
+}
+
+function loadCloudflareConfigIntoUI() {
+  const urlEl    = document.getElementById('cfWorkerUrl');
+  const secretEl = document.getElementById('cfSecret');
+  if (urlEl)    urlEl.value    = getCfUrl();
+  if (secretEl) secretEl.value = getCfSecret();
+}
+
+// Sync all unsynced local sessions on app open
+async function autoSyncUnsyncedSessions() {
+  if (!cfReady() || !getCfPin()) return;
+  const synced = getSyncedIds();
+  const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
+  for (const s of unsynced) { await cfPushSession(s); }
+}
+
+// Manual sync button in settings
+async function syncUnsyncedSessions() {
+  if (!cfReady()) { appAlert('Add your Worker URL and Club Secret in Settings first.'); return; }
+  if (!getCfPin()) { openClubPinOverlay(() => syncUnsyncedSessions()); return; }
+  const synced  = getSyncedIds();
+  const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
+  if (!unsynced.length) { appAlert('All sessions are already synced.'); return; }
+  let ok = 0;
+  for (const s of unsynced) {
+    try { await cfPushSession(s); ok++; } catch {}
+  }
+  appAlert(`Synced ${ok} of ${unsynced.length} sessions to the club.`);
+}
+
+// ── Club PIN ─────────────────────────────────────────────────────────────────
+let _pinCallback = null;
+
+function openClubPinOverlay(cb) {
+  _pinCallback = cb || null;
+  document.getElementById('clubPinInput').value = '';
+  document.getElementById('clubPinOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('clubPinInput').focus(), 80);
+}
+
+async function submitClubPin() {
+  const pin = document.getElementById('clubPinInput').value.trim();
+  if (!pin) { appAlert('Please enter the club PIN.'); return; }
+
+  // Verify PIN by hitting /sessions (will 401 if wrong)
+  try {
+    const url = getCfUrl().replace(/\/$/, '') + '/sessions';
+    const res = await fetch(url, { headers: { 'X-Club-Pin': pin, 'X-Club-Secret': getCfSecret() } });
+    if (res.status === 401) { appAlert('Incorrect PIN. Please try again.'); return; }
+  } catch (e) {
+    appAlert('Could not reach the club server. Check your Worker URL in Settings.');
+    return;
+  }
+
+  try { localStorage.setItem(CF_PIN_KEY, pin); } catch {}
+  closeOverlay('clubPinOverlay');
+  if (_pinCallback) { const cb = _pinCallback; _pinCallback = null; cb(); }
+}
+
+// ── Club history tab ─────────────────────────────────────────────────────────
+let activeHistoryTab = 'my';
+let clubSort = 'newest';
+let clubSessions = [];
+const clubFilters = new Set();
+const activeClubFilters = { club: new Set() };
+const activeDateFiltersClub = { start: null, end: null };
+
+function switchHistoryTab(tab) {
+  activeHistoryTab = tab;
+  document.getElementById('tabMyHistory').classList.toggle('active',   tab === 'my');
+  document.getElementById('tabClubHistory').classList.toggle('active', tab === 'club');
+  document.getElementById('myHistoryPanel').style.display   = tab === 'my'   ? 'block' : 'none';
+  document.getElementById('clubHistoryPanel').style.display = tab === 'club' ? 'block' : 'none';
+
+  if (tab === 'my') { renderHome(); return; }
+
+  // Club tab: require PIN first
+  if (!cfReady()) {
+    showClubError('Add your Worker URL and Club Secret in Settings to use Club History.');
+    return;
+  }
+  if (!getCfPin()) { openClubPinOverlay(() => switchHistoryTab('club')); return; }
+  loadClubHistory();
+}
+
+async function loadClubHistory() {
+  showClubError(null); // clear error
+  document.getElementById('clubList').innerHTML =
+    `<div class="empty-state" style="padding:40px 0">
+       <div class="spinner" style="width:32px;height:32px;border-width:3px;margin:0 auto 12px"></div>
+       Loading club sessions...
+     </div>`;
+  try {
+    const all = await cfPullSessions();
+    const myName = getDeviceArcherName().toLowerCase();
+    // Exclude the current archer's own sessions
+    clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
+    renderClubHistory();
+  } catch (e) {
+    showClubError('Could not load club sessions. The server may be unreachable.');
+    document.getElementById('clubList').innerHTML = '';
+  }
+}
+
+function showClubError(msg) {
+  const banner = document.getElementById('clubErrorBanner');
+  const msgEl  = document.getElementById('clubErrorMsg');
+  if (!banner) return;
+  if (msg) { msgEl.textContent = msg; banner.style.display = 'flex'; }
+  else { banner.style.display = 'none'; }
+}
+
+function renderClubHistory() {
+  const list   = document.getElementById('clubList');
+  const myName = getDeviceArcherName().toLowerCase();
+
+  let filtered = clubSessions.filter(s => sessionMatchesFilter(s, clubFilters, 'club') &&
+                                          sessionMatchesSearch(s, homeSearchQuery));
+  filtered = applySortToSessions(filtered, clubSort);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('users')}</div>No club sessions yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(s => {
+    const total    = getSessionTotal(s);
+    const archer   = s.archerName || 'Unknown';
+    const dateStr  = new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+    const typeLabel = sessionTypeBadge(s);
+    const loc      = formatLocation(s.location);
+    const meta     = [dateStr, ...(loc ? [loc] : [])].join(' · ');
+    return `<div class="global-item" onclick="openGlobalSessionOverlay(${JSON.stringify(s.id)})">
+      <div class="global-item-top">
+        <div>
+          <div class="global-item-archer">${archer}</div>
+          <div class="global-item-meta">${meta}</div>
+          <div style="margin-top:4px">${typeLabel}</div>
+        </div>
+        <div class="global-item-score">${total}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openGlobalSessionOverlay(id) {
+  const s = clubSessions.find(s => String(s.id) === String(id));
+  if (!s) return;
+  const d = new Date(s.date);
+  const dateStr = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+  document.getElementById('globalSessionTitle').innerHTML = sessionTypeBadge(s);
+  const loc = formatLocation(s.location);
+  document.getElementById('globalSessionMeta').textContent = loc ? `${dateStr} · ${loc}` : dateStr;
+  document.getElementById('globalSessionOwner').textContent = s.archerName || 'Unknown';
+
+  const container = document.getElementById('globalSessionRounds');
+  container.innerHTML = (s.rounds || []).map((r, ri) => {
+    const rs = r.arrows.reduce((x, a) => x + a.score, 0);
+    const info = roundDescriptor(r);
+    const pips = r.arrows.map(a => {
+      const bg = pipColor(a.score);
+      const lt = pipLightText(a.score);
+      return `<div class="sor-pip${lt ? ' lt' : ''}" style="background:${bg}">${a.score === 0 ? 'M' : a.score}</div>`;
+    }).join('');
+    return `<div class="sor-row" style="cursor:default">
+      <div style="display:flex;width:100%;align-items:center;gap:10px;">
+        <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
+        <div class="sor-pips">${pips}</div>
+        <div class="sor-score">${rs}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('globalSessionTotal').textContent = getSessionTotal(s);
+  document.getElementById('globalSessionOverlay').classList.add('open');
+}
+
+// Sort for club tab
+function setSortOnly_club(key) {
+  clubSort = key;
+  document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-sort') === key);
+  });
+  renderClubHistory();
+}
+
 // ═══════════════════════════════════════════════
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
@@ -2868,29 +3373,37 @@ function openDeviceNameOverlay(context = 'launch') {
   setTimeout(() => { input.focus(); input.select(); }, 60);
 }
 
-function submitDeviceName() {
+async function submitDeviceName() {
   const input = document.getElementById('deviceNameInput');
   const nextName = normalizePersonName(input.value);
   if (!nextName) { appAlert('Please enter an archer name.'); input.focus(); return; }
-  
+
   db.deviceProfile.archers = db.deviceProfile.archers || [];
   if (db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(nextName.toLowerCase())) {
     appAlert('This archer already exists on this device.'); input.focus(); return;
   }
+
+  // Check club server for name collision (only if configured and PIN available)
+  if (cfReady() && getCfPin()) {
+    try {
+      const taken = await cfCheckName(nextName);
+      if (taken) {
+        appAlert(`The name "${nextName}" is already taken in the club. Please choose a different name.`);
+        input.focus(); return;
+      }
+      await cfRegisterName(nextName);
+    } catch { /* offline — skip club check */ }
+  }
+
   db.deviceProfile.archers.push(nextName);
   db.deviceProfile.activeArcher = nextName;
   save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
-  
-  // Handle migration context
+
   if (deviceNameOverlayContext === 'migration') {
     completeMigration(nextName);
-    if (window.migrationResolveCallback) {
-      window.migrationResolveCallback();
-      window.migrationResolveCallback = null;
-    }
+    if (window.migrationResolveCallback) { window.migrationResolveCallback(); window.migrationResolveCallback = null; }
     return;
   }
-  
   if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
     const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
   }
@@ -2923,8 +3436,13 @@ function saveFinishedSession(withLocation = true) {
   else finishingSession.location = {manual: true};
   if (finishingSession.location?.label) saveChosenLocation(finishingSession.location);
   db.sessions.push(finishingSession);
-  
-  save(); refreshSavedLocationOptions(); finishingSession = null;
+
+  save(); refreshSavedLocationOptions();
+
+  // Push to Cloudflare (silent, non-blocking)
+  cfPushSession(finishingSession);
+
+  finishingSession = null;
   closeOverlay('finishOverlay'); renderHome(); renderDiag(); goPage('score', document.getElementById('nav-score'));
 }
 
@@ -3833,118 +4351,113 @@ function setFiltersSort(key) {
 // ═══════════════════════════════════════════════
 function openFiltersOnlyOverlay(context) {
   activeFiltersContext = context;
-  
+
+  // Source sessions depend on context
+  const sourceSessions = context === 'club' ? clubSessions : db.sessions;
+
   // Populate archer filter
   const archerContainer = document.getElementById('filtersOnlyArcherContainer');
-  const uniqueArchers = [...new Set(db.sessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
-  db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
-  const activeArcherSet = activeArcherFilters[context];
-  
+  const uniqueArchers = [...new Set(sourceSessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
+  if (context === 'home') db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
+  const activeArcherSet = activeArcherFilters[context] || (activeArcherFilters[context] = new Set());
+
   let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
   uniqueArchers.forEach(arch => {
     archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
   });
-  if (uniqueArchers.length === 0) {
-    archerHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No archers saved yet.</div>`;
-  }
+  if (uniqueArchers.length === 0) archerHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No archers yet.</div>`;
   archerContainer.innerHTML = archerHtml;
-  
+
   // Populate location filter
   const locationContainer = document.getElementById('filtersOnlyLocationContainer');
-  const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
-  const activeLocSet = activeLocationFilters[context];
-  
+  const uniqueLocations = [...new Set(sourceSessions.map(s => s.location?.label).filter(Boolean))].sort();
+  const activeLocSet = activeLocationFilters[context] || (activeLocationFilters[context] = new Set());
+
   let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
   uniqueLocations.forEach(loc => {
     locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
   });
-  if (uniqueLocations.length === 0) {
-    locationHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No locations saved yet.</div>`;
-  }
+  if (uniqueLocations.length === 0) locationHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No locations yet.</div>`;
   locationContainer.innerHTML = locationHtml;
-  
+
   // Populate date filter
-  const dateFilter = activeDateFilters[context];
+  const dateFilter = context === 'club' ? activeDateFiltersClub : (activeDateFilters[context] || { start: null, end: null });
   document.getElementById('filtersOnlyDateStart').value = dateFilter.start || '';
-  document.getElementById('filtersOnlyDateEnd').value = dateFilter.end || '';
-  
+  document.getElementById('filtersOnlyDateEnd').value   = dateFilter.end   || '';
+
   document.getElementById('filtersOnlyOverlay').classList.add('open');
 }
 
 function setFiltersOnlyArcherFilter(archLabel) {
-  const activeSet = activeArcherFilters[activeFiltersContext];
-  if (archLabel === 'all') {
-    activeSet.clear();
-  } else {
-    if (activeSet.has(archLabel)) activeSet.delete(archLabel);
-    else activeSet.add(archLabel);
-  }
-  
+  const activeSet = activeArcherFilters[activeFiltersContext] || (activeArcherFilters[activeFiltersContext] = new Set());
+  if (archLabel === 'all') activeSet.clear();
+  else if (activeSet.has(archLabel)) activeSet.delete(archLabel);
+  else activeSet.add(archLabel);
   openFiltersOnlyOverlay(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'club') renderClubHistory();
 }
 
 function setFiltersOnlyLocationFilter(locLabel) {
-  const activeLocSet = activeLocationFilters[activeFiltersContext];
-  if (locLabel === 'all') {
-    activeLocSet.clear();
-  } else {
-    if (activeLocSet.has(locLabel)) {
-      activeLocSet.delete(locLabel);
-    } else {
-      activeLocSet.add(locLabel);
-    }
-  }
-  
+  const activeLocSet = activeLocationFilters[activeFiltersContext] || (activeLocationFilters[activeFiltersContext] = new Set());
+  if (locLabel === 'all') activeLocSet.clear();
+  else if (activeLocSet.has(locLabel)) activeLocSet.delete(locLabel);
+  else activeLocSet.add(locLabel);
   openFiltersOnlyOverlay(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'club') renderClubHistory();
 }
 
 function applyFiltersOnlyDateFilter() {
   const startVal = document.getElementById('filtersOnlyDateStart').value;
-  const endVal = document.getElementById('filtersOnlyDateEnd').value;
-  
-  activeDateFilters[activeFiltersContext] = {
-    start: startVal || null,
-    end: endVal || null
-  };
-  
-  if (activeFiltersContext === 'home') renderHome();
+  const endVal   = document.getElementById('filtersOnlyDateEnd').value;
+  if (activeFiltersContext === 'club') {
+    activeDateFiltersClub.start = startVal || null;
+    activeDateFiltersClub.end   = endVal   || null;
+    renderClubHistory();
+  } else {
+    activeDateFilters[activeFiltersContext] = { start: startVal || null, end: endVal || null };
+    if (activeFiltersContext === 'home') renderHome();
+  }
 }
 
 function clearFiltersOnlyDateFilter() {
-  activeDateFilters[activeFiltersContext] = { start: null, end: null };
   document.getElementById('filtersOnlyDateStart').value = '';
-  document.getElementById('filtersOnlyDateEnd').value = '';
-  
-  if (activeFiltersContext === 'home') renderHome();
+  document.getElementById('filtersOnlyDateEnd').value   = '';
+  if (activeFiltersContext === 'club') {
+    activeDateFiltersClub.start = null; activeDateFiltersClub.end = null;
+    renderClubHistory();
+  } else {
+    activeDateFilters[activeFiltersContext] = { start: null, end: null };
+    if (activeFiltersContext === 'home') renderHome();
+  }
 }
+
 
 function openSortOnlyOverlay(context) {
   activeFiltersContext = context;
-  
-  // Update sort buttons
+  const currentSort = context === 'club' ? clubSort : homeSort;
   const sortButtons = document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]');
   sortButtons.forEach(btn => {
-    const sortKey = btn.getAttribute('data-sort');
-    const isActive = homeSort === sortKey;
-    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('active', btn.getAttribute('data-sort') === currentSort);
   });
-  
   document.getElementById('sortOnlyOverlay').classList.add('open');
 }
 
 function setSortOnly(key) {
-  homeSort = key;
-  
-  // Update sort buttons
-  const sortButtons = document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]');
-  sortButtons.forEach(btn => {
-    const sortKey = btn.getAttribute('data-sort');
-    btn.classList.toggle('active', sortKey === key);
-  });
-  
-  renderHome();
+  if (activeFiltersContext === 'club') {
+    clubSort = key;
+    document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-sort') === key);
+    });
+    renderClubHistory();
+  } else {
+    homeSort = key;
+    document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-sort') === key);
+    });
+    renderHome();
+  }
 }
 
 function computeGroupingScore(sessionObj) {
@@ -4046,45 +4559,37 @@ function roundMatchesFilters(round, filters) {
 }
 
 function sessionMatchesFilter(sessionObj, filters, context) {
-  const activeLocSet = activeLocationFilters[context];
-  if (activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) {
-    return false;
-  }
-  
-  const activeArchSet = activeArcherFilters[context];
-  if (activeArchSet && activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) {
-    return false;
-  }
-  
-  // Date filtering
-  const dateFilter = activeDateFilters[context];
-  if (dateFilter.start || dateFilter.end) {
+  const activeLocSet = (activeLocationFilters[context] || new Set());
+  if (activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) return false;
+
+  const activeArchSet = (activeArcherFilters[context] || new Set());
+  if (activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) return false;
+
+  // Date filtering — club uses its own store
+  const dateFilter = context === 'club' ? activeDateFiltersClub : (activeDateFilters[context] || { start: null, end: null });
+  if (dateFilter && (dateFilter.start || dateFilter.end)) {
     const sessionDate = new Date(sessionObj.date);
     if (dateFilter.start) {
-      const startDate = new Date(dateFilter.start);
-      startDate.setHours(0, 0, 0, 0);
+      const startDate = new Date(dateFilter.start); startDate.setHours(0,0,0,0);
       if (sessionDate < startDate) return false;
     }
     if (dateFilter.end) {
-      const endDate = new Date(dateFilter.end);
-      endDate.setHours(23, 59, 59, 999);
+      const endDate = new Date(dateFilter.end); endDate.setHours(23,59,59,999);
       if (sessionDate > endDate) return false;
     }
   }
-  
+
   if (filters.size === 0) return true;
 
-  const selectedScopes = [...filters].filter(k => getFilterDefinition(k).group === 'scope');
+  const selectedScopes   = [...filters].filter(k => getFilterDefinition(k).group === 'scope');
   const selectedFamilies = [...filters].filter(k => getFilterDefinition(k).group === 'family');
-  const selectedValues = [...filters].filter(k => getFilterDefinition(k).group === 'value');
-  
+  const selectedValues   = [...filters].filter(k => getFilterDefinition(k).group === 'value');
+
   if (selectedScopes.length > 0) {
     const sScope = isTournamentSession(sessionObj) ? 'tournament' : 'practice';
     if (!selectedScopes.includes(sScope)) return false;
   }
-
   if (selectedFamilies.length === 0 && selectedValues.length === 0) return true;
-
   return sessionObj.rounds.some(round => roundMatchesFilters(round, filters));
 }
 
@@ -4515,6 +5020,8 @@ function openSessionOverlay(idx) {
 
 function deleteCurrentSession() {
   appConfirm('Delete this entire session?', () => {
+    const s = db.sessions[activeSessionIdx];
+    if (s) cfDeleteSession(s.id);
     db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
   });
 }
@@ -4626,7 +5133,7 @@ function goPage(name, btn) {
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
-  if(name==='settings') updateDeviceNameSummary();
+  if(name==='settings') { updateDeviceNameSummary(); loadCloudflareConfigIntoUI(); }
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
@@ -4693,7 +5200,15 @@ function uploadSave(e) {
 
 function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
 
-function resetData() {
+async function resetData() {
+  const archerName = getDeviceArcherName();
+
+  // Wipe Cloudflare data for this archer (silent if offline)
+  if (archerName) await cfDeleteArcher(archerName);
+
+  // Clear synced IDs so nothing is considered pushed
+  try { localStorage.removeItem(SYNCED_KEY); } catch {}
+
   db = { sessions: [], savedLocations: [], deviceProfile: {name: '', archers: [], activeArcher: ''} };
   session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
   save(); refreshSavedLocationOptions(); resetActiveSessionUI();
@@ -5187,9 +5702,13 @@ renderHomeFilters();
 renderDiagFilters();
 renderThreeDTournamentSetup();
 updateDeviceNameSummary();
+loadCloudflareConfigIntoUI();
 
 renderHome();
 drawTarget([]);
+
+// Auto-sync unsynced sessions in background after a short delay
+setTimeout(() => autoSyncUnsyncedSessions(), 3000);
 
 function wipeEphemeralOnExit() {
   if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
