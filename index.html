@@ -1689,14 +1689,16 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
     </div>
 
-    <div class="settings-label" style="margin-top:16px;">ADMIN ONLY</div>
-    <div class="settings-card">
-      <div style="padding: 16px;">
-        <div class="inline-field">
-          <label for="cfSecret">Club Secret</label>
-          <input type="password" id="cfSecret" class="modal-input" placeholder="Only needed to delete sessions" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
+    <div id="adminSecretSection" style="display:none;margin-top:16px;">
+      <div class="settings-label">ADMIN ONLY</div>
+      <div class="settings-card">
+        <div style="padding: 16px;">
+          <div class="inline-field">
+            <label for="cfSecret">Club Secret</label>
+            <input type="password" id="cfSecret" class="modal-input" placeholder="Only needed to delete sessions" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Required to delete sessions or reset data globally. Never share this.</p>
         </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Only the club admin needs this. Required to delete sessions or reset data globally. Never share this.</p>
       </div>
     </div>
 
@@ -1996,7 +1998,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>
     <span>Stats</span>
   </button>
-  <button onclick="goPage('settings',this)" id="nav-settings">
+  <button onclick="goPage('settings',this); handleSettingsTap()" id="nav-settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     <span>Settings</span>
   </button>
@@ -2440,7 +2442,6 @@ async function autoSyncUnsyncedSessions() {
 
 // Manual sync button in settings
 async function syncUnsyncedSessions() {
-  if (!getCfPin()) { openClubPinOverlay(() => syncUnsyncedSessions()); return; }
   const synced  = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   if (!unsynced.length) { appAlert('All sessions are already synced.'); return; }
@@ -2449,6 +2450,25 @@ async function syncUnsyncedSessions() {
     try { await cfPushSession(s); ok++; } catch {}
   }
   appAlert(`Synced ${ok} of ${unsynced.length} sessions to the club.`);
+}
+
+// ── 5-tap admin unlock ────────────────────────────────────────────────────────
+let _settingsTapCount = 0;
+let _settingsTapTimer = null;
+function handleSettingsTap() {
+  _settingsTapCount++;
+  clearTimeout(_settingsTapTimer);
+  if (_settingsTapCount >= 5) {
+    _settingsTapCount = 0;
+    const sec = document.getElementById('adminSecretSection');
+    if (sec) {
+      const nowVisible = sec.style.display !== 'none';
+      sec.style.display = nowVisible ? 'none' : 'block';
+      if (!nowVisible) { loadCloudflareConfigIntoUI(); appAlert('Admin mode unlocked.'); }
+    }
+  } else {
+    _settingsTapTimer = setTimeout(() => { _settingsTapCount = 0; }, 1500);
+  }
 }
 
 // ── Club PIN ─────────────────────────────────────────────────────────────────
@@ -5652,8 +5672,16 @@ loadCloudflareConfigIntoUI();
 renderHome();
 drawTarget([]);
 
-// Auto-sync unsynced sessions in background after a short delay
-setTimeout(() => autoSyncUnsyncedSessions(), 3000);
+// On open: push any unsynced local sessions, then pull fresh club data
+setTimeout(async () => {
+  await autoSyncUnsyncedSessions();
+  // Pre-warm club sessions so the Club tab loads instantly
+  try {
+    const all = await cfPullSessions();
+    const myName = getDeviceArcherName().toLowerCase();
+    clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
+  } catch {}
+}, 2000);
 
 function wipeEphemeralOnExit() {
   if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
