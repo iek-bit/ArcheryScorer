@@ -2354,7 +2354,7 @@ function markSynced(id) {
 function cfReady() { return true; }
 
 function cfHeaders(withSecret = false) {
-  const h = { 'Content-Type': 'application/json', 'X-Club-Pin': getCfPin() };
+  const h = { 'Content-Type': 'application/json' };
   if (withSecret) h['X-Club-Secret'] = getCfSecret();
   return h;
 }
@@ -2368,7 +2368,7 @@ async function cfFetch(path, opts = {}) {
 
 // Push one session to Cloudflare (fire-and-forget, silent on error)
 async function cfPushSession(sessionObj) {
-  if (!cfReady() || !getCfPin()) return;
+  if (!cfReady()) return;
   try {
     await cfFetch('/sessions', {
       method: 'POST',
@@ -2380,19 +2380,19 @@ async function cfPushSession(sessionObj) {
 
 // Delete one session from Cloudflare
 async function cfDeleteSession(id) {
-  if (!cfReady() || !getCfPin()) return;
+  if (!cfReady()) return;
   try { await cfFetch(`/sessions/${id}`, { method: 'DELETE', withSecret: true }); } catch {}
 }
 
 // Pull all sessions from Cloudflare
 async function cfPullSessions() {
-  if (!cfReady() || !getCfPin()) throw new Error('Not configured');
+  if (!cfReady()) throw new Error('Not configured');
   return cfFetch('/sessions');
 }
 
 // Delete everything for an archer from Cloudflare
 async function cfDeleteArcher(name) {
-  if (!cfReady() || !getCfPin()) return;
+  if (!cfReady()) return;
   try {
     await cfFetch(`/archer/${encodeURIComponent(name)}`, { method: 'DELETE', withSecret: true });
   } catch {}
@@ -2400,7 +2400,7 @@ async function cfDeleteArcher(name) {
 
 // Check if a name is taken on the club server
 async function cfCheckName(name) {
-  if (!cfReady() || !getCfPin()) return false;
+  if (!cfReady()) return false;
   try {
     const res = await cfFetch(`/check-name?name=${encodeURIComponent(name)}`);
     return res.taken;
@@ -2409,7 +2409,7 @@ async function cfCheckName(name) {
 
 // Register a name on the club server
 async function cfRegisterName(name) {
-  if (!cfReady() || !getCfPin()) return;
+  if (!cfReady()) return;
   try {
     await cfFetch('/register-name', {
       method: 'POST',
@@ -2432,7 +2432,7 @@ function loadCloudflareConfigIntoUI() {
 
 // Sync all unsynced local sessions on app open
 async function autoSyncUnsyncedSessions() {
-  if (!cfReady() || !getCfPin()) return;
+  if (!cfReady()) return;
   const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   for (const s of unsynced) { await cfPushSession(s); }
@@ -2497,8 +2497,6 @@ function switchHistoryTab(tab) {
 
   if (tab === 'my') { renderHome(); return; }
 
-  // Club tab: require PIN first
-  if (!getCfPin()) { openClubPinOverlay(() => switchHistoryTab('club')); return; }
   loadClubHistory();
 }
 
