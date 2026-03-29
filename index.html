@@ -1701,11 +1701,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">CLUB SYNC</div>
     <div class="settings-card">
       <div style="padding: 16px;">
-        <div class="inline-field">
-          <label for="cfWorkerUrl">Club Server URL</label>
-          <input type="url" id="cfWorkerUrl" class="modal-input" placeholder="https://your-worker.workers.dev" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
-        </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Paste the Worker URL your club admin gave you. The Club PIN is entered when you first open the Club tab.</p>
+        <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Club sync is enabled. Enter the Club PIN when you first open the Club tab.</p>
       </div>
     </div>
 
@@ -2359,7 +2355,7 @@ const CF_SECRET_KEY = 'achery_cf_secret';
 const CF_PIN_KEY    = 'achery_cf_pin';    // stored after successful auth
 const SYNCED_KEY    = 'achery_synced_ids'; // set of session IDs already pushed
 
-function getCfUrl()    { try { return localStorage.getItem(CF_URL_KEY)    || ''; } catch { return ''; } }
+function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
 function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
 function getCfPin()    { try { return localStorage.getItem(CF_PIN_KEY)    || ''; } catch { return ''; } }
 function getSyncedIds() {
@@ -2371,7 +2367,7 @@ function markSynced(id) {
     localStorage.setItem(SYNCED_KEY, JSON.stringify([...s]));
   } catch {}
 }
-function cfReady() { return !!(getCfUrl() && getCfSecret()); }
+function cfReady() { return !!getCfSecret(); }
 
 function cfHeaders(withSecret = false) {
   const h = { 'Content-Type': 'application/json', 'X-Club-Pin': getCfPin() };
@@ -2440,17 +2436,13 @@ async function cfRegisterName(name) {
 
 function saveCloudflareConfig() {
   try {
-    const url    = document.getElementById('cfWorkerUrl')?.value.trim() || '';
     const secret = document.getElementById('cfSecret')?.value.trim() || '';
-    localStorage.setItem(CF_URL_KEY, url);
     localStorage.setItem(CF_SECRET_KEY, secret);
   } catch {}
 }
 
 function loadCloudflareConfigIntoUI() {
-  const urlEl    = document.getElementById('cfWorkerUrl');
   const secretEl = document.getElementById('cfSecret');
-  if (urlEl)    urlEl.value    = getCfUrl();
   if (secretEl) secretEl.value = getCfSecret();
 }
 
