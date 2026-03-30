@@ -4034,7 +4034,8 @@ function handleHomeSearch(val) {
   const container = document.getElementById('homeSearchContainer');
   if (val) container.classList.add('has-text');
   else container.classList.remove('has-text');
-  renderHome();
+  if (activeHistoryTab === 'club') renderClubHistory();
+  else renderHome();
 }
 
 function sessionMatchesSearch(sessionObj, queryStr) {
