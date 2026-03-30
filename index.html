@@ -1121,6 +1121,139 @@
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
   }
 
+  /* ── ACCOUNT POPUP ── */
+  .account-popup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    display: flex; align-items: flex-start; justify-content: flex-start;
+    padding: max(16px, env(safe-area-inset-top)) 16px 0;
+    z-index: 300; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .account-popup-overlay.open { opacity: 1; pointer-events: all; }
+  .account-popup {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: min(320px, calc(100vw - 32px));
+    padding: 20px;
+    transform: translateY(-8px) scale(.97);
+    transition: transform .2s;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .account-popup-overlay.open .account-popup { transform: translateY(0) scale(1); }
+  .account-popup-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 1px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .account-popup-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+  .account-popup-btn {
+    width: 100%; padding: 12px 14px;
+    border-radius: 12px; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    cursor: pointer; text-align: left;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; min-height: 46px;
+    transition: border-color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .account-popup-btn:active { border-color: var(--accent); background: rgba(232,197,71,.07); }
+  .account-popup-btn.danger { color: var(--red); }
+  .account-popup-btn.danger:active { border-color: var(--red); background: rgba(224,82,82,.07); }
+  .account-popup-btn .ui-icon { flex-shrink: 0; color: var(--muted); }
+  .account-popup-btn.danger .ui-icon { color: var(--red); }
+  .acct-icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(232,197,71,.12);
+    border: none; color: var(--accent);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .acct-icon-btn:active { background: rgba(232,197,71,.25); }
+
+  /* ── SETTINGS HEADER ── */
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(16px, env(safe-area-inset-top)) 20px 16px;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+  }
+  .settings-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 2px; color: var(--accent);
+  }
+  .settings-version {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--muted);
+  }
+
+  /* ── THEME DROPDOWN ── */
+  .theme-dropdown-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; margin-bottom: 10px;
+  }
+  .theme-dropdown-label {
+    font-size: 14px; font-weight: 500; flex: 1;
+  }
+  .theme-select {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    padding: 8px 12px; cursor: pointer; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%236b7a99" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  /* ── BOW INLINE PANEL ── */
+  .bow-inline-panel {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; margin-bottom: 10px;
+  }
+  .bow-inline-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer;
+    transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 56px;
+  }
+  .bow-inline-header:active { background: var(--bg3); }
+  .bow-inline-header .bih-icon { color: var(--accent); flex-shrink: 0; }
+  .bow-inline-title { font-size: 14px; font-weight: 500; flex: 1; }
+  .bow-inline-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .bow-inline-body {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    display: none;
+  }
+  .bow-inline-body.open { display: block; }
+  .bow-stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .bow-stat-row:last-child { border-bottom: none; }
+  .bow-stat-label { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; }
+  .bow-stat-value { font-weight: 500; }
+
+  /* ── EDIT CREDENTIALS OVERLAY ── */
+  .edit-creds-modal {
+    background: var(--bg2); border-radius: 22px;
+    width: min(400px, calc(100vw - 32px));
+    padding: 24px; border: 1px solid var(--border);
+    transform: scale(.95); transition: transform .2s;
+  }
+  .detail-overlay.open .edit-creds-modal { transform: scale(1); }
+
   /* ── CLUB / GLOBAL HISTORY ── */
   .history-tab-toggle {
     display: flex;
@@ -1664,86 +1797,101 @@ const PRACTICE_TARGET_OPTIONS = [
 </div>
 
 <div id="page-settings" class="page">
-  <div class="diag-header">
-    <h2>SETTINGS</h2>
+  <div class="settings-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="acct-icon-btn" onclick="openAccountPopup()" aria-label="Account">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </button>
+      <div>
+        <h2 style="font-size:22px;letter-spacing:1.5px;">SETTINGS</h2>
+        <div id="settingsAccountName" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);margin-top:1px;">—</div>
+      </div>
+    </div>
+    <div class="settings-version">v<span id="settingsVersion"></span></div>
   </div>
 
+  <!-- BOW PROFILE inline -->
   <div class="settings-section">
-    <div class="settings-label">ACCOUNT</div>
-    <div class="settings-card">
-      <div style="padding:16px 18px; display:flex; align-items:center; gap:14px;">
-        <div style="width:42px;height:42px;border-radius:50%;background:rgba(232,197,71,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg class="ui-icon" style="font-size:20px;color:var(--accent)" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    <div class="settings-label">BOW</div>
+    <div class="bow-inline-panel">
+      <div class="bow-inline-header" onclick="toggleBowInline(this)">
+        <div class="bih-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg>
         </div>
-        <div style="flex:1;min-width:0;">
-          <div id="settingsAccountName" style="font-size:16px;font-weight:500;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Logged in</div>
+        <div style="flex:1">
+          <div class="bow-inline-title">Bow Profile</div>
+          <div class="bow-inline-sub" id="bowInlineSub">Tap to view</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="icon-btn" onclick="event.stopPropagation();openBowProfileOverlay(getDeviceArcherName())" title="Edit bow profile" aria-label="Edit bow profile" style="border:none;background:none;">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+          </button>
+          <svg class="ui-icon bow-chevron" viewBox="0 0 24 24" aria-hidden="true" style="transition:transform .2s;color:var(--muted)"><path d="M6 9l6 6 6-6"></path></svg>
         </div>
       </div>
-    </div>
-    <div class="settings-row" onclick="openAccountOverlay('switch')" style="margin-top:6px;">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Switch Account</div>
-        <div class="settings-row-sub">Log in as a different archer</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-    <div class="settings-row" onclick="openBowProfileOverlay(getDeviceArcherName())" style="margin-top:6px;">
-      <div class="settings-row-icon" style="color:var(--accent)">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 4a10 10 0 0 0 0 16"></path>
-          <path d="M17 4a10 10 0 0 1 0 16"></path>
-          <path d="M7 12h10"></path>
-          <path d="M11 8l6 4-6 4"></path>
-        </svg>
-      </div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Bow Profile</div>
-        <div class="settings-row-sub">Equipment and aiming references</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></div>
+      <div class="bow-inline-body" id="bowInlineBody"></div>
     </div>
   </div>
 
+  <!-- THEME -->
   <div class="settings-section">
-    <div class="settings-label">CLUB SYNC</div>
-    <div class="settings-card">
-      <div style="padding: 16px;">
-        <div id="syncStatusRow" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div id="syncStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;"></div>
-          <span id="syncStatusText" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Checking sync status...</span>
-        </div>
-        <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Sessions are automatically synced to the club server when you log in.</p>
+    <div class="settings-label">THEME</div>
+    <div class="theme-dropdown-row">
+      <div>
+        <div class="theme-dropdown-label">Preset</div>
       </div>
+      <select class="theme-select" id="themePresetSelect" onchange="applyPresetTheme(this.value)">
+        <option value="auto">Auto</option>
+        <option value="dark">Dark</option>
+        <option value="white">White</option>
+        <option value="forest">Dark Green / White</option>
+        <option value="moss">Green / Black</option>
+      </select>
     </div>
-
-    <div id="adminSecretSection" style="display:none;margin-top:16px;">
-      <div class="settings-label">ADMIN ONLY</div>
-      <div class="settings-card">
-        <div style="padding: 16px;">
-          <div class="inline-field">
-            <label for="cfSecret">Club Secret</label>
-            <input type="password" id="cfSecret" class="modal-input" placeholder="Only needed to delete sessions" style="margin-bottom:0;" oninput="saveCloudflareConfig()">
+    <div class="settings-card">
+      <div style="padding:14px 16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="theme-control">
+            <label>Primary</label>
+            <button class="theme-trigger" id="primaryColorTrigger" onclick="openThemeColorPicker('accent')"></button>
           </div>
-          <p style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">Required to delete sessions or reset data globally. Never share this.</p>
+          <div class="theme-control">
+            <label>Secondary</label>
+            <button class="theme-trigger" id="secondaryColorTrigger" onclick="openThemeColorPicker('accent2')"></button>
+          </div>
+          <div class="theme-control">
+            <label>Tertiary</label>
+            <button class="theme-trigger" id="tertiaryColorTrigger" onclick="openThemeColorPicker('accent3')"></button>
+          </div>
+          <div class="theme-control">
+            <label>Text</label>
+            <button class="theme-trigger" id="textColorTrigger" onclick="openThemeColorPicker('text')"></button>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="settings-row" onclick="syncUnsyncedSessions()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></div>
+  <!-- DATA -->
+  <div class="settings-section">
+    <div class="settings-label">DATA</div>
+    <div class="settings-row" onclick="downloadSave()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg></div>
       <div class="settings-row-text">
-        <div class="settings-row-title">Sync Old Sessions</div>
-        <div class="settings-row-sub">Push unsynced local sessions to club</div>
+        <div class="settings-row-title">Download Save File</div>
+        <div class="settings-row-sub">Export all sessions as a .json backup</div>
       </div>
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
-  </div>
-
-  <div class="settings-section">
-    <div class="settings-label">DATA</div>
-
+    <div class="settings-row" onclick="document.getElementById('uploadInput').click()">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Upload Save File</div>
+        <div class="settings-row-sub">Restore sessions from a .json backup</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+    <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="uploadSave(event)">
     <div class="settings-row danger" onclick="confirmReset()">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></div>
       <div class="settings-row-text">
@@ -1754,31 +1902,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
 
-  <div class="settings-section">
-    <div class="settings-label">THEME</div>
-    <div class="theme-card">
-      <div class="theme-grid" id="themePresetGrid"></div>
-      <div class="theme-controls">
-        <div class="theme-control">
-          <label>Primary Color</label>
-          <button class="theme-trigger" id="primaryColorTrigger" onclick="openThemeColorPicker('accent')"></button>
-        </div>
-        <div class="theme-control">
-          <label>Secondary Color</label>
-          <button class="theme-trigger" id="secondaryColorTrigger" onclick="openThemeColorPicker('accent2')"></button>
-        </div>
-        <div class="theme-control">
-          <label>Tertiary Color</label>
-          <button class="theme-trigger" id="tertiaryColorTrigger" onclick="openThemeColorPicker('accent3')"></button>
-        </div>
-        <div class="theme-control">
-          <label>Text Color</label>
-          <button class="theme-trigger" id="textColorTrigger" onclick="openThemeColorPicker('text')"></button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- ABOUT -->
   <div class="settings-section">
     <div class="settings-label">ABOUT</div>
     <div class="settings-row" onclick="openHelpOverlay()">
@@ -1789,15 +1913,8 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
-    <div class="settings-row" onclick="openAboutOverlay()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Achery Scorer</div>
-        <div class="settings-row-sub">Archery scoring & stats PWA</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
   </div>
+</div>
 </div>
 
 <!-- Reset confirm overlay -->
@@ -1976,6 +2093,79 @@ const PRACTICE_TARGET_OPTIONS = [
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
       <span id="globalSessionTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
     </div>
+  </div>
+</div>
+
+<!-- Account popup -->
+<div class="account-popup-overlay" id="accountPopupOverlay" onclick="closeAccountPopup(event)">
+  <div class="account-popup">
+    <div class="account-popup-name" id="accountPopupName">—</div>
+    <div class="account-popup-sub">Signed in</div>
+    <button class="account-popup-btn" onclick="closeAccountPopup();openEditUsernameOverlay()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+      Change Username
+    </button>
+    <button class="account-popup-btn" onclick="closeAccountPopup();openEditPasswordOverlay()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      Change Password
+    </button>
+    <button class="account-popup-btn" onclick="closeAccountPopup();openAccountOverlay('switch')">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+      Switch Account
+    </button>
+    <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
+    <button class="account-popup-btn danger" onclick="closeAccountPopup();confirmDeleteAccount()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path></svg>
+      Delete Account
+    </button>
+  </div>
+</div>
+
+<!-- Edit username overlay -->
+<div class="detail-overlay" id="editUsernameOverlay">
+  <div class="edit-creds-modal">
+    <div class="detail-modal-header" style="margin-bottom:16px">
+      <h3>Change Username</h3>
+      <button class="detail-close" onclick="closeOverlay('editUsernameOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="inline-field" style="margin-bottom:12px">
+      <label>New Username</label>
+      <input id="editUsernameInput" class="modal-input" type="text" placeholder="Enter new username" autocorrect="off" autocapitalize="none" spellcheck="false" maxlength="40" style="margin-bottom:0">
+    </div>
+    <div class="inline-field" style="margin-bottom:16px">
+      <label>Current Password (to confirm)</label>
+      <input id="editUsernamePassword" class="modal-input" type="password" placeholder="Your current password" style="margin-bottom:0">
+    </div>
+    <button class="modal-btn primary" onclick="submitChangeUsername()">SAVE USERNAME</button>
+    <button class="modal-btn" onclick="closeOverlay('editUsernameOverlay')">CANCEL</button>
+  </div>
+</div>
+
+<!-- Edit password overlay -->
+<div class="detail-overlay" id="editPasswordOverlay">
+  <div class="edit-creds-modal">
+    <div class="detail-modal-header" style="margin-bottom:16px">
+      <h3>Change Password</h3>
+      <button class="detail-close" onclick="closeOverlay('editPasswordOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="inline-field" style="margin-bottom:12px">
+      <label>Current Password</label>
+      <input id="editCurrentPassword" class="modal-input" type="password" placeholder="Current password" style="margin-bottom:0">
+    </div>
+    <div class="inline-field" style="margin-bottom:12px">
+      <label>New Password</label>
+      <input id="editNewPassword" class="modal-input" type="password" placeholder="New password (min 4 chars)" style="margin-bottom:0">
+    </div>
+    <div class="inline-field" style="margin-bottom:16px">
+      <label>Confirm New Password</label>
+      <input id="editConfirmPassword" class="modal-input" type="password" placeholder="Confirm new password" style="margin-bottom:0">
+    </div>
+    <button class="modal-btn primary" onclick="submitChangePassword()">SAVE PASSWORD</button>
+    <button class="modal-btn" onclick="closeOverlay('editPasswordOverlay')">CANCEL</button>
   </div>
 </div>
 
@@ -2369,6 +2559,11 @@ function clearLoggedInAccount() {
 function cfHeaders(withSecret = false) {
   const h = { 'Content-Type': 'application/json' };
   if (withSecret) h['X-Club-Secret'] = getCfSecret();
+  // Attach Basic Auth if logged in (used for /sessions and authenticated routes)
+  const account = getLoggedInAccount();
+  if (account?.username && account?.password) {
+    h['Authorization'] = 'Basic ' + btoa(`${account.username}:${account.password}`);
+  }
   return h;
 }
 
@@ -2583,9 +2778,13 @@ async function pullSessionsForAccount(username) {
 
 function updateAccountUI() {
   const account = getLoggedInAccount();
+  const name = account ? account.username : '—';
+  // Settings header
   const nameEl = document.getElementById('settingsAccountName');
-  if (nameEl) nameEl.textContent = account ? account.username : '—';
-  updateSyncStatus();
+  if (nameEl) nameEl.textContent = name;
+  // Account popup (if open)
+  const popupName = document.getElementById('accountPopupName');
+  if (popupName) popupName.textContent = name;
 }
 
 function updateSyncStatus(state) {
@@ -3092,17 +3291,8 @@ function getActiveTheme() {
 }
 
 function renderThemePresets() {
-  const grid = document.getElementById('themePresetGrid');
-  if (!grid) return;
-  grid.innerHTML = Object.entries(THEME_PRESETS).map(([key, theme]) => {
-    const active = themeState.preset === key ? ' active' : '';
-    const previewTheme = key === 'auto' ? resolveThemePreset('auto') : theme;
-    const swatches = THEME_SWATCH_KEYS.map(colorKey => `<span style="background:${previewTheme[colorKey]}"></span>`).join('');
-    return `<button class="theme-preset${active}" onclick="applyPresetTheme('${key}')">
-      <div class="theme-preset-name">${theme.name}</div>
-      <div class="theme-swatches">${swatches}</div>
-    </button>`;
-  }).join('');
+  // Legacy grid no longer used — sync the dropdown instead
+  syncThemeDropdown();
 }
 
 function getThemeColorLabel(key) {
@@ -3193,6 +3383,187 @@ function updateCustomTheme(key, value) {
   }
   themeState[key] = value;
   persistTheme(); applyTheme();
+}
+
+// ── Account popup ─────────────────────────────────────────────────────────────
+function openAccountPopup() {
+  const account = getLoggedInAccount();
+  document.getElementById('accountPopupName').textContent = account?.username || '—';
+  document.getElementById('accountPopupOverlay').classList.add('open');
+}
+
+function closeAccountPopup(e) {
+  if (e && e.target !== document.getElementById('accountPopupOverlay')) return;
+  document.getElementById('accountPopupOverlay').classList.remove('open');
+}
+
+// ── Change username ────────────────────────────────────────────────────────────
+function openEditUsernameOverlay() {
+  document.getElementById('editUsernameInput').value = '';
+  document.getElementById('editUsernamePassword').value = '';
+  document.getElementById('editUsernameOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('editUsernameInput').focus(), 80);
+}
+
+async function submitChangeUsername() {
+  const newUsername = document.getElementById('editUsernameInput').value.trim();
+  const password    = document.getElementById('editUsernamePassword').value;
+  const account     = getLoggedInAccount();
+  if (!newUsername) { appAlert('Please enter a new username.'); return; }
+  if (!password)    { appAlert('Please enter your current password to confirm.'); return; }
+  if (newUsername.toLowerCase() === account?.username?.toLowerCase()) {
+    appAlert('That is already your username.'); return;
+  }
+  try {
+    // Check availability first
+    const taken = await cfCheckUsername(newUsername);
+    if (taken) { appAlert(`The username "${newUsername}" is already taken. Please choose another.`); return; }
+    // Send change request to server
+    await cfFetch('/account/update-username', {
+      method: 'POST',
+      body: JSON.stringify({ oldUsername: account.username, password, newUsername })
+    });
+    // Update local sessions and profile
+    db.sessions.forEach(s => { if (s.archerName === account.username) s.archerName = newUsername; });
+    db.deviceProfile.activeArcher = newUsername;
+    db.deviceProfile.archers = db.deviceProfile.archers.map(a => a === account.username ? newUsername : a);
+    setLoggedInAccount(newUsername, password);
+    save();
+    closeOverlay('editUsernameOverlay');
+    updateAccountUI();
+    renderHome(); renderDiag();
+    appAlert(`Username changed to "${newUsername}".`);
+  } catch(e) {
+    if (e.message.includes('401')) appAlert('Incorrect password.');
+    else if (e.message.includes('409')) appAlert(`The username "${newUsername}" is already taken.`);
+    else appAlert('Could not change username. Check your connection.');
+  }
+}
+
+// ── Change password ────────────────────────────────────────────────────────────
+function openEditPasswordOverlay() {
+  document.getElementById('editCurrentPassword').value = '';
+  document.getElementById('editNewPassword').value = '';
+  document.getElementById('editConfirmPassword').value = '';
+  document.getElementById('editPasswordOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('editCurrentPassword').focus(), 80);
+}
+
+async function submitChangePassword() {
+  const currentPw = document.getElementById('editCurrentPassword').value;
+  const newPw     = document.getElementById('editNewPassword').value;
+  const confirmPw = document.getElementById('editConfirmPassword').value;
+  const account   = getLoggedInAccount();
+  if (!currentPw) { appAlert('Please enter your current password.'); return; }
+  if (!newPw)     { appAlert('Please enter a new password.'); return; }
+  if (newPw.length < 4) { appAlert('New password must be at least 4 characters.'); return; }
+  if (newPw !== confirmPw) { appAlert('New passwords do not match.'); return; }
+  try {
+    await cfFetch('/account/update-password', {
+      method: 'POST',
+      body: JSON.stringify({ username: account.username, oldPassword: currentPw, newPassword: newPw })
+    });
+    setLoggedInAccount(account.username, newPw);
+    closeOverlay('editPasswordOverlay');
+    appAlert('Password changed successfully.');
+  } catch(e) {
+    if (e.message.includes('401')) appAlert('Incorrect current password.');
+    else appAlert('Could not change password. Check your connection.');
+  }
+}
+
+// ── Delete account ─────────────────────────────────────────────────────────────
+function confirmDeleteAccount() {
+  appConfirm('Delete your account? This will permanently remove all your sessions from the club server. Your local data will also be cleared.', async () => {
+    const account = getLoggedInAccount();
+    try {
+      if (account) await cfAdminDeleteAccount(account.username);
+    } catch {}
+    clearLoggedInAccount();
+    try { localStorage.removeItem(SYNCED_KEY); } catch {}
+    db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' } };
+    session = null; finishingSession = null; activeSessionIdx = null;
+    save(); resetActiveSessionUI();
+    document.querySelectorAll('.overlay, .detail-overlay').forEach(el => el.classList.remove('open'));
+    renderHome(); renderDiag(); updateAccountUI();
+    openAccountOverlay('login');
+  });
+}
+
+// ── Bow inline panel ───────────────────────────────────────────────────────────
+function toggleBowInline(headerEl) {
+  const body    = document.getElementById('bowInlineBody');
+  const chevron = headerEl.querySelector('.bow-chevron');
+  const isOpen  = body.classList.toggle('open');
+  chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+  if (isOpen) renderBowInline();
+}
+
+function renderBowInline() {
+  const name = getDeviceArcherName();
+  const bow  = (db.deviceProfile.bows || {})[name] || {};
+  const body = document.getElementById('bowInlineBody');
+  const sub  = document.getElementById('bowInlineSub');
+
+  const hasData = bow.name || bow.type || bow.drawWeight || bow.notes ||
+                  Object.keys(bow.aimingPoints || {}).length > 0;
+
+  if (!hasData) {
+    sub.textContent = 'No bow profile saved';
+    body.innerHTML = `<p style="color:var(--muted);font-size:13px;text-align:center;padding:8px 0;">
+      Tap the edit icon to add your bow details.
+    </p>`;
+    return;
+  }
+
+  sub.textContent = [bow.name, bow.type].filter(Boolean).join(' · ') || 'Tap to view';
+
+  const rows = [
+    bow.name        && { label: 'Name',         value: bow.name },
+    bow.type        && { label: 'Type',         value: bow.type.charAt(0).toUpperCase() + bow.type.slice(1) },
+    bow.drawWeight  && { label: 'Draw Weight',  value: bow.drawWeight },
+    bow.notes       && { label: 'Notes',        value: bow.notes },
+  ].filter(Boolean);
+
+  const aimRows = Object.entries(bow.aimingPoints || {}).map(([k, v]) => ({
+    label: k.toUpperCase(), value: v
+  }));
+
+  const allRows = [...rows, ...(aimRows.length ? [{ label: '— Aiming Points —', value: '' }, ...aimRows] : [])];
+
+  body.innerHTML = allRows.map(r => `
+    <div class="bow-stat-row">
+      <span class="bow-stat-label">${r.label}</span>
+      <span class="bow-stat-value">${r.value}</span>
+    </div>
+  `).join('');
+}
+
+// ── Theme dropdown ─────────────────────────────────────────────────────────────
+function syncThemeDropdown() {
+  const sel = document.getElementById('themePresetSelect');
+  if (sel) sel.value = themeState.preset || 'auto';
+}
+
+// ── Settings page init ─────────────────────────────────────────────────────────
+function initSettingsPage() {
+  // Version
+  const vEl = document.getElementById('settingsVersion');
+  if (vEl) vEl.textContent = APP_VERSION;
+  // Theme dropdown
+  syncThemeDropdown();
+  // Bow inline — reset to closed state
+  const body    = document.getElementById('bowInlineBody');
+  const chevron = document.querySelector('.bow-chevron');
+  if (body)    body.classList.remove('open');
+  if (chevron) chevron.style.transform = '';
+  const sub = document.getElementById('bowInlineSub');
+  if (sub) {
+    const name = getDeviceArcherName();
+    const bow  = (db.deviceProfile.bows || {})[name] || {};
+    const hasData = bow.name || bow.type || bow.drawWeight;
+    sub.textContent = hasData ? ([bow.name, bow.type].filter(Boolean).join(' · ')) : 'Tap to view';
+  }
 }
 
 function openAboutOverlay() {
@@ -4034,8 +4405,7 @@ function handleHomeSearch(val) {
   const container = document.getElementById('homeSearchContainer');
   if (val) container.classList.add('has-text');
   else container.classList.remove('has-text');
-  if (activeHistoryTab === 'club') renderClubHistory();
-  else renderHome();
+  renderHome();
 }
 
 function sessionMatchesSearch(sessionObj, queryStr) {
@@ -5101,7 +5471,7 @@ function goPage(name, btn) {
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
-  if(name==='settings') { updateDeviceNameSummary(); loadCloudflareConfigIntoUI(); updateSyncStatus(); }
+  if(name==='settings') { updateDeviceNameSummary(); initSettingsPage(); }
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
