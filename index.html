@@ -2567,7 +2567,12 @@ async function cfFetch(path, opts = {}) {
     try {
       const data = await res.json();
       detail = data?.error ? `: ${data.error}` : '';
-    } catch {}
+    } catch {
+      try {
+        const text = await res.text();
+        detail = text ? `: ${text}` : '';
+      } catch {}
+    }
     throw new Error(`CF ${res.status}${detail}`);
   }
   return res.json();
@@ -2708,6 +2713,7 @@ async function submitLogin() {
     }
   } catch(e) {
     if (e.message.includes('401')) appAlert('Incorrect username or password.');
+    else if (e.message.includes('500') || e.message.includes('1101')) appAlert('The club server is misconfigured right now. Please verify the Cloudflare worker and KV binding.');
     else appAlert('Could not reach the club server. Check your connection.');
   }
 }
@@ -2736,6 +2742,7 @@ async function submitRegister() {
     }
   } catch(e) {
     if (e.message.includes('409')) appAlert(`The username "${username}" is already taken.`);
+    else if (e.message.includes('500') || e.message.includes('1101')) appAlert('The club server is misconfigured right now. Please verify the Cloudflare worker and KV binding.');
     else appAlert('Could not reach the club server. Check your connection.');
   }
 }
@@ -2776,6 +2783,7 @@ async function submitPasswordSetup() {
     }
   } catch(e) {
     if (e.message.includes('409')) appAlert(`The username "${username}" is already taken.`);
+    else if (e.message.includes('500') || e.message.includes('1101')) appAlert('The club server is misconfigured right now. Please verify the Cloudflare worker and KV binding.');
     else appAlert('Could not reach the club server. Check your connection.');
   }
 }
@@ -2903,13 +2911,6 @@ function switchHistoryTab(tab) {
 }
 
 async function loadClubHistory() {
-  const account = getLoggedInAccount();
-  if (!account?.username) {
-    showClubError('Log in to view global scores.');
-    document.getElementById('clubList').innerHTML = '';
-    setTimeout(() => openAccountOverlay('login'), 150);
-    return;
-  }
   showClubError(null); // clear error
   document.getElementById('clubList').innerHTML =
     `<div class="empty-state" style="padding:40px 0">
@@ -2924,8 +2925,9 @@ async function loadClubHistory() {
     renderClubHistory();
   } catch (e) {
     if (e.message.includes('401')) {
-      showClubError('Log in to view global scores.');
-      setTimeout(() => openAccountOverlay('login'), 150);
+      showClubError('Global scores are currently locked by the server configuration.');
+    } else if (e.message.includes('500') || e.message.includes('1101')) {
+      showClubError('The club server is misconfigured right now. Please verify the Cloudflare worker and KV binding.');
     } else {
       showClubError('Could not load club sessions. The server may be unreachable.');
     }
