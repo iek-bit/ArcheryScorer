@@ -1703,6 +1703,10 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">CLUB SYNC</div>
     <div class="settings-card">
       <div style="padding: 16px;">
+        <div id="syncStatusRow" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div id="syncStatusDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;"></div>
+          <span id="syncStatusText" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Checking sync status...</span>
+        </div>
         <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Sessions are automatically synced to the club server when you log in.</p>
       </div>
     </div>
@@ -1816,7 +1820,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="detail-modal-header">
       <div>
         <h3>Achery Scorer</h3>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">1.0.0</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">2.1.1</span></div>
       </div>
       <button class="detail-close" onclick="closeOverlay('aboutOverlay')" aria-label="Close about popup">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
@@ -1956,6 +1960,9 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="session-owner-label">Archer</div>
         <div class="session-owner-name" id="globalSessionOwner"></div>
       </div>
+      <button id="adminDeleteAccountBtn" class="icon-btn danger" style="display:none;" onclick="adminDeleteGlobalAccount()" title="Delete account" aria-label="Delete account">
+        <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
+      </button>
     </div>
     <div id="globalSessionRounds"></div>
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
@@ -2376,20 +2383,24 @@ async function cfCheckUsername(username) {
 }
 async function cfPushSession(sessionObj) {
   if (!cfReady()) return;
-  try { await cfFetch('/sessions', { method: 'POST', body: JSON.stringify(sessionObj) }); markSynced(sessionObj.id); }
-  catch (e) { console.warn('CF push failed:', e.message); }
+  try {
+    await cfFetch('/sessions', { method: 'POST', body: JSON.stringify(sessionObj) });
+    markSynced(sessionObj.id);
+    updateSyncStatus();
+  } catch (e) {
+    console.warn('CF push failed:', e.message);
+    if (e.message.includes('401') || e.message.includes('404')) {
+      handleGhostAccount();
+    }
+    updateSyncStatus();
+  }
 }
-async function cfDeleteSession(id) {
-  if (!cfReady()) return;
-  try { await cfFetch(`/sessions/${id}`, { method: 'DELETE', withSecret: true }); } catch {}
+async function cfAdminDeleteAccount(username) {
+  return cfFetch(`/account/${encodeURIComponent(username)}`, { method: 'DELETE', withSecret: true, body: '{}' });
 }
 async function cfPullSessions() {
   if (!cfReady()) throw new Error('Not configured');
   return cfFetch('/sessions');
-}
-async function cfDeleteArcher(name) {
-  if (!cfReady()) return;
-  try { await cfFetch(`/archer/${encodeURIComponent(name)}`, { method: 'DELETE', withSecret: true }); } catch {}
 }
 
 function saveCloudflareConfig() {
@@ -2402,9 +2413,11 @@ function loadCloudflareConfigIntoUI() {
 
 async function autoSyncUnsyncedSessions() {
   if (!cfReady()) return;
+  updateSyncStatus('syncing');
   const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   for (const s of unsynced) { await cfPushSession(s); }
+  updateSyncStatus();
 }
 async function syncUnsyncedSessions() {
   const synced = getSyncedIds();
@@ -2565,6 +2578,60 @@ function updateAccountUI() {
   const account = getLoggedInAccount();
   const nameEl = document.getElementById('settingsAccountName');
   if (nameEl) nameEl.textContent = account ? account.username : '—';
+  updateSyncStatus();
+}
+
+function updateSyncStatus(state) {
+  const dot  = document.getElementById('syncStatusDot');
+  const text = document.getElementById('syncStatusText');
+  if (!dot || !text) return;
+
+  if (state === 'syncing') {
+    dot.style.background  = 'var(--accent)';
+    text.style.color      = 'var(--accent)';
+    text.textContent      = 'Syncing...';
+    return;
+  }
+
+  const account  = getLoggedInAccount();
+  if (!account) {
+    dot.style.background = 'var(--muted)';
+    text.style.color     = 'var(--muted)';
+    text.textContent     = 'Not logged in';
+    return;
+  }
+
+  const synced   = getSyncedIds();
+  const unsynced = db.sessions.filter(s => !synced.has(String(s.id))).length;
+
+  if (!navigator.onLine) {
+    dot.style.background = 'var(--accent2)';
+    text.style.color     = 'var(--accent2)';
+    text.textContent     = unsynced > 0 ? `Offline — ${unsynced} session(s) pending` : 'Offline';
+  } else if (unsynced > 0) {
+    dot.style.background = 'var(--accent2)';
+    text.style.color     = 'var(--accent2)';
+    text.textContent     = `${unsynced} session(s) not yet synced`;
+  } else {
+    dot.style.background = 'var(--green)';
+    text.style.color     = 'var(--green)';
+    text.textContent     = 'All sessions synced';
+  }
+}
+
+function handleGhostAccount() {
+  // Account was deleted server-side while user was logged in locally
+  clearLoggedInAccount();
+  try { localStorage.removeItem(SYNCED_KEY); } catch {}
+  db.deviceProfile.activeArcher = '';
+  db.deviceProfile.archers = [];
+  save();
+  updateSyncStatus();
+  // Give a brief moment before showing the overlay so it doesn't feel jarring
+  setTimeout(() => {
+    appAlert('Your account no longer exists on the server. Please create a new account or contact your club admin.');
+    openAccountOverlay('login');
+  }, 400);
 }
 
 // ── Club history tab ─────────────────────────────────────────────────────────
@@ -2657,6 +2724,10 @@ function openGlobalSessionOverlay(id) {
   document.getElementById('globalSessionMeta').textContent = loc ? `${dateStr} · ${loc}` : dateStr;
   document.getElementById('globalSessionOwner').textContent = s.archerName || 'Unknown';
 
+  // Show delete button only if admin secret is set
+  const adminBtn = document.getElementById('adminDeleteAccountBtn');
+  if (adminBtn) adminBtn.style.display = getCfSecret() ? 'flex' : 'none';
+
   const container = document.getElementById('globalSessionRounds');
   container.innerHTML = (s.rounds || []).map((r, ri) => {
     const rs = r.arrows.reduce((x, a) => x + a.score, 0);
@@ -2679,6 +2750,24 @@ function openGlobalSessionOverlay(id) {
   document.getElementById('globalSessionOverlay').classList.add('open');
 }
 
+async function adminDeleteGlobalAccount() {
+  const ownerEl = document.getElementById('globalSessionOwner');
+  const username = ownerEl?.textContent?.trim();
+  if (!username || username === 'Unknown') { appAlert('No account to delete.'); return; }
+  appConfirm(`Delete the account "${username}" and ALL their sessions? This cannot be undone.`, async () => {
+    try {
+      await cfAdminDeleteAccount(username);
+      closeOverlay('globalSessionOverlay');
+      // Remove their sessions from the local club view
+      clubSessions = clubSessions.filter(s => (s.archerName || '').toLowerCase() !== username.toLowerCase());
+      renderClubHistory();
+      appAlert(`Account "${username}" and all their sessions have been deleted.`);
+    } catch(e) {
+      appAlert('Could not delete account. Check your admin secret or connection.');
+    }
+  });
+}
+
 // Sort for club tab
 function setSortOnly_club(key) {
   clubSort = key;
@@ -2692,7 +2781,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '2.1.1';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -4893,8 +4982,6 @@ function openSessionOverlay(idx) {
 
 function deleteCurrentSession() {
   appConfirm('Delete this entire session?', () => {
-    const s = db.sessions[activeSessionIdx];
-    if (s) cfDeleteSession(s.id);
     db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
   });
 }
@@ -5006,7 +5093,7 @@ function goPage(name, btn) {
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
-  if(name==='settings') { updateDeviceNameSummary(); loadCloudflareConfigIntoUI(); }
+  if(name==='settings') { updateDeviceNameSummary(); loadCloudflareConfigIntoUI(); updateSyncStatus(); }
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
@@ -5537,6 +5624,10 @@ drawTarget([]);
 setTimeout(async () => {
   await autoSyncUnsyncedSessions();
 }, 2000);
+
+// Update sync status when network state changes
+window.addEventListener('online',  () => { updateSyncStatus(); setTimeout(() => autoSyncUnsyncedSessions(), 1000); });
+window.addEventListener('offline', () => { updateSyncStatus(); });
 
 function wipeEphemeralOnExit() {
   if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
