@@ -1836,20 +1836,29 @@ const PRACTICE_TARGET_OPTIONS = [
   <!-- THEME -->
   <div class="settings-section">
     <div class="settings-label">THEME</div>
-    <div class="theme-dropdown-row">
-      <div>
-        <div class="theme-dropdown-label">Preset</div>
+    <div class="bow-inline-panel" id="themeAccordion">
+      <div class="bow-inline-header" onclick="toggleThemeAccordion()" aria-expanded="false" aria-controls="themeAccordionBody">
+        <div class="bih-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="bow-inline-title">Appearance</div>
+          <div class="bow-inline-sub" id="themeAccordionSub">Tap to customize</div>
+        </div>
+        <svg class="ui-icon bow-chevron" id="themeAccordionChevron" viewBox="0 0 24 24" aria-hidden="true" style="transition:transform .2s;color:var(--muted)"><path d="M6 9l6 6 6-6"></path></svg>
       </div>
-      <select class="theme-select" id="themePresetSelect" onchange="applyPresetTheme(this.value)">
-        <option value="auto">Auto</option>
-        <option value="dark">Dark</option>
-        <option value="white">White</option>
-        <option value="forest">Dark Green / White</option>
-        <option value="moss">Green / Black</option>
-      </select>
-    </div>
-    <div class="settings-card">
-      <div style="padding:14px 16px;">
+      <div class="bow-inline-body" id="themeAccordionBody">
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Preset</div>
+          <select class="theme-select" id="themePresetSelect" onchange="applyPresetTheme(this.value)" style="width:100%">
+            <option value="auto">Auto</option>
+            <option value="dark">Dark</option>
+            <option value="white">White</option>
+            <option value="forest">Dark Green / White</option>
+            <option value="moss">Green / Black</option>
+          </select>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Colors</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div class="theme-control">
             <label>Primary</label>
@@ -1875,23 +1884,6 @@ const PRACTICE_TARGET_OPTIONS = [
   <!-- DATA -->
   <div class="settings-section">
     <div class="settings-label">DATA</div>
-    <div class="settings-row" onclick="downloadSave()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Download Save File</div>
-        <div class="settings-row-sub">Export all sessions as a .json backup</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-    <div class="settings-row" onclick="document.getElementById('uploadInput').click()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Upload Save File</div>
-        <div class="settings-row-sub">Restore sessions from a .json backup</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-    <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="uploadSave(event)">
     <div class="settings-row danger" onclick="confirmReset()">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></div>
       <div class="settings-row-text">
@@ -2604,6 +2596,27 @@ async function cfPullSessions() {
   if (!cfReady()) throw new Error('Not configured');
   return cfFetch('/sessions');
 }
+async function cfDeleteSession(sessionId) {
+  if (!cfReady()) return;
+  try {
+    await cfFetch(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+  } catch (e) {
+    console.warn('CF delete session failed:', e.message);
+  }
+}
+async function cfPatchSession(sessionObj) {
+  if (!cfReady()) return;
+  try {
+    await cfFetch(`/sessions/${encodeURIComponent(sessionObj.id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(sessionObj)
+    });
+    markSynced(sessionObj.id);
+    updateSyncStatus();
+  } catch (e) {
+    console.warn('CF patch session failed:', e.message);
+  }
+}
 
 function saveCloudflareConfig() {
   try { const secret = document.getElementById('cfSecret')?.value.trim() || ''; localStorage.setItem(CF_SECRET_KEY, secret); } catch {}
@@ -2616,6 +2629,10 @@ function loadCloudflareConfigIntoUI() {
 async function autoSyncUnsyncedSessions() {
   if (!cfReady()) return;
   updateSyncStatus('syncing');
+  // Pull first so cross-device deletions/edits are reflected locally
+  const account = getLoggedInAccount();
+  if (account) await pullSessionsForAccount(account.username);
+  // Then push any sessions that haven't made it to the server yet
   const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   for (const s of unsynced) { await cfPushSession(s); }
@@ -2761,8 +2778,11 @@ async function pullSessionsForAccount(username) {
   try {
     const all = await cfPullSessions();
     const mine = all.filter(s => (s.archerName || '').toLowerCase() === username.toLowerCase());
-    if (!mine.length) return;
-    // Merge: add any server sessions not already in local db (by id)
+
+    // Build a set of server-side IDs for this account
+    const serverIds = new Set(mine.map(s => String(s.id)));
+
+    // Add any server sessions not already in local db (by id)
     const localIds = new Set(db.sessions.map(s => String(s.id)));
     let added = 0;
     mine.forEach(s => {
@@ -2772,7 +2792,22 @@ async function pullSessionsForAccount(username) {
         added++;
       }
     });
-    if (added > 0) { save(); renderHome(); renderDiag(); }
+
+    // Remove local sessions owned by this account that no longer exist on the server
+    // (they were deleted on another device)
+    const before = db.sessions.length;
+    db.sessions = db.sessions.filter(s => {
+      const isOwnedByMe = (s.archerName || '').toLowerCase() === username.toLowerCase();
+      if (!isOwnedByMe) return true; // keep sessions belonging to other archers
+      // Keep if it was never synced (only exists locally so far)
+      const synced = getSyncedIds();
+      if (!synced.has(String(s.id))) return true;
+      // Keep if it still exists on the server
+      return serverIds.has(String(s.id));
+    });
+    const removed = before - db.sessions.length;
+
+    if (added > 0 || removed > 0) { save(); renderHome(); renderDiag(); }
   } catch (e) { console.warn('Pull failed:', e.message); }
 }
 
@@ -3543,6 +3578,20 @@ function renderBowInline() {
 function syncThemeDropdown() {
   const sel = document.getElementById('themePresetSelect');
   if (sel) sel.value = themeState.preset || 'auto';
+  // Update the accordion subtitle to reflect current preset
+  const sub = document.getElementById('themeAccordionSub');
+  if (sub) {
+    const presetNames = { auto: 'Auto', dark: 'Dark', white: 'White', forest: 'Dark Green / White', moss: 'Green / Black' };
+    sub.textContent = presetNames[themeState.preset || 'auto'] || 'Custom';
+  }
+}
+
+function toggleThemeAccordion() {
+  const body    = document.getElementById('themeAccordionBody');
+  const chevron = document.getElementById('themeAccordionChevron');
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
 }
 
 // ── Settings page init ─────────────────────────────────────────────────────────
@@ -3550,8 +3599,13 @@ function initSettingsPage() {
   // Version
   const vEl = document.getElementById('settingsVersion');
   if (vEl) vEl.textContent = APP_VERSION;
-  // Theme dropdown
+  // Theme dropdown + subtitle
   syncThemeDropdown();
+  // Theme accordion — reset to closed state
+  const themeBody    = document.getElementById('themeAccordionBody');
+  const themeChevron = document.getElementById('themeAccordionChevron');
+  if (themeBody)    themeBody.classList.remove('open');
+  if (themeChevron) themeChevron.style.transform = '';
   // Bow inline — reset to closed state
   const body    = document.getElementById('bowInlineBody');
   const chevron = document.querySelector('.bow-chevron');
@@ -5232,6 +5286,7 @@ function deleteHomeSelected() {
   appConfirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`, () => {
     // Splice array safely by deleting highest indices first
     const sortedIndices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
+    const sessionsToDelete = sortedIndices.map(idx => db.sessions[idx]);
     sortedIndices.forEach(idx => {
       db.sessions.splice(idx, 1);
     });
@@ -5241,6 +5296,9 @@ function deleteHomeSelected() {
     homeSelectedSessions.clear();
     renderHome();
     renderDiag();
+
+    // Remove each deleted session from the server
+    sessionsToDelete.forEach(s => { if (s) cfDeleteSession(s.id); });
   });
 }
 
@@ -5360,15 +5418,26 @@ function openSessionOverlay(idx) {
 
 function deleteCurrentSession() {
   appConfirm('Delete this entire session?', () => {
+    const sessionToDelete = db.sessions[activeSessionIdx];
     db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
+    // Remove from server so other devices see the deletion
+    if (sessionToDelete) cfDeleteSession(sessionToDelete.id);
   });
 }
 
 function deleteRound(sessionIdx, roundIdx) {
   appConfirm('Delete this round?', () => {
     db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
-    if (db.sessions[sessionIdx].rounds.length === 0) { db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay'); }
-    else openSessionOverlay(sessionIdx);
+    if (db.sessions[sessionIdx].rounds.length === 0) {
+      const sessionToDelete = db.sessions[sessionIdx];
+      db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay');
+      // Session is now empty — remove it from the server too
+      cfDeleteSession(sessionToDelete.id);
+    } else {
+      openSessionOverlay(sessionIdx);
+      // Session still has rounds — push the updated version to the server
+      cfPatchSession(db.sessions[sessionIdx]);
+    }
     save(); renderHome(); renderDiag();
   });
 }
@@ -5387,6 +5456,8 @@ function saveSessionArcherName() {
     if (duplicate) { appAlert(`The name "${nextName}" is already used in saved sessions. Please choose a different name.`); input.focus(); return; }
   }
   db.sessions[activeSessionIdx].archerName = nextName; save(); closeOverlay('sessionArcherOverlay'); openSessionOverlay(activeSessionIdx); renderHome();
+  // Push updated session to server so the archer name change is reflected everywhere
+  cfPatchSession(db.sessions[activeSessionIdx]);
 }
 
 // ═══════════════════════════════════════════════
