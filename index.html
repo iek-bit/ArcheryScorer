@@ -1419,6 +1419,14 @@
   .detail-overlay.open .club-pin-modal { transform: scale(1); }
 
   @media (max-width: 430px) {
+    .photo-score-grid,
+    .photo-score-preview-wrap {
+      grid-template-columns: 1fr;
+    }
+    .photo-score-modal {
+      width: min(100%, calc(100vw - 24px));
+      padding: 18px;
+    }
     nav button {
       font-size: 9px;
       gap: 3px;
@@ -1558,6 +1566,173 @@
     animation: spin 1s linear infinite;
   }
 
+  .session-card.photo-score {
+    border-color: rgba(240,160,75,.35);
+    background:
+      radial-gradient(circle at top right, rgba(240,160,75,.16), transparent 42%),
+      var(--bg2);
+  }
+  .session-card.photo-score h2 { color: var(--accent2); }
+  .session-card.photo-score p { max-width: 28ch; }
+
+  .photo-score-modal {
+    background: var(--bg2);
+    border-radius: 22px;
+    width: min(520px, 100%);
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow-y: auto;
+    padding: 20px;
+    border: 1px solid var(--border);
+    transform: scale(.95);
+    transition: transform .2s;
+  }
+  .detail-overlay.open .photo-score-modal { transform: scale(1); }
+  .photo-score-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .photo-score-header h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .photo-score-subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .photo-score-panel {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg3);
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .photo-score-panel:first-of-type { margin-top: 0; }
+  .photo-score-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .photo-score-actions .modal-btn {
+    margin-bottom: 0;
+    flex: 1 1 180px;
+  }
+  .photo-score-upload {
+    display: block;
+    width: 100%;
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.02);
+    color: var(--text);
+    padding: 18px 16px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .photo-score-upload strong {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+  .photo-score-upload span {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .photo-score-upload input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .photo-score-file {
+    margin-top: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    word-break: break-word;
+  }
+  .photo-score-status {
+    min-height: 20px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .photo-score-status.error { color: var(--red); }
+  .photo-score-status.success { color: var(--green); }
+  .photo-score-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .photo-score-metric {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255,255,255,.03);
+    padding: 12px;
+  }
+  .photo-score-metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .photo-score-metric-value {
+    margin-top: 5px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .photo-score-preview-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .photo-score-preview-card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.03);
+    padding: 12px;
+  }
+  .photo-score-preview-card h4 {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .photo-score-preview-card img,
+  .photo-score-preview-card canvas {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    background: #090d16;
+    border: 1px solid rgba(255,255,255,.05);
+  }
+  .photo-score-next {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(240,160,75,.25);
+    background: rgba(240,160,75,.08);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
   /* score flash */
   .score-flash {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
@@ -1636,6 +1811,12 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="session-card" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
         <h2 style="color:var(--muted)">Quick Score</h2>
+      </div>
+      <div class="session-card photo-score" onclick="openPhotoScoreOverlay()" role="button" tabindex="0" aria-label="Open photo score beta" onkeydown="if(event.key==='Enter'||event.key===' ')openPhotoScoreOverlay()">
+        <div>
+          <h2>Photo Score Beta</h2>
+          <p>Upload a scorecard photo and let Roboflow detect the sheet before we read the marks.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -2210,6 +2391,62 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
+<div class="detail-overlay" id="photoScoreOverlay" onclick="closePhotoScoreOverlay()">
+  <div class="photo-score-modal" onclick="event.stopPropagation()">
+    <div class="photo-score-header">
+      <div>
+        <h3>Photo Score Beta</h3>
+        <div class="photo-score-subtitle">This first pass detects the full paper scorecard and shows the crop we will use for the next parsing step.</div>
+      </div>
+      <button class="detail-close" onclick="closePhotoScoreOverlay()" aria-label="Close photo score">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div class="photo-score-panel">
+      <label class="photo-score-upload">
+        <strong>Choose Scorecard Photo</strong>
+        <span>Use a fresh camera shot or a saved image. Your Cloudflare Worker will forward it to Roboflow without exposing the API key in the browser.</span>
+        <input id="photoScoreInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoScoreFileChange(event)">
+      </label>
+      <div class="photo-score-file" id="photoScoreFileName">No image selected yet.</div>
+      <div class="photo-score-status" id="photoScoreStatus">Start by choosing a scorecard photo.</div>
+      <div class="photo-score-actions">
+        <button class="modal-btn primary" id="photoScoreDetectBtn" onclick="runPhotoScoreDetection()" disabled>Detect Scorecard</button>
+        <button class="modal-btn" onclick="resetPhotoScoreState()">Clear</button>
+      </div>
+    </div>
+
+    <div class="photo-score-panel" id="photoScoreResults" style="display:none">
+      <div class="photo-score-grid">
+        <div class="photo-score-metric">
+          <div class="photo-score-metric-label">Confidence</div>
+          <div class="photo-score-metric-value" id="photoScoreConfidence">--</div>
+        </div>
+        <div class="photo-score-metric">
+          <div class="photo-score-metric-label">Detections</div>
+          <div class="photo-score-metric-value" id="photoScoreDetections">--</div>
+        </div>
+      </div>
+
+      <div class="photo-score-preview-wrap">
+        <div class="photo-score-preview-card">
+          <h4>Original</h4>
+          <img id="photoScoreOriginalPreview" alt="Uploaded scorecard preview">
+        </div>
+        <div class="photo-score-preview-card">
+          <h4>Cropped Card</h4>
+          <canvas id="photoScoreCropCanvas" width="320" height="480"></canvas>
+        </div>
+      </div>
+
+      <div class="photo-score-next">
+        Next we still need to flatten the card perspective and train the second model to read which score cells are marked. This beta gives you the first production building block: reliable card detection through your Cloudflare Worker while keeping the Roboflow key in Worker secrets.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav>
   <button class="active" onclick="goPage('score',this)" id="nav-score">
@@ -2569,6 +2806,7 @@ const GUEST_MODE_KEY = 'achery_guest_mode';
 
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
 function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
+function getPhotoScoreUrl() { return `${getCfUrl()}/photo-score/detect`; }
 function getSyncedIds() {
   try { return new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -3452,6 +3690,14 @@ let locationInputDirty = false;
 let threeDTournamentSetup = {startAnimal: 'turkey', direction: 1};
 let pendingSessionType = null;
 let deviceNameOverlayContext = 'launch';
+let photoScoreState = {
+  file: null,
+  imageDataUrl: '',
+  prediction: null,
+  imageMeta: null,
+  predictionsCount: 0,
+  isLoading: false
+};
 
 function isTournamentSession(sessionObj) { return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament'; }
 function isThreeDSession(sessionObj) { return sessionObj?.type === '3d_tournament'; }
@@ -4591,6 +4837,149 @@ function closeOverlay(id) {
   }
 }
 function sessionHasProgress() { return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0); }
+
+function openPhotoScoreOverlay() {
+  document.getElementById('photoScoreOverlay').classList.add('open');
+}
+
+function closePhotoScoreOverlay() {
+  closeOverlay('photoScoreOverlay');
+}
+
+function setPhotoScoreStatus(message, tone = '') {
+  const el = document.getElementById('photoScoreStatus');
+  el.textContent = message;
+  el.className = `photo-score-status${tone ? ` ${tone}` : ''}`;
+}
+
+function resetPhotoScoreState() {
+  photoScoreState = {
+    file: null,
+    imageDataUrl: '',
+    prediction: null,
+    imageMeta: null,
+    predictionsCount: 0,
+    isLoading: false
+  };
+
+  const input = document.getElementById('photoScoreInput');
+  if (input) input.value = '';
+  document.getElementById('photoScoreFileName').textContent = 'No image selected yet.';
+  document.getElementById('photoScoreDetectBtn').disabled = true;
+  document.getElementById('photoScoreResults').style.display = 'none';
+  document.getElementById('photoScoreOriginalPreview').removeAttribute('src');
+  const cropCanvas = document.getElementById('photoScoreCropCanvas');
+  const cropCtx = cropCanvas.getContext('2d');
+  cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+  setPhotoScoreStatus('Start by choosing a scorecard photo.');
+}
+
+async function handlePhotoScoreFileChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) {
+    resetPhotoScoreState();
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    appAlert('Please choose an image file.');
+    resetPhotoScoreState();
+    return;
+  }
+
+  const imageDataUrl = await fileToDataUrl(file);
+  photoScoreState.file = file;
+  photoScoreState.imageDataUrl = imageDataUrl;
+  photoScoreState.prediction = null;
+  photoScoreState.imageMeta = null;
+  photoScoreState.predictionsCount = 0;
+
+  document.getElementById('photoScoreFileName').textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+  document.getElementById('photoScoreOriginalPreview').src = imageDataUrl;
+  document.getElementById('photoScoreDetectBtn').disabled = false;
+  document.getElementById('photoScoreResults').style.display = 'none';
+  setPhotoScoreStatus('Image ready. Run detection to find the paper scorecard.');
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Could not read file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function runPhotoScoreDetection() {
+  if (!photoScoreState.imageDataUrl || photoScoreState.isLoading) return;
+
+  photoScoreState.isLoading = true;
+  document.getElementById('photoScoreDetectBtn').disabled = true;
+  setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
+
+  try {
+    const response = await fetch(getPhotoScoreUrl(), {
+      method: 'POST',
+      headers: cfHeaders(false),
+      body: JSON.stringify({
+        imageDataUrl: photoScoreState.imageDataUrl
+      })
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || 'The Cloudflare Worker returned an error.');
+    }
+    if (!payload.prediction) {
+      throw new Error('No scorecard was detected in this image. Try a clearer photo with the full paper visible.');
+    }
+
+    photoScoreState.prediction = payload.prediction;
+    photoScoreState.imageMeta = payload.image;
+    photoScoreState.predictionsCount = payload.predictionsCount || 0;
+    renderPhotoScoreResult();
+    setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
+  } catch (error) {
+    setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
+  } finally {
+    photoScoreState.isLoading = false;
+    document.getElementById('photoScoreDetectBtn').disabled = !photoScoreState.imageDataUrl;
+  }
+}
+
+function renderPhotoScoreResult() {
+  const { prediction, imageMeta, imageDataUrl, predictionsCount } = photoScoreState;
+  if (!prediction || !imageDataUrl) return;
+
+  document.getElementById('photoScoreResults').style.display = 'block';
+  document.getElementById('photoScoreConfidence').textContent = `${Math.round((prediction.confidence || 0) * 100)}%`;
+  document.getElementById('photoScoreDetections').textContent = String(predictionsCount || 1);
+
+  const img = new Image();
+  img.onload = () => {
+    const cropCanvas = document.getElementById('photoScoreCropCanvas');
+    const cropCtx = cropCanvas.getContext('2d');
+    const inferenceWidth = imageMeta?.width || img.naturalWidth;
+    const inferenceHeight = imageMeta?.height || img.naturalHeight;
+    const scaleX = img.naturalWidth / inferenceWidth;
+    const scaleY = img.naturalHeight / inferenceHeight;
+    const rawX = (prediction.x - prediction.width / 2) * scaleX;
+    const rawY = (prediction.y - prediction.height / 2) * scaleY;
+    const rawWidth = prediction.width * scaleX;
+    const rawHeight = prediction.height * scaleY;
+    const paddingX = rawWidth * 0.04;
+    const paddingY = rawHeight * 0.04;
+    const sx = Math.max(0, Math.floor(rawX - paddingX));
+    const sy = Math.max(0, Math.floor(rawY - paddingY));
+    const sw = Math.min(img.naturalWidth - sx, Math.ceil(rawWidth + paddingX * 2));
+    const sh = Math.min(img.naturalHeight - sy, Math.ceil(rawHeight + paddingY * 2));
+
+    cropCanvas.width = Math.max(1, sw);
+    cropCanvas.height = Math.max(1, sh);
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+  };
+  img.src = imageDataUrl;
+}
 
 function openDiscardSessionConfirm() {
   if (!session) { closeOverlay('endOverlay'); goPage('score', document.getElementById('nav-score')); return; }
@@ -6305,6 +6694,7 @@ loadCloudflareConfigIntoUI();
 
 renderHome();
 drawTarget([]);
+resetPhotoScoreState();
 
 // On open: push any unsynced local sessions to the club server
 setTimeout(async () => {
