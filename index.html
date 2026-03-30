@@ -3718,7 +3718,6 @@ let photoScoreState = {
   imageDataUrl: '',
   prediction: null,
   imageMeta: null,
-  detectedCorners: null,
   predictionsCount: 0,
   isLoading: false
 };
@@ -4882,7 +4881,6 @@ function resetPhotoScoreState() {
     imageDataUrl: '',
     prediction: null,
     imageMeta: null,
-    detectedCorners: null,
     predictionsCount: 0,
     isLoading: false
   };
@@ -4920,7 +4918,6 @@ async function handlePhotoScoreFileChange(event) {
   photoScoreState.imageDataUrl = imageDataUrl;
   photoScoreState.prediction = null;
   photoScoreState.imageMeta = null;
-  photoScoreState.detectedCorners = null;
   photoScoreState.predictionsCount = 0;
 
   document.getElementById('photoScoreFileName').textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -4965,7 +4962,6 @@ async function runPhotoScoreDetection() {
 
     photoScoreState.prediction = payload.prediction;
     photoScoreState.imageMeta = payload.image;
-    photoScoreState.detectedCorners = null;
     photoScoreState.predictionsCount = payload.predictionsCount || 0;
     renderPhotoScoreResult();
     setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
@@ -5022,18 +5018,26 @@ function buildPhotoScoreNormalizedViews(cropCanvas) {
   normalizedCanvas.height = normalizedHeight;
   normalizedCtx.fillStyle = '#ffffff';
   normalizedCtx.fillRect(0, 0, normalizedWidth, normalizedHeight);
-  const corners = estimatePhotoScoreCorners(cropCanvas);
-  photoScoreState.detectedCorners = corners;
-  warpQuadrilateralToCanvas(cropCanvas, normalizedCanvas, corners);
-  drawPhotoScoreCornerOverlay(cropCanvas, corners);
+  const fit = fitRectWithin(cropCanvas.width, cropCanvas.height, normalizedWidth, normalizedHeight, 0.06);
+  normalizedCtx.drawImage(
+    cropCanvas,
+    0,
+    0,
+    cropCanvas.width,
+    cropCanvas.height,
+    fit.dx,
+    fit.dy,
+    fit.dw,
+    fit.dh
+  );
 
   const gridCanvas = document.getElementById('photoScoreGridCanvas');
   const gridCtx = gridCanvas.getContext('2d');
   const gridRegion = {
-    x: normalizedWidth * 0.125,
-    y: normalizedHeight * 0.075,
-    width: normalizedWidth * 0.76,
-    height: normalizedHeight * 0.74
+    x: normalizedWidth * 0.115,
+    y: normalizedHeight * 0.06,
+    width: normalizedWidth * 0.77,
+    height: normalizedHeight * 0.76
   };
   gridCanvas.width = Math.round(gridRegion.width);
   gridCanvas.height = Math.round(gridRegion.height);
@@ -5051,157 +5055,20 @@ function buildPhotoScoreNormalizedViews(cropCanvas) {
   );
 }
 
-function estimatePhotoScoreCorners(canvas) {
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  const source = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const sampleMax = 260;
-  const scale = Math.min(1, sampleMax / Math.max(canvas.width, canvas.height));
-  const sampleWidth = Math.max(32, Math.round(canvas.width * scale));
-  const sampleHeight = Math.max(32, Math.round(canvas.height * scale));
-  const sampleCanvas = document.createElement('canvas');
-  sampleCanvas.width = sampleWidth;
-  sampleCanvas.height = sampleHeight;
-  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
-  sampleCtx.drawImage(canvas, 0, 0, sampleWidth, sampleHeight);
-  const sampleData = sampleCtx.getImageData(0, 0, sampleWidth, sampleHeight).data;
-
-  let totalLuma = 0;
-  const luminance = new Float32Array(sampleWidth * sampleHeight);
-  for (let i = 0; i < sampleWidth * sampleHeight; i++) {
-    const offset = i * 4;
-    const luma = sampleData[offset] * 0.299 + sampleData[offset + 1] * 0.587 + sampleData[offset + 2] * 0.114;
-    luminance[i] = luma;
-    totalLuma += luma;
-  }
-  const avgLuma = totalLuma / luminance.length;
-  const threshold = Math.max(145, avgLuma + 12);
-  const marginX = Math.round(sampleWidth * 0.04);
-  const marginY = Math.round(sampleHeight * 0.04);
-
-  let tl = null;
-  let tr = null;
-  let bl = null;
-  let br = null;
-  let bestTL = Infinity;
-  let bestTR = -Infinity;
-  let bestBL = -Infinity;
-  let bestBR = -Infinity;
-
-  for (let y = marginY; y < sampleHeight - marginY; y++) {
-    for (let x = marginX; x < sampleWidth - marginX; x++) {
-      const idx = y * sampleWidth + x;
-      const luma = luminance[idx];
-      if (luma < threshold) continue;
-
-      const edgeBoost = localContrast(luminance, sampleWidth, sampleHeight, x, y);
-      if (edgeBoost < 8) continue;
-
-      const scoreTL = -(x + y);
-      const scoreTR = x - y;
-      const scoreBL = y - x;
-      const scoreBR = x + y;
-
-      if (scoreTL < bestTL) {
-        bestTL = scoreTL;
-        tl = { x, y };
-      }
-      if (scoreTR > bestTR) {
-        bestTR = scoreTR;
-        tr = { x, y };
-      }
-      if (scoreBL > bestBL) {
-        bestBL = scoreBL;
-        bl = { x, y };
-      }
-      if (scoreBR > bestBR) {
-        bestBR = scoreBR;
-        br = { x, y };
-      }
-    }
-  }
-
-  const fallback = [
-    { x: canvas.width * 0.06, y: canvas.height * 0.04 },
-    { x: canvas.width * 0.94, y: canvas.height * 0.04 },
-    { x: canvas.width * 0.06, y: canvas.height * 0.96 },
-    { x: canvas.width * 0.94, y: canvas.height * 0.96 }
-  ];
-  const detected = [tl, tr, bl, br];
-
-  return detected.map((point, index) => ({
-    x: point ? point.x / scale : fallback[index].x,
-    y: point ? point.y / scale : fallback[index].y
-  }));
-}
-
-function localContrast(luminance, width, height, x, y) {
-  const idx = y * width + x;
-  const center = luminance[idx];
-  const left = luminance[y * width + Math.max(0, x - 2)];
-  const right = luminance[y * width + Math.min(width - 1, x + 2)];
-  const up = luminance[Math.max(0, y - 2) * width + x];
-  const down = luminance[Math.min(height - 1, y + 2) * width + x];
-  return Math.abs(center - left) + Math.abs(center - right) + Math.abs(center - up) + Math.abs(center - down);
-}
-
-function warpQuadrilateralToCanvas(sourceCanvas, targetCanvas, corners) {
-  const srcCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
-  const dstCtx = targetCanvas.getContext('2d');
-  const srcImage = srcCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-  const dstImage = dstCtx.createImageData(targetCanvas.width, targetCanvas.height);
-  const srcData = srcImage.data;
-  const dstData = dstImage.data;
-  const [tl, tr, bl, br] = corners;
-
-  for (let y = 0; y < targetCanvas.height; y++) {
-    const v = targetCanvas.height <= 1 ? 0 : y / (targetCanvas.height - 1);
-    for (let x = 0; x < targetCanvas.width; x++) {
-      const u = targetCanvas.width <= 1 ? 0 : x / (targetCanvas.width - 1);
-      const sx =
-        tl.x * (1 - u) * (1 - v) +
-        tr.x * u * (1 - v) +
-        bl.x * (1 - u) * v +
-        br.x * u * v;
-      const sy =
-        tl.y * (1 - u) * (1 - v) +
-        tr.y * u * (1 - v) +
-        bl.y * (1 - u) * v +
-        br.y * u * v;
-
-      const srcX = Math.max(0, Math.min(sourceCanvas.width - 1, Math.round(sx)));
-      const srcY = Math.max(0, Math.min(sourceCanvas.height - 1, Math.round(sy)));
-      const srcOffset = (srcY * sourceCanvas.width + srcX) * 4;
-      const dstOffset = (y * targetCanvas.width + x) * 4;
-
-      dstData[dstOffset] = srcData[srcOffset];
-      dstData[dstOffset + 1] = srcData[srcOffset + 1];
-      dstData[dstOffset + 2] = srcData[srcOffset + 2];
-      dstData[dstOffset + 3] = 255;
-    }
-  }
-
-  dstCtx.putImageData(dstImage, 0, 0);
-}
-
-function drawPhotoScoreCornerOverlay(canvas, corners) {
-  const ctx = canvas.getContext('2d');
-  ctx.save();
-  ctx.strokeStyle = 'rgba(240,160,75,0.95)';
-  ctx.fillStyle = 'rgba(240,160,75,0.95)';
-  ctx.lineWidth = Math.max(2, Math.round(Math.min(canvas.width, canvas.height) * 0.008));
-  ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  ctx.lineTo(corners[1].x, corners[1].y);
-  ctx.lineTo(corners[3].x, corners[3].y);
-  ctx.lineTo(corners[2].x, corners[2].y);
-  ctx.closePath();
-  ctx.stroke();
-  for (const corner of corners) {
-    ctx.beginPath();
-    ctx.arc(corner.x, corner.y, Math.max(5, Math.round(Math.min(canvas.width, canvas.height) * 0.018)), 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
+function fitRectWithin(sourceWidth, sourceHeight, targetWidth, targetHeight, insetRatio = 0) {
+  const insetX = targetWidth * insetRatio;
+  const insetY = targetHeight * insetRatio;
+  const maxWidth = Math.max(1, targetWidth - insetX * 2);
+  const maxHeight = Math.max(1, targetHeight - insetY * 2);
+  const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+  const dw = sourceWidth * scale;
+  const dh = sourceHeight * scale;
+  return {
+    dx: (targetWidth - dw) / 2,
+    dy: (targetHeight - dh) / 2,
+    dw,
+    dh
+  };
 }
 
 function downloadPhotoScoreCanvas(canvasId, filename) {
