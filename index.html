@@ -2562,7 +2562,14 @@ function cfHeaders(withSecret = false) {
 async function cfFetch(path, opts = {}) {
   const url = getCfUrl().replace(/\/$/, '') + path;
   const res = await fetch(url, { ...opts, headers: { ...cfHeaders(opts.withSecret), ...(opts.headers || {}) } });
-  if (!res.ok) throw new Error(`CF ${res.status}`);
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const data = await res.json();
+      detail = data?.error ? `: ${data.error}` : '';
+    } catch {}
+    throw new Error(`CF ${res.status}${detail}`);
+  }
   return res.json();
 }
 
@@ -2896,6 +2903,13 @@ function switchHistoryTab(tab) {
 }
 
 async function loadClubHistory() {
+  const account = getLoggedInAccount();
+  if (!account?.username) {
+    showClubError('Log in to view global scores.');
+    document.getElementById('clubList').innerHTML = '';
+    setTimeout(() => openAccountOverlay('login'), 150);
+    return;
+  }
   showClubError(null); // clear error
   document.getElementById('clubList').innerHTML =
     `<div class="empty-state" style="padding:40px 0">
@@ -2909,7 +2923,12 @@ async function loadClubHistory() {
     clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
     renderClubHistory();
   } catch (e) {
-    showClubError('Could not load club sessions. The server may be unreachable.');
+    if (e.message.includes('401')) {
+      showClubError('Log in to view global scores.');
+      setTimeout(() => openAccountOverlay('login'), 150);
+    } else {
+      showClubError('Could not load club sessions. The server may be unreachable.');
+    }
     document.getElementById('clubList').innerHTML = '';
   }
 }
