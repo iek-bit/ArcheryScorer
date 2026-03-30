@@ -1669,15 +1669,33 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 
   <div class="settings-section">
-    <div class="settings-label">ARCHERS</div>
-    
-    <div id="settingsArchersList"></div>
-    <div class="settings-row" onclick="openDeviceNameOverlay('settings')">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Add Archer</div>
-        <div class="settings-row-sub">Create a new profile</div>
+    <div class="settings-label">ACCOUNT</div>
+    <div class="settings-card">
+      <div style="padding:16px 18px; display:flex; align-items:center; gap:14px;">
+        <div style="width:42px;height:42px;border-radius:50%;background:rgba(232,197,71,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg class="ui-icon" style="font-size:20px;color:var(--accent)" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div id="settingsAccountName" style="font-size:16px;font-weight:500;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Logged in</div>
+        </div>
       </div>
+    </div>
+    <div class="settings-row" onclick="openAccountOverlay('switch')" style="margin-top:6px;">
+      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Switch Account</div>
+        <div class="settings-row-sub">Log in as a different archer</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></div>
+    </div>
+    <div class="settings-row" onclick="openBowProfileOverlay(getDeviceArcherName())" style="margin-top:6px;">
+      <div class="settings-row-icon" style="color:var(--accent)">${icon('bow')}</div>
+      <div class="settings-row-text">
+        <div class="settings-row-title">Bow Profile</div>
+        <div class="settings-row-sub">Equipment and aiming references</div>
+      </div>
+      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
   </div>
 
@@ -1685,7 +1703,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">CLUB SYNC</div>
     <div class="settings-card">
       <div style="padding: 16px;">
-        <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Club sync is enabled. Enter the Club PIN when you first open the Club tab.</p>
+        <p style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Sessions are automatically synced to the club server when you log in.</p>
       </div>
     </div>
 
@@ -1714,25 +1732,6 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <div class="settings-section">
     <div class="settings-label">DATA</div>
-
-    <div class="settings-row" onclick="downloadSave()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 19h14"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Download Save File</div>
-        <div class="settings-row-sub">Export all sessions as a .json backup</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-
-    <div class="settings-row" onclick="document.getElementById('uploadInput').click()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M8 14l4-4 4 4"></path><path d="M5 5h14"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title">Upload Save File</div>
-        <div class="settings-row-sub">Restore sessions from a .json backup</div>
-      </div>
-      <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-    <input type="file" id="uploadInput" accept=".json" style="display:none" onchange="uploadSave(event)">
 
     <div class="settings-row danger" onclick="confirmReset()">
       <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></div>
@@ -1870,7 +1869,7 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="help-section">
         <h4>Data Management</h4>
-        <p>If you get a new device, use the "Download Save File" option in Settings to export your history, and "Upload Save File" on the new device.</p>
+        <p>Your sessions are automatically synced to the club server when you log in. On a new device, simply log in with your account to restore your full history.</p>
       </div>
     </div>
   </div>
@@ -1937,24 +1936,6 @@ const PRACTICE_TARGET_OPTIONS = [
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
       <span id="sessionOverlayTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
     </div>
-  </div>
-</div>
-
-<!-- Club PIN overlay -->
-<div class="detail-overlay" id="clubPinOverlay">
-  <div class="club-pin-modal">
-    <div class="detail-modal-header" style="margin-bottom:16px">
-      <div>
-        <h3>Club Access</h3>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Enter your club PIN to view shared history</div>
-      </div>
-      <button class="detail-close" onclick="closeOverlay('clubPinOverlay')" aria-label="Close">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-      </button>
-    </div>
-    <input id="clubPinInput" class="modal-input" type="password" inputmode="numeric" placeholder="Club PIN" maxlength="12" autocomplete="off">
-    <button class="modal-btn primary" onclick="submitClubPin()">ACCESS CLUB HISTORY</button>
-    <button class="modal-btn" onclick="closeOverlay('clubPinOverlay')">CANCEL</button>
   </div>
 </div>
 
@@ -2140,14 +2121,34 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
-<div class="overlay centered" id="editArcherOverlay">
+<!-- Account overlay: login / register / switch -->
+<div class="overlay centered" id="accountOverlay">
   <div class="modal">
-    <h3>Edit Archer</h3>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Update or delete this archer profile.</p>
-    <input id="editArcherInput" class="modal-input" type="text" placeholder="Archer name" autocomplete="name" autocorrect="off" autocapitalize="words" spellcheck="false" inputmode="text" maxlength="40">
-    <button class="modal-btn primary" onclick="saveEditArcher()">SAVE CHANGES</button>
-    <button class="modal-btn danger" onclick="deleteArcher()">DELETE ARCHER</button>
-    <button class="modal-btn" onclick="closeOverlay('editArcherOverlay')">CANCEL</button>
+    <h3 id="accountOverlayTitle">Welcome</h3>
+    <p id="accountOverlayMsg" style="color:var(--muted);font-size:14px;margin-bottom:16px;">Sign in or create an account to start scoring.</p>
+
+    <!-- Tab row -->
+    <div style="display:flex;gap:0;margin-bottom:18px;">
+      <button id="accountTabLogin" class="view-toggle-btn active" style="max-width:none;flex:1;" onclick="showAccountTab('login')">LOG IN</button>
+      <button id="accountTabRegister" class="view-toggle-btn" style="max-width:none;flex:1;" onclick="showAccountTab('register')">CREATE</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="accountLoginForm">
+      <input id="loginUsernameInput" class="modal-input" type="text" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" maxlength="40">
+      <input id="loginPasswordInput" class="modal-input" type="password" placeholder="Password" autocomplete="current-password" maxlength="100">
+      <button class="modal-btn primary" onclick="submitLogin()">LOG IN</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="accountRegisterForm" style="display:none;">
+      <input id="regUsernameInput" class="modal-input" type="text" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" maxlength="40">
+      <input id="regPasswordInput" class="modal-input" type="password" placeholder="Password" autocomplete="new-password" maxlength="100">
+      <input id="regPasswordConfirm" class="modal-input" type="password" placeholder="Confirm password" autocomplete="new-password" maxlength="100">
+      <button class="modal-btn primary" onclick="submitRegister()">CREATE ACCOUNT</button>
+    </div>
+
+    <button id="accountCancelBtn" class="modal-btn" style="display:none;" onclick="closeOverlay('accountOverlay')">CANCEL</button>
   </div>
 </div>
 
@@ -2270,24 +2271,15 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 </div>
 
-<div class="overlay centered" id="deviceNameOverlay">
+<!-- Password setup overlay (shown to existing users on first load) -->
+<div class="overlay centered" id="passwordSetupOverlay">
   <div class="modal">
-    <h3 id="deviceNameOverlayTitle">Set Archer Name</h3>
-    <p id="deviceNameOverlayMessage" style="color:var(--muted);font-size:14px;margin-bottom:16px">Enter the name this device should score under.</p>
-    <input
-      id="deviceNameInput"
-      class="modal-input"
-      type="text"
-      placeholder="Archer name"
-      autocomplete="name"
-      autocorrect="off"
-      autocapitalize="words"
-      spellcheck="false"
-      maxlength="40"
-    >
-    <div class="modal-help">This device name is saved locally and included in backups.</div>
-    <button class="modal-btn primary" onclick="submitDeviceName()">SAVE NAME</button>
-    <button class="modal-btn" onclick="closeDeviceNameOverlay()">CANCEL</button>
+    <h3>Set Up Your Account</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">Your sessions are already saved. Create a password to secure your account — you'll use this to log in on any device.</p>
+    <input id="setupUsernameInput" class="modal-input" type="text" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" maxlength="40">
+    <input id="setupPasswordInput" class="modal-input" type="password" placeholder="Password" autocomplete="new-password" maxlength="100">
+    <input id="setupPasswordConfirm" class="modal-input" type="password" placeholder="Confirm password" autocomplete="new-password" maxlength="100">
+    <button class="modal-btn primary" onclick="submitPasswordSetup()">SAVE ACCOUNT</button>
   </div>
 </div>
 
@@ -2334,26 +2326,31 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <script>
 // ═══════════════════════════════════════════════
-//  CLOUDFLARE SYNC LAYER
+//  ACCOUNT & AUTH LAYER
 // ═══════════════════════════════════════════════
-const CF_URL_KEY    = 'achery_cf_url';
 const CF_SECRET_KEY = 'achery_cf_secret';
-const CF_PIN_KEY    = 'achery_cf_pin';    // stored after successful auth
-const SYNCED_KEY    = 'achery_synced_ids'; // set of session IDs already pushed
+const SYNCED_KEY    = 'achery_synced_ids';
+const ACCOUNT_KEY   = 'achery_account'; // { username, password }
 
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
 function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
-function getCfPin()    { try { return localStorage.getItem(CF_PIN_KEY)    || ''; } catch { return ''; } }
 function getSyncedIds() {
   try { return new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) || '[]')); } catch { return new Set(); }
 }
 function markSynced(id) {
-  try {
-    const s = getSyncedIds(); s.add(String(id));
-    localStorage.setItem(SYNCED_KEY, JSON.stringify([...s]));
-  } catch {}
+  try { const s = getSyncedIds(); s.add(String(id)); localStorage.setItem(SYNCED_KEY, JSON.stringify([...s])); } catch {}
 }
 function cfReady() { return true; }
+
+function getLoggedInAccount() {
+  try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; }
+}
+function setLoggedInAccount(username, password) {
+  try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ username, password })); } catch {}
+}
+function clearLoggedInAccount() {
+  try { localStorage.removeItem(ACCOUNT_KEY); } catch {}
+}
 
 function cfHeaders(withSecret = false) {
   const h = { 'Content-Type': 'application/json' };
@@ -2368,136 +2365,206 @@ async function cfFetch(path, opts = {}) {
   return res.json();
 }
 
-// Push one session to Cloudflare (fire-and-forget, silent on error)
+async function cfRegister(username, password) {
+  return cfFetch('/account/register', { method: 'POST', body: JSON.stringify({ username, password }) });
+}
+async function cfLogin(username, password) {
+  return cfFetch('/account/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+}
+async function cfCheckUsername(username) {
+  try { const r = await cfFetch(`/account/check?username=${encodeURIComponent(username)}`); return r.taken; } catch { return false; }
+}
 async function cfPushSession(sessionObj) {
   if (!cfReady()) return;
-  try {
-    await cfFetch('/sessions', {
-      method: 'POST',
-      body: JSON.stringify(sessionObj)
-    });
-    markSynced(sessionObj.id);
-  } catch (e) { console.warn('CF push failed:', e.message); }
+  try { await cfFetch('/sessions', { method: 'POST', body: JSON.stringify(sessionObj) }); markSynced(sessionObj.id); }
+  catch (e) { console.warn('CF push failed:', e.message); }
 }
-
-// Delete one session from Cloudflare
 async function cfDeleteSession(id) {
   if (!cfReady()) return;
   try { await cfFetch(`/sessions/${id}`, { method: 'DELETE', withSecret: true }); } catch {}
 }
-
-// Pull all sessions from Cloudflare
 async function cfPullSessions() {
   if (!cfReady()) throw new Error('Not configured');
   return cfFetch('/sessions');
 }
-
-// Delete everything for an archer from Cloudflare
 async function cfDeleteArcher(name) {
   if (!cfReady()) return;
-  try {
-    await cfFetch(`/archer/${encodeURIComponent(name)}`, { method: 'DELETE', withSecret: true });
-  } catch {}
-}
-
-// Check if a name is taken on the club server
-async function cfCheckName(name) {
-  if (!cfReady()) return false;
-  try {
-    const res = await cfFetch(`/check-name?name=${encodeURIComponent(name)}`);
-    return res.taken;
-  } catch { return false; }
-}
-
-// Register a name on the club server
-async function cfRegisterName(name) {
-  if (!cfReady()) return;
-  try {
-    await cfFetch('/register-name', {
-      method: 'POST',
-      body: JSON.stringify({ name })
-    });
-  } catch {}
+  try { await cfFetch(`/archer/${encodeURIComponent(name)}`, { method: 'DELETE', withSecret: true }); } catch {}
 }
 
 function saveCloudflareConfig() {
-  try {
-    const secret = document.getElementById('cfSecret')?.value.trim() || '';
-    localStorage.setItem(CF_SECRET_KEY, secret);
-  } catch {}
+  try { const secret = document.getElementById('cfSecret')?.value.trim() || ''; localStorage.setItem(CF_SECRET_KEY, secret); } catch {}
 }
-
 function loadCloudflareConfigIntoUI() {
   const secretEl = document.getElementById('cfSecret');
   if (secretEl) secretEl.value = getCfSecret();
 }
 
-// Sync all unsynced local sessions on app open
 async function autoSyncUnsyncedSessions() {
   if (!cfReady()) return;
   const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   for (const s of unsynced) { await cfPushSession(s); }
 }
-
-// Manual sync button in settings
 async function syncUnsyncedSessions() {
-  const synced  = getSyncedIds();
+  const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   if (!unsynced.length) { appAlert('All sessions are already synced.'); return; }
   let ok = 0;
-  for (const s of unsynced) {
-    try { await cfPushSession(s); ok++; } catch {}
-  }
+  for (const s of unsynced) { try { await cfPushSession(s); ok++; } catch {} }
   appAlert(`Synced ${ok} of ${unsynced.length} sessions to the club.`);
 }
 
 // ── 5-tap admin unlock ────────────────────────────────────────────────────────
-let _settingsTapCount = 0;
-let _settingsTapTimer = null;
+let _settingsTapCount = 0, _settingsTapTimer = null;
 function handleSettingsTap() {
   _settingsTapCount++;
   clearTimeout(_settingsTapTimer);
   if (_settingsTapCount >= 5) {
     _settingsTapCount = 0;
     const sec = document.getElementById('adminSecretSection');
-    if (sec) {
-      const nowVisible = sec.style.display !== 'none';
-      sec.style.display = nowVisible ? 'none' : 'block';
-      if (!nowVisible) { loadCloudflareConfigIntoUI(); appAlert('Admin mode unlocked.'); }
-    }
-  } else {
-    _settingsTapTimer = setTimeout(() => { _settingsTapCount = 0; }, 1500);
-  }
+    if (sec) { const v = sec.style.display !== 'none'; sec.style.display = v ? 'none' : 'block'; if (!v) { loadCloudflareConfigIntoUI(); appAlert('Admin mode unlocked.'); } }
+  } else { _settingsTapTimer = setTimeout(() => { _settingsTapCount = 0; }, 1500); }
 }
 
-// ── Club PIN ─────────────────────────────────────────────────────────────────
-let _pinCallback = null;
-
-function openClubPinOverlay(cb) {
-  _pinCallback = cb || null;
-  document.getElementById('clubPinInput').value = '';
-  document.getElementById('clubPinOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('clubPinInput').focus(), 80);
+// ── Account overlay ───────────────────────────────────────────────────────────
+function showAccountTab(tab) {
+  document.getElementById('accountLoginForm').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('accountRegisterForm').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('accountTabLogin').classList.toggle('active',    tab === 'login');
+  document.getElementById('accountTabRegister').classList.toggle('active', tab === 'register');
 }
 
-async function submitClubPin() {
-  const pin = document.getElementById('clubPinInput').value.trim();
-  if (!pin) { appAlert('Please enter the club PIN.'); return; }
+function openAccountOverlay(context) {
+  showAccountTab('login');
+  document.getElementById('loginUsernameInput').value = '';
+  document.getElementById('loginPasswordInput').value = '';
+  document.getElementById('regUsernameInput').value = '';
+  document.getElementById('regPasswordInput').value = '';
+  document.getElementById('regPasswordConfirm').value = '';
+  document.getElementById('accountCancelBtn').style.display = context === 'switch' ? 'block' : 'none';
+  document.getElementById('accountOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('loginUsernameInput').focus(), 80);
+}
 
-  // Verify PIN by hitting /sessions (will 401 if wrong)
+async function submitLogin() {
+  const username = document.getElementById('loginUsernameInput').value.trim();
+  const password = document.getElementById('loginPasswordInput').value;
+  if (!username || !password) { appAlert('Please enter your username and password.'); return; }
   try {
-    const url = getCfUrl().replace(/\/$/, '') + '/sessions';
-    const res = await fetch(url, { headers: { 'X-Club-Pin': pin, 'X-Club-Secret': getCfSecret() } });
-    if (res.status === 401) { appAlert('Incorrect PIN. Please try again.'); return; }
-  } catch (e) {
-    appAlert('Could not reach the club server. Check your Worker URL in Settings.');
-    return;
+    const res = await cfLogin(username, password);
+    if (res.ok) {
+      setLoggedInAccount(res.username, password);
+      db.deviceProfile.activeArcher = res.username;
+      db.deviceProfile.archers = [res.username];
+      save();
+      closeOverlay('accountOverlay');
+      updateAccountUI();
+      renderHome(); renderDiag();
+      // Pull existing sessions from server, then push any local ones
+      setTimeout(async () => {
+        await pullSessionsForAccount(res.username);
+        await autoSyncUnsyncedSessions();
+      }, 300);
+    }
+  } catch(e) {
+    if (e.message.includes('401')) appAlert('Incorrect username or password.');
+    else appAlert('Could not reach the club server. Check your connection.');
   }
+}
 
-  try { localStorage.setItem(CF_PIN_KEY, pin); } catch {}
-  closeOverlay('clubPinOverlay');
-  if (_pinCallback) { const cb = _pinCallback; _pinCallback = null; cb(); }
+async function submitRegister() {
+  const username = document.getElementById('regUsernameInput').value.trim();
+  const password = document.getElementById('regPasswordInput').value;
+  const confirm  = document.getElementById('regPasswordConfirm').value;
+  if (!username) { appAlert('Please enter a username.'); return; }
+  if (!password) { appAlert('Please enter a password.'); return; }
+  if (password !== confirm) { appAlert('Passwords do not match.'); return; }
+  if (password.length < 4) { appAlert('Password must be at least 4 characters.'); return; }
+  try {
+    const res = await cfRegister(username, password);
+    if (res.taken) { appAlert(`The username "${username}" is already taken. Please choose another.`); return; }
+    if (res.ok) {
+      setLoggedInAccount(res.username, password);
+      db.sessions.forEach(s => { if (!s.archerName) s.archerName = res.username; });
+      db.deviceProfile.activeArcher = res.username;
+      db.deviceProfile.archers = [res.username];
+      save();
+      closeOverlay('accountOverlay');
+      updateAccountUI();
+      renderHome(); renderDiag();
+      setTimeout(() => autoSyncUnsyncedSessions(), 500);
+    }
+  } catch(e) {
+    if (e.message.includes('409')) appAlert(`The username "${username}" is already taken.`);
+    else appAlert('Could not reach the club server. Check your connection.');
+  }
+}
+
+// ── Password setup overlay (backward compat for existing users) ───────────────
+function openPasswordSetupOverlay(suggestedUsername) {
+  document.getElementById('setupUsernameInput').value = suggestedUsername || '';
+  document.getElementById('setupPasswordInput').value = '';
+  document.getElementById('setupPasswordConfirm').value = '';
+  document.getElementById('passwordSetupOverlay').classList.add('open');
+  setTimeout(() => { const u = document.getElementById('setupUsernameInput'); u.focus(); u.select(); }, 80);
+}
+
+async function submitPasswordSetup() {
+  const username = document.getElementById('setupUsernameInput').value.trim();
+  const password = document.getElementById('setupPasswordInput').value;
+  const confirm  = document.getElementById('setupPasswordConfirm').value;
+  if (!username) { appAlert('Please enter a username.'); return; }
+  if (!password) { appAlert('Please enter a password.'); return; }
+  if (password !== confirm) { appAlert('Passwords do not match.'); return; }
+  if (password.length < 4) { appAlert('Password must be at least 4 characters.'); return; }
+  try {
+    const res = await cfRegister(username, password);
+    if (res.taken) { appAlert(`The username "${username}" is already taken. Please choose another.`); return; }
+    if (res.ok) {
+      setLoggedInAccount(res.username, password);
+      db.sessions.forEach(s => { if (!s.archerName || s.archerName === db.deviceProfile.activeArcher) s.archerName = res.username; });
+      db.deviceProfile.activeArcher = res.username;
+      db.deviceProfile.archers = [res.username];
+      save();
+      closeOverlay('passwordSetupOverlay');
+      updateAccountUI();
+      renderHome(); renderDiag();
+      setTimeout(async () => {
+        await pullSessionsForAccount(res.username);
+        await autoSyncUnsyncedSessions();
+      }, 300);
+    }
+  } catch(e) {
+    if (e.message.includes('409')) appAlert(`The username "${username}" is already taken.`);
+    else appAlert('Could not reach the club server. Check your connection.');
+  }
+}
+
+// Pull all sessions for the logged-in account from the server and merge into local db
+async function pullSessionsForAccount(username) {
+  try {
+    const all = await cfPullSessions();
+    const mine = all.filter(s => (s.archerName || '').toLowerCase() === username.toLowerCase());
+    if (!mine.length) return;
+    // Merge: add any server sessions not already in local db (by id)
+    const localIds = new Set(db.sessions.map(s => String(s.id)));
+    let added = 0;
+    mine.forEach(s => {
+      if (!localIds.has(String(s.id))) {
+        db.sessions.push(normalizeSessionData(s));
+        markSynced(s.id);
+        added++;
+      }
+    });
+    if (added > 0) { save(); renderHome(); renderDiag(); }
+  } catch (e) { console.warn('Pull failed:', e.message); }
+}
+
+function updateAccountUI() {
+  const account = getLoggedInAccount();
+  const nameEl = document.getElementById('settingsAccountName');
+  if (nameEl) nameEl.textContent = account ? account.username : '—';
 }
 
 // ── Club history tab ─────────────────────────────────────────────────────────
@@ -2805,10 +2872,21 @@ db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
 
 // Initialize app on DOM ready
 function initializeApp() {
-  // Check if migration is needed and perform it
-  const migrationStatus = detectMigrationNeeded();
-  if (migrationStatus.needed) {
-    performMigration();
+  const account = getLoggedInAccount();
+  if (!account) {
+    const existingName = normalizePersonName(db.deviceProfile?.activeArcher);
+    if (existingName && db.sessions.length > 0) {
+      // Existing user without a password — prompt to set one
+      setTimeout(() => openPasswordSetupOverlay(existingName), 300);
+    } else {
+      // Brand new user — show login/register
+      setTimeout(() => openAccountOverlay('login'), 300);
+    }
+  } else {
+    // Already logged in — sync active archer name
+    db.deviceProfile.activeArcher = account.username;
+    db.deviceProfile.archers = [account.username];
+    updateAccountUI();
   }
 }
 
@@ -2816,7 +2894,6 @@ function initializeApp() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-  // DOM is already loaded
   initializeApp();
 }
 
@@ -3160,224 +3237,55 @@ function syncFinishLocationInput() {
   input.value = formatLocation(finishingSession.location) || '';
 }
 
-function getDeviceArcherName() { return normalizePersonName(db.deviceProfile?.activeArcher); }
-
-function setDeviceArcherName(name) {
-  const normalized = normalizePersonName(name);
-  if (db.deviceProfile.activeArcher === normalized) return;
-  db.deviceProfile.activeArcher = normalized;
-  save();
+function getDeviceArcherName() {
+  const acct = getLoggedInAccount();
+  if (acct) return acct.username;
+  return normalizePersonName(db.deviceProfile?.activeArcher);
 }
 
-function updateDeviceNameSummary() {
-  const list = document.getElementById('settingsArchersList');
-  if (!list) return;
-  list.innerHTML = (db.deviceProfile.archers || []).map((archer) => {
-    const isActive = archer === db.deviceProfile.activeArcher;
-    const iconBg = isActive ? 'rgba(232,197,71,.15)' : 'transparent';
-    const iconCol = isActive ? 'var(--accent)' : 'var(--muted)';
-    const iconSvg = isActive ? icon('checkSquare') : '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-    
-    let bowInfoHtml = '';
-    if (isActive) {
-      const bow = db.deviceProfile.bows[archer];
-      if (bow && (bow.name || bow.type || bow.drawWeight || Object.keys(bow.aimingPoints || {}).length > 0 || bow.notes)) {
-         const aimingPts = Object.entries(bow.aimingPoints || {}).map(([k,v]) => `${k.toUpperCase()}: ${v}`).join(' · ');
-         bowInfoHtml = `
-           <div class="bow-info-panel" style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 16px 16px 12px; font-size: 13px;">
-             ${bow.name ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Name</span><span style="color:var(--text)">${bow.name}</span></div>` : ''}
-             ${bow.type ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Type</span><span style="color:var(--text); text-transform:capitalize;">${bow.type}</span></div>` : ''}
-             ${bow.drawWeight ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Weight</span><span style="color:var(--text)">${bow.drawWeight}</span></div>` : ''}
-             ${aimingPts ? `<div style="display:flex; justify-content:space-between; margin-bottom:6px; flex-direction:column; gap:4px;"><span style="color:var(--muted); font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;">Aiming Points</span><span style="color:var(--text); font-size:12px; line-height:1.4;">${aimingPts}</span></div>` : ''}
-             ${bow.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); color:var(--muted); font-style:italic; font-size:12px; white-space:pre-wrap;">${bow.notes}</div>` : ''}
-           </div>
-         `;
-      } else {
-         bowInfoHtml = `
-           <div class="bow-info-panel" style="background:var(--bg2); border:1px solid var(--accent); border-top:none; border-radius:0 0 14px 14px; margin: -6px 0 12px; padding: 12px 16px; font-size: 12px; color:var(--muted); text-align:center;">
-             No bow profile saved. Tap the bow icon to add one.
-           </div>
-         `;
-      }
-    }
-
-    return `
-      <div class="settings-row" onclick="selectActiveArcher('${archer.replace(/'/g, "\\'")}')" style="margin-bottom:${isActive ? '0' : '6px'}; ${isActive ? 'border-color:var(--accent); border-bottom-left-radius:0; border-bottom-right-radius:0;' : ''}">
-        <div class="settings-row-icon" style="background:${iconBg}; color:${iconCol}; border:${isActive?'none':'1px solid var(--border)'}">${iconSvg}</div>
-        <div class="settings-row-text">
-          <div class="settings-row-title" style="${isActive ? 'color:var(--accent)' : ''}">${archer}</div>
-          <div class="settings-row-sub">${isActive ? 'Active Profile' : 'Tap to set active'}</div>
-        </div>
-        <div style="display:flex; gap:2px; margin-right:-6px;">
-          <button class="icon-btn" onclick="event.stopPropagation(); openBowProfileOverlay('${archer.replace(/'/g, "\\'")}')" style="width:44px; height:44px; border:none; background:transparent; color:var(--accent);" title="Bow Profile" aria-label="Bow Profile">
-            ${icon('bow')}
-          </button>
-          <button class="icon-btn" onclick="event.stopPropagation(); openEditArcherOverlay('${archer.replace(/'/g, "\\'")}')" style="width:44px; height:44px; border:none; background:transparent;" title="Edit Archer" aria-label="Edit Archer">
-            ${icon('edit')}
-          </button>
-        </div>
-      </div>
-      ${bowInfoHtml}
-    `;
-  }).join('');
-}
-
-function selectActiveArcher(name) {
-  if (db.deviceProfile.activeArcher === name) return;
-  db.deviceProfile.activeArcher = name;
-  save(); updateDeviceNameSummary();
-}
-
-let editingArcherOldName = '';
-function openEditArcherOverlay(name) {
-  editingArcherOldName = name;
-  document.getElementById('editArcherInput').value = name;
-  document.getElementById('editArcherOverlay').classList.add('open');
-}
-
-function saveEditArcher() {
-  const newName = normalizePersonName(document.getElementById('editArcherInput').value);
-  if (!newName) return;
-  if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(newName.toLowerCase())) {
-     appAlert('An archer with this name already exists.'); return;
-  }
-  
-  if (newName.toLowerCase() !== editingArcherOldName.toLowerCase() && db.deviceProfile.bows[editingArcherOldName]) {
-    db.deviceProfile.bows[newName] = db.deviceProfile.bows[editingArcherOldName];
-    delete db.deviceProfile.bows[editingArcherOldName];
-  }
-
-  const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
-  if (idx !== -1) db.deviceProfile.archers[idx] = newName;
-  if (db.deviceProfile.activeArcher === editingArcherOldName) db.deviceProfile.activeArcher = newName;
-  db.sessions.forEach(s => {
-     if (normalizePersonName(s.archerName) === editingArcherOldName) s.archerName = newName;
-  });
-  save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
-}
-
-function deleteArcher() {
-  appConfirm(`Remove ${editingArcherOldName} from this device? Past sessions will still remain in History.`, () => {
-    const idx = db.deviceProfile.archers.indexOf(editingArcherOldName);
-    if (idx !== -1) db.deviceProfile.archers.splice(idx, 1);
-    
-    delete db.deviceProfile.bows[editingArcherOldName];
-    
-    if (db.deviceProfile.activeArcher === editingArcherOldName) {
-      db.deviceProfile.activeArcher = db.deviceProfile.archers.length > 0 ? db.deviceProfile.archers[0] : '';
-    }
-    save(); updateDeviceNameSummary(); renderHome(); renderDiag(); closeOverlay('editArcherOverlay');
-  });
-}
+// updateDeviceNameSummary → now just updates the account UI in settings
+function updateDeviceNameSummary() { updateAccountUI(); }
 
 let editingBowArcherName = '';
 function openBowProfileOverlay(name) {
-  editingBowArcherName = name;
-  document.getElementById('bowProfileArcherName').textContent = name;
-  const bow = db.deviceProfile.bows[name] || { aimingPoints: {} };
-  
+  editingBowArcherName = name || getDeviceArcherName();
+  document.getElementById('bowProfileArcherName').textContent = editingBowArcherName;
+  const bow = (db.deviceProfile.bows || {})[editingBowArcherName] || { aimingPoints: {} };
   document.getElementById('bowNameInput').value = bow.name || '';
   document.getElementById('bowTypeInput').value = bow.type || '';
   document.getElementById('bowDrawWeightInput').value = bow.drawWeight || '';
   document.getElementById('bowNotesInput').value = bow.notes || '';
-  
   document.querySelectorAll('.aiming-input').forEach(input => {
-     const target = input.getAttribute('data-target');
-     input.value = bow.aimingPoints[target] || '';
+    const target = input.getAttribute('data-target');
+    input.value = bow.aimingPoints[target] || '';
   });
-  
   document.getElementById('bowProfileOverlay').classList.add('open');
 }
 
 function saveBowProfile() {
-  const bowName = document.getElementById('bowNameInput').value.trim();
-  const bowType = document.getElementById('bowTypeInput').value;
+  const bowName    = document.getElementById('bowNameInput').value.trim();
+  const bowType    = document.getElementById('bowTypeInput').value;
   const drawWeight = document.getElementById('bowDrawWeightInput').value.trim();
-  const notes = document.getElementById('bowNotesInput').value.trim();
-  
+  const notes      = document.getElementById('bowNotesInput').value.trim();
   const aimingPoints = {};
   document.querySelectorAll('.aiming-input').forEach(input => {
-     const target = input.getAttribute('data-target');
-     const val = input.value.trim();
-     if (val) aimingPoints[target] = val;
+    const target = input.getAttribute('data-target');
+    const val = input.value.trim();
+    if (val) aimingPoints[target] = val;
   });
-  
-  db.deviceProfile.bows[editingBowArcherName] = {
-    name: bowName,
-    type: bowType,
-    drawWeight: drawWeight,
-    aimingPoints: aimingPoints,
-    notes: notes
-  };
-  
+  if (!db.deviceProfile.bows) db.deviceProfile.bows = {};
+  db.deviceProfile.bows[editingBowArcherName] = { name: bowName, type: bowType, drawWeight, aimingPoints, notes };
   save();
   closeOverlay('bowProfileOverlay');
   appAlert(`Saved bow profile for ${editingBowArcherName}.`);
 }
 
-function closeDeviceNameOverlay() { pendingSessionType = null; closeOverlay('deviceNameOverlay'); }
-
-function openDeviceNameOverlay(context = 'launch') {
-  deviceNameOverlayContext = context;
-  const existing = getDeviceArcherName();
-  
-  if (context === 'migration') {
-    document.getElementById('deviceNameOverlayTitle').textContent = 'Migrate Your Sessions';
-    document.getElementById('deviceNameOverlayMessage').textContent = 'Your existing sessions need to be tagged with an archer name. Enter the name to use for these sessions.';
-  } else if (context === 'settings') {
-    document.getElementById('deviceNameOverlayTitle').textContent = 'Add Archer';
-    document.getElementById('deviceNameOverlayMessage').textContent = 'Create a new archer profile. You can switch between them anytime.';
-  } else {
-    document.getElementById('deviceNameOverlayTitle').textContent = 'Set Archer Name';
-    document.getElementById('deviceNameOverlayMessage').textContent = 'Before scoring your first session, enter the archer name this device should score under.';
-  }
-  
-  const input = document.getElementById('deviceNameInput');
-  input.value = (context === 'settings' || context === 'migration') ? '' : existing;
-  document.getElementById('deviceNameOverlay').classList.add('open');
-  setTimeout(() => { input.focus(); input.select(); }, 60);
-}
-
-async function submitDeviceName() {
-  const input = document.getElementById('deviceNameInput');
-  const nextName = normalizePersonName(input.value);
-  if (!nextName) { appAlert('Please enter an archer name.'); input.focus(); return; }
-
-  db.deviceProfile.archers = db.deviceProfile.archers || [];
-  if (db.deviceProfile.archers.map(a=>a.toLowerCase()).includes(nextName.toLowerCase())) {
-    appAlert('This archer already exists on this device.'); input.focus(); return;
-  }
-
-  // Check club server for name collision (only if configured and PIN available)
-  if (cfReady() && getCfPin()) {
-    try {
-      const taken = await cfCheckName(nextName);
-      if (taken) {
-        appAlert(`The name "${nextName}" is already taken in the club. Please choose a different name.`);
-        input.focus(); return;
-      }
-      await cfRegisterName(nextName);
-    } catch { /* offline — skip club check */ }
-  }
-
-  db.deviceProfile.archers.push(nextName);
-  db.deviceProfile.activeArcher = nextName;
-  save(); updateDeviceNameSummary(); closeOverlay('deviceNameOverlay');
-
-  if (deviceNameOverlayContext === 'migration') {
-    completeMigration(nextName);
-    if (window.migrationResolveCallback) { window.migrationResolveCallback(); window.migrationResolveCallback = null; }
-    return;
-  }
-  if (deviceNameOverlayContext === 'launch' && pendingSessionType) {
-    const nextType = pendingSessionType; pendingSessionType = null; startSession(nextType); return;
-  }
-  pendingSessionType = null;
-}
-
 function ensureDeviceNameForScoring(type) {
   if (getDeviceArcherName()) return true;
-  pendingSessionType = type; openDeviceNameOverlay('launch'); return false;
+  // Not logged in — show account overlay
+  pendingSessionType = type;
+  openAccountOverlay('login');
+  return false;
 }
 
 function launchSession(type) { if (!ensureDeviceNameForScoring(type)) return; startSession(type); }
@@ -5107,80 +5015,33 @@ function goPage(name, btn) {
 // ═══════════════════════════════════════════════
 //  SETTINGS
 // ═══════════════════════════════════════════════
-function downloadSave() {
-  const payload = { ...db, deviceProfile: normalizeDeviceProfile(db.deviceProfile), theme: themeState };
-  const json = JSON.stringify(payload, null, 2); const blob = new Blob([json], {type: 'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = url; a.download = `achery-scorer-save-${new Date().toISOString().slice(0,10)}.json`;
-  a.click(); URL.revokeObjectURL(url);
-}
-
-function exportForSharing() {
-  // Export scores.json and open GitHub upload page
-  const payload = {
-    version: '1.0',
-    lastUpdated: new Date().toISOString(),
-    sessions: db.sessions.map(s => ({
-      ...s,
-      archerName: s.archerName || getDeviceArcherName() || 'Unknown',
-      sessionId: s.sessionId || generateSessionId()
-    }))
-  };
-  
-  const json = JSON.stringify(payload, null, 2);
-  const blob = new Blob([json], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'scores.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  // Open GitHub upload page
-  const owner = localStorage.getItem('githubOwner') || 'iek-bit';
-  const repo = localStorage.getItem('githubRepo') || 'ArcheryScorer';
-  const githubUploadUrl = `https://github.com/${owner}/${repo}/upload/main`;
-  
-  setTimeout(() => {
-    window.open(githubUploadUrl, '_blank');
-  }, 500);
-  
-  appAlert(`Exported ${db.sessions.length} session(s). Upload the scores.json file on the GitHub page that just opened.`);
-}
-
-function uploadSave(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = evt => {
-    try {
-      const parsed = JSON.parse(evt.target.result); if (!parsed.sessions || !Array.isArray(parsed.sessions)) throw new Error('Invalid format');
-      db = { sessions: parsed.sessions.map(normalizeSessionData), savedLocations: Array.isArray(parsed.savedLocations) ? parsed.savedLocations : [], deviceProfile: normalizeDeviceProfile(parsed.deviceProfile) };
-      if (parsed.theme && typeof parsed.theme === 'object') { themeState = parsed.theme; persistTheme(); applyTheme(); }
-      save(); refreshSavedLocationOptions(); renderHome(); renderDiag(); updateDeviceNameSummary();
-      appAlert(`Loaded ${db.sessions.length} session(s) successfully.`);
-    } catch { appAlert('Could not read save file. Make sure it is a valid Achery Scorer backup.'); }
-  };
-  reader.readAsText(file); e.target.value = '';
-}
-
 function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
 
 async function resetData() {
-  const archerName = getDeviceArcherName();
+  const account = getLoggedInAccount();
 
-  // Wipe Cloudflare data for this archer (silent if offline)
-  if (archerName) await cfDeleteArcher(archerName);
+  if (account) {
+    // Delete account + all sessions from the server (requires password)
+    try {
+      await cfFetch(`/account/${encodeURIComponent(account.username)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ password: account.password })
+      });
+    } catch (e) { console.warn('Server delete failed (offline?):', e.message); }
+  }
 
-  // Clear synced IDs so nothing is considered pushed
+  // Wipe everything local
   try { localStorage.removeItem(SYNCED_KEY); } catch {}
+  clearLoggedInAccount();
 
-  db = { sessions: [], savedLocations: [], deviceProfile: {name: '', archers: [], activeArcher: ''} };
+  db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' } };
   session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
   save(); refreshSavedLocationOptions(); resetActiveSessionUI();
   document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
   document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
   renderHome(); renderDiag(); updateDeviceNameSummary();
-  appAlert('All data has been reset.');
+  // Show login screen after wipe
+  setTimeout(() => openAccountOverlay('login'), 300);
 }
 
 // ═══════════════════════════════════════════════
@@ -5672,15 +5533,9 @@ loadCloudflareConfigIntoUI();
 renderHome();
 drawTarget([]);
 
-// On open: push any unsynced local sessions, then pull fresh club data
+// On open: push any unsynced local sessions to the club server
 setTimeout(async () => {
   await autoSyncUnsyncedSessions();
-  // Pre-warm club sessions so the Club tab loads instantly
-  try {
-    const all = await cfPullSessions();
-    const myName = getDeviceArcherName().toLowerCase();
-    clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
-  } catch {}
 }, 2000);
 
 function wipeEphemeralOnExit() {
