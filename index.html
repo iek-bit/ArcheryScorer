@@ -870,6 +870,15 @@
   }
   .modal-btn.primary { background: var(--accent); color: #000; }
   .modal-btn.danger { background: var(--red); color: #fff; }
+  .guest-continue-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 15px;
+    letter-spacing: .8px;
+  }
   .modal-btn:active { opacity: .82; transform: scale(.98); }
   .end-btn:active { opacity: .82; transform: scale(.98); }
   .modal-input {
@@ -2134,20 +2143,20 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="account-popup">
     <div class="account-popup-name" id="accountPopupName">—</div>
     <div class="account-popup-sub">Signed in</div>
-    <button class="account-popup-btn" onclick="closeAccountPopup();openEditUsernameOverlay()">
+    <button class="account-popup-btn" id="accountPopupEditUsernameBtn" onclick="closeAccountPopup();openEditUsernameOverlay()">
       <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
       Change Username
     </button>
-    <button class="account-popup-btn" onclick="closeAccountPopup();openEditPasswordOverlay()">
+    <button class="account-popup-btn" id="accountPopupEditPasswordBtn" onclick="closeAccountPopup();openEditPasswordOverlay()">
       <svg class="ui-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
       Change Password
     </button>
-    <button class="account-popup-btn" onclick="closeAccountPopup();openAccountOverlay('switch')">
+    <button class="account-popup-btn" id="accountPopupSwitchBtn" onclick="closeAccountPopup();openAccountOverlay('switch')">
       <svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
       Switch Account
     </button>
     <div style="border-top:1px solid var(--border);margin:10px 0 8px;"></div>
-    <button class="account-popup-btn danger" onclick="closeAccountPopup();confirmDeleteAccount()">
+    <button class="account-popup-btn danger" id="accountPopupDeleteBtn" onclick="closeAccountPopup();confirmDeleteAccount()">
       <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path></svg>
       Delete Account
     </button>
@@ -2369,6 +2378,8 @@ const PRACTICE_TARGET_OPTIONS = [
       <button class="modal-btn primary" onclick="submitRegister()">CREATE ACCOUNT</button>
     </div>
 
+    <button id="continueGuestBtn" class="modal-btn guest-continue-btn" onclick="continueAsGuest()">CONTINUE AS GUEST</button>
+
     <button id="accountCancelBtn" class="modal-btn" style="display:none;" onclick="closeOverlay('accountOverlay')">CANCEL</button>
   </div>
 </div>
@@ -2552,6 +2563,7 @@ const PRACTICE_TARGET_OPTIONS = [
 const CF_SECRET_KEY = 'achery_cf_secret';
 const SYNCED_KEY    = 'achery_synced_ids';
 const ACCOUNT_KEY   = 'achery_account'; // { username, password }
+const GUEST_MODE_KEY = 'achery_guest_mode';
 
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
 function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
@@ -2574,6 +2586,37 @@ function setLoggedInAccount(username, password) {
 }
 function clearLoggedInAccount() {
   try { localStorage.removeItem(ACCOUNT_KEY); } catch {}
+}
+function isGuestMode() {
+  try { return localStorage.getItem(GUEST_MODE_KEY) === 'true'; } catch { return false; }
+}
+function setGuestMode() {
+  try { localStorage.setItem(GUEST_MODE_KEY, 'true'); } catch {}
+}
+function clearGuestMode() {
+  try { localStorage.removeItem(GUEST_MODE_KEY); } catch {}
+}
+function hasGlobalAccount() {
+  const account = getLoggedInAccount();
+  return !!(account?.username && account?.password);
+}
+function migrateLocalDataToAccount(username, previousName = normalizePersonName(db.deviceProfile?.activeArcher)) {
+  const nextName = normalizePersonName(username);
+  const priorName = normalizePersonName(previousName);
+  db.sessions.forEach(s => {
+    const sessionOwner = normalizePersonName(s.archerName);
+    if (!sessionOwner || (priorName && sessionOwner.toLowerCase() === priorName.toLowerCase())) {
+      s.archerName = nextName;
+    }
+  });
+  db.deviceProfile.bows = db.deviceProfile.bows || {};
+  if (priorName && priorName !== nextName && db.deviceProfile.bows[priorName] && !db.deviceProfile.bows[nextName]) {
+    db.deviceProfile.bows[nextName] = db.deviceProfile.bows[priorName];
+    delete db.deviceProfile.bows[priorName];
+  }
+  db.deviceProfile.activeArcher = nextName;
+  db.deviceProfile.archers = [nextName];
+  clearGuestMode();
 }
 
 function cfHeaders(withSecret = false) {
@@ -2616,14 +2659,16 @@ async function cfCheckUsername(username) {
   try { const r = await cfFetch(`/account/check?username=${encodeURIComponent(username)}`); return r.taken; } catch { return false; }
 }
 async function cfPushSession(sessionObj) {
-  if (!cfReady()) return;
+  if (!cfReady() || !hasGlobalAccount()) { updateSyncStatus(); return; }
   try {
     await cfFetch('/sessions', { method: 'POST', body: JSON.stringify(sessionObj) });
     markSynced(sessionObj.id);
     updateSyncStatus();
   } catch (e) {
     console.warn('CF push failed:', e.message);
-    if (e.message.includes('401') || e.message.includes('404')) {
+    if (e.message.includes('401')) {
+      handleServerAuthInvalid();
+    } else if (e.message.includes('404')) {
       handleGhostAccount();
     }
     updateSyncStatus();
@@ -2639,22 +2684,23 @@ async function cfDeleteOwnAccount(username, password) {
   });
 }
 async function cfPullSessions() {
-  if (!cfReady()) throw new Error('Not configured');
+  if (!cfReady() || !hasGlobalAccount()) throw new Error('Not configured');
   return cfFetch('/sessions');
 }
 async function cfDeleteSession(sessionId) {
-  if (!cfReady()) return;
+  if (!cfReady() || !hasGlobalAccount()) return;
   try {
     await cfFetch(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
     unmarkSynced(sessionId);
     updateSyncStatus();
   } catch (e) {
     console.warn('CF delete session failed:', e.message);
+    if (e.message.includes('401')) handleServerAuthInvalid();
     throw e;
   }
 }
 async function cfPatchSession(sessionObj) {
-  if (!cfReady()) return;
+  if (!cfReady() || !hasGlobalAccount()) return;
   try {
     await cfFetch(`/sessions/${encodeURIComponent(sessionObj.id)}`, {
       method: 'PATCH',
@@ -2664,6 +2710,7 @@ async function cfPatchSession(sessionObj) {
     updateSyncStatus();
   } catch (e) {
     console.warn('CF patch session failed:', e.message);
+    if (e.message.includes('401')) handleServerAuthInvalid();
   }
 }
 
@@ -2677,6 +2724,7 @@ function loadCloudflareConfigIntoUI() {
 
 async function autoSyncUnsyncedSessions() {
   if (!cfReady()) return;
+  if (!hasGlobalAccount()) { updateSyncStatus(); return; }
   updateSyncStatus('syncing');
   // Pull first so cross-device deletions/edits are reflected locally
   const account = getLoggedInAccount();
@@ -2688,6 +2736,7 @@ async function autoSyncUnsyncedSessions() {
   updateSyncStatus();
 }
 async function syncUnsyncedSessions() {
+  if (!hasGlobalAccount()) { appAlert('Guest sessions stay on this device until you sign in or create an account.'); return; }
   const synced = getSyncedIds();
   const unsynced = db.sessions.filter(s => !synced.has(String(s.id)));
   if (!unsynced.length) { appAlert('All sessions are already synced.'); return; }
@@ -2724,8 +2773,28 @@ function openAccountOverlay(context) {
   document.getElementById('regPasswordInput').value = '';
   document.getElementById('regPasswordConfirm').value = '';
   document.getElementById('accountCancelBtn').style.display = context === 'switch' ? 'block' : 'none';
+  document.getElementById('continueGuestBtn').style.display = context === 'switch' ? 'none' : 'block';
   document.getElementById('accountOverlay').classList.add('open');
   setTimeout(() => document.getElementById('loginUsernameInput').focus(), 80);
+}
+
+function continueAsGuest() {
+  setGuestMode();
+  if (!normalizePersonName(db.deviceProfile?.activeArcher)) {
+    db.deviceProfile.activeArcher = 'Guest';
+    db.deviceProfile.archers = ['Guest'];
+  }
+  save();
+  closeOverlay('accountOverlay');
+  updateAccountUI();
+  renderHome();
+  renderDiag();
+  updateSyncStatus();
+  if (pendingSessionType) {
+    const nextType = pendingSessionType;
+    pendingSessionType = null;
+    startSession(nextType);
+  }
 }
 
 async function submitLogin() {
@@ -2735,13 +2804,18 @@ async function submitLogin() {
   try {
     const res = await cfLogin(username, password);
     if (res.ok) {
+      const previousName = normalizePersonName(db.deviceProfile?.activeArcher);
       setLoggedInAccount(res.username, password);
-      db.deviceProfile.activeArcher = res.username;
-      db.deviceProfile.archers = [res.username];
+      migrateLocalDataToAccount(res.username, previousName);
       save();
       closeOverlay('accountOverlay');
       updateAccountUI();
       renderHome(); renderDiag();
+      if (pendingSessionType) {
+        const nextType = pendingSessionType;
+        pendingSessionType = null;
+        startSession(nextType);
+      }
       // Pull existing sessions from server, then push any local ones
       setTimeout(async () => {
         await pullSessionsForAccount(res.username);
@@ -2767,14 +2841,18 @@ async function submitRegister() {
     const res = await cfRegister(username, password);
     if (res.taken) { appAlert(`The username "${username}" is already taken. Please choose another.`); return; }
     if (res.ok) {
+      const previousName = normalizePersonName(db.deviceProfile?.activeArcher);
       setLoggedInAccount(res.username, password);
-      db.sessions.forEach(s => { if (!s.archerName) s.archerName = res.username; });
-      db.deviceProfile.activeArcher = res.username;
-      db.deviceProfile.archers = [res.username];
+      migrateLocalDataToAccount(res.username, previousName);
       save();
       closeOverlay('accountOverlay');
       updateAccountUI();
       renderHome(); renderDiag();
+      if (pendingSessionType) {
+        const nextType = pendingSessionType;
+        pendingSessionType = null;
+        startSession(nextType);
+      }
       setTimeout(() => autoSyncUnsyncedSessions(), 500);
     }
   } catch(e) {
@@ -2805,14 +2883,18 @@ async function submitPasswordSetup() {
     const res = await cfRegister(username, password);
     if (res.taken) { appAlert(`The username "${username}" is already taken. Please choose another.`); return; }
     if (res.ok) {
+      const previousName = normalizePersonName(db.deviceProfile?.activeArcher);
       setLoggedInAccount(res.username, password);
-      db.sessions.forEach(s => { if (!s.archerName || s.archerName === db.deviceProfile.activeArcher) s.archerName = res.username; });
-      db.deviceProfile.activeArcher = res.username;
-      db.deviceProfile.archers = [res.username];
+      migrateLocalDataToAccount(res.username, previousName);
       save();
       closeOverlay('passwordSetupOverlay');
       updateAccountUI();
       renderHome(); renderDiag();
+      if (pendingSessionType) {
+        const nextType = pendingSessionType;
+        pendingSessionType = null;
+        startSession(nextType);
+      }
       setTimeout(async () => {
         await pullSessionsForAccount(res.username);
         await autoSyncUnsyncedSessions();
@@ -2860,12 +2942,16 @@ async function pullSessionsForAccount(username) {
     const removed = before - db.sessions.length;
 
     if (added > 0 || removed > 0) { save(); renderHome(); renderDiag(); }
-  } catch (e) { console.warn('Pull failed:', e.message); }
+  } catch (e) {
+    console.warn('Pull failed:', e.message);
+    if (e.message.includes('401')) handleServerAuthInvalid();
+  }
 }
 
 function updateAccountUI() {
   const account = getLoggedInAccount();
-  const name = account ? account.username : '—';
+  const guest = !account && isGuestMode();
+  const name = account ? account.username : (guest ? (normalizePersonName(db.deviceProfile?.activeArcher) || 'Guest') : '—');
   // Settings header
   const nameEl = document.getElementById('settingsAccountName');
   if (nameEl) nameEl.textContent = name;
@@ -2888,6 +2974,12 @@ function updateSyncStatus(state) {
 
   const account  = getLoggedInAccount();
   if (!account) {
+    if (isGuestMode()) {
+      dot.style.background = 'var(--muted)';
+      text.style.color     = 'var(--muted)';
+      text.textContent     = 'Guest mode — local only';
+      return;
+    }
     dot.style.background = 'var(--muted)';
     text.style.color     = 'var(--muted)';
     text.textContent     = 'Not logged in';
@@ -2927,6 +3019,27 @@ function handleGhostAccount() {
   }, 400);
 }
 
+let serverSignOutNoticePending = false;
+function handleServerAuthInvalid(message = 'You were signed out on this device because your password was changed on another device. Please sign in again.') {
+  if (serverSignOutNoticePending) return;
+  serverSignOutNoticePending = true;
+  const lastKnownName = normalizePersonName(getLoggedInAccount()?.username || db.deviceProfile?.activeArcher);
+  clearLoggedInAccount();
+  try { localStorage.removeItem(SYNCED_KEY); } catch {}
+  if (lastKnownName) {
+    db.deviceProfile.activeArcher = lastKnownName;
+    db.deviceProfile.archers = [lastKnownName];
+  }
+  save();
+  updateAccountUI();
+  updateSyncStatus();
+  setTimeout(() => {
+    appAlert(message);
+    openAccountOverlay('login');
+    serverSignOutNoticePending = false;
+  }, 250);
+}
+
 // ── Club history tab ─────────────────────────────────────────────────────────
 let activeHistoryTab = 'my';
 let clubSort = 'newest';
@@ -2948,6 +3061,12 @@ function switchHistoryTab(tab) {
 }
 
 async function loadClubHistory() {
+  if (!hasGlobalAccount()) {
+    showClubError('Sign in or create an account to view global scores.');
+    document.getElementById('clubList').innerHTML = '';
+    setTimeout(() => openAccountOverlay('login'), 150);
+    return;
+  }
   showClubError(null); // clear error
   document.getElementById('clubList').innerHTML =
     `<div class="empty-state" style="padding:40px 0">
@@ -2962,7 +3081,8 @@ async function loadClubHistory() {
     renderClubHistory();
   } catch (e) {
     if (e.message.includes('401')) {
-      showClubError('Global scores are currently locked by the server configuration.');
+      handleServerAuthInvalid();
+      showClubError('Please sign in again to view global scores.');
     } else if (e.message.includes('500') || e.message.includes('1101')) {
       showClubError('The club server is misconfigured right now. Please verify the Cloudflare worker and KV binding.');
     } else {
@@ -3268,6 +3388,16 @@ db.deviceProfile = normalizeDeviceProfile(db.deviceProfile);
 function initializeApp() {
   const account = getLoggedInAccount();
   if (!account) {
+    if (isGuestMode()) {
+      if (!normalizePersonName(db.deviceProfile?.activeArcher)) {
+        db.deviceProfile.activeArcher = 'Guest';
+        db.deviceProfile.archers = ['Guest'];
+        save();
+      }
+      updateAccountUI();
+      updateSyncStatus();
+      return;
+    }
     const existingName = normalizePersonName(db.deviceProfile?.activeArcher);
     if (existingName && db.sessions.length > 0) {
       // Existing user without a password — prompt to set one
@@ -3484,7 +3614,14 @@ function updateCustomTheme(key, value) {
 // ── Account popup ─────────────────────────────────────────────────────────────
 function openAccountPopup() {
   const account = getLoggedInAccount();
-  document.getElementById('accountPopupName').textContent = account?.username || '—';
+  const guestMode = !account && isGuestMode();
+  document.getElementById('accountPopupName').textContent = account?.username || (guestMode ? (normalizePersonName(db.deviceProfile?.activeArcher) || 'Guest') : '—');
+  document.querySelector('.account-popup-sub').textContent = guestMode ? 'Guest mode · local only' : 'Signed in';
+  document.getElementById('accountPopupEditUsernameBtn').style.display = account ? 'flex' : 'none';
+  document.getElementById('accountPopupEditPasswordBtn').style.display = account ? 'flex' : 'none';
+  document.getElementById('accountPopupDeleteBtn').style.display = account ? 'flex' : 'none';
+  const switchBtn = document.getElementById('accountPopupSwitchBtn');
+  if (switchBtn) switchBtn.innerHTML = `${icon('edit')} ${account ? 'Switch Account' : 'Sign In / Create Account'}`;
   document.getElementById('accountPopupOverlay').classList.add('open');
 }
 
@@ -3530,7 +3667,9 @@ async function submitChangeUsername() {
     renderHome(); renderDiag();
     appAlert(`Username changed to "${newUsername}".`);
   } catch(e) {
-    if (e.message.includes('401')) appAlert('Incorrect password.');
+    if (e.message.includes('401')) {
+      handleServerAuthInvalid();
+    }
     else if (e.message.includes('409')) appAlert(`The username "${newUsername}" is already taken.`);
     else appAlert('Could not change username. Check your connection.');
   }
@@ -3559,9 +3698,11 @@ async function submitChangePassword() {
     });
     setLoggedInAccount(account.username, newPw);
     closeOverlay('editPasswordOverlay');
-    appAlert('Password changed globally for your account.');
+    appAlert('Password changed globally. Any other devices signed in to this account have been signed out and will need to log in again.');
   } catch(e) {
-    if (e.message.includes('401')) appAlert('Your saved login is no longer valid. Please log in again and try changing your password.');
+    if (e.message.includes('401')) {
+      handleServerAuthInvalid();
+    }
     else appAlert('Could not change password. Check your connection.');
   }
 }
@@ -3576,7 +3717,7 @@ function confirmDeleteAccount() {
       }
     } catch (e) {
       if (e.message.includes('401')) {
-        appAlert('Could not delete your account globally because your saved login is no longer valid. Please log in again and retry.');
+        handleServerAuthInvalid();
       } else {
         appAlert('Could not delete your account on the club server. Your local data was not removed.');
       }
