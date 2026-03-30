@@ -122,6 +122,8 @@
   /* ── PAGES ── */
   .page { display: none; padding: 0 0 calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; min-height: 100dvh; }
   .page.active { display: block; }
+  body.score-scroll-locked { overflow: hidden; }
+  .page.score-scroll-locked { overflow: hidden; }
 
   /* ── HOME ── */
   .home-hero {
@@ -426,6 +428,16 @@
     padding: 8px 16px;
     flex-wrap: wrap;
   }
+  #scoreActive.score-session-live {
+    display: flex !important;
+    flex-direction: column;
+    min-height: calc(100vh - 84px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
+    max-height: calc(100vh - 84px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   .arrow-dot {
     width: 44px; height: 44px; border-radius: 50%;
     border: 2px solid var(--border);
@@ -499,6 +511,43 @@
 
   .round-scores-list {
     padding: 0 16px;
+  }
+  .score-history-trigger-wrap {
+    padding: 0 16px 16px;
+    flex-shrink: 0;
+  }
+  .score-history-trigger {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .score-history-trigger:active { transform: scale(.98); border-color: var(--accent); }
+  .score-history-trigger:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  .score-history-trigger-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .score-history-trigger-meta {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
   }
   .round-score-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -1624,15 +1673,30 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <input type="text" id="activeRoundNotes" class="modal-input" placeholder="Add round notes (optional)..." oninput="if(session && session.currentRound) session.currentRound.notes = this.value;" autocorrect="on" autocapitalize="sentences" spellcheck="true" inputmode="text" style="margin: 8px 16px 16px; width: calc(100% - 32px); height: 44px; background: transparent; border: 1px dashed var(--border);">
 
-    <div class="diag-section" style="margin-bottom: 20px;">
-      <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
-        <h3>COMPLETED ROUNDS</h3>
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
-      </div>
-      <div class="accordion-content" style="padding-top: 0;">
-        <div class="round-scores-list" id="completedRounds"></div>
-      </div>
+    <div class="score-history-trigger-wrap">
+      <button class="score-history-trigger" id="completedRoundsBtn" onclick="openCompletedRoundsOverlay()" disabled>
+        <span class="score-history-trigger-label">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
+          <span>Previous Rounds</span>
+        </span>
+        <span class="score-history-trigger-meta" id="completedRoundsMeta">No rounds yet</span>
+      </button>
     </div>
+  </div>
+</div>
+
+<div class="detail-overlay" id="completedRoundsOverlay">
+  <div class="detail-modal">
+    <div class="detail-modal-header">
+      <div>
+        <h3>Previous Rounds</h3>
+        <div id="completedRoundsOverlayMeta" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">No rounds completed yet.</div>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('completedRoundsOverlay')" aria-label="Close previous rounds">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div class="round-scores-list" id="completedRounds"></div>
   </div>
 </div>
 
@@ -1881,19 +1945,6 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
 
-  <!-- DATA -->
-  <div class="settings-section">
-    <div class="settings-label">DATA</div>
-    <div class="settings-row danger" onclick="confirmReset()">
-      <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg></div>
-      <div class="settings-row-text">
-        <div class="settings-row-title" style="color:var(--red)">Reset All Data</div>
-        <div class="settings-row-sub">Permanently delete all sessions</div>
-      </div>
-      <div class="settings-row-chevron" style="color:var(--red)"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
-    </div>
-  </div>
-
   <!-- ABOUT -->
   <div class="settings-section">
     <div class="settings-label">ABOUT</div>
@@ -1907,16 +1958,6 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
 </div>
-</div>
-
-<!-- Reset confirm overlay -->
-<div class="overlay" id="resetOverlay">
-  <div class="modal">
-    <h3>Reset All Data?</h3>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will permanently delete every session and round. This cannot be undone.</p>
-    <button class="modal-btn danger" onclick="resetData()">DELETE EVERYTHING</button>
-    <button class="modal-btn" onclick="closeOverlay('resetOverlay')">CANCEL</button>
-  </div>
 </div>
 
 <div class="detail-overlay" id="themeColorOverlay">
@@ -1936,7 +1977,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="detail-modal-header">
       <div>
         <h3>Achery Scorer</h3>
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">2.1.1</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px">Version <span id="aboutVersion">2.2.11</span></div>
       </div>
       <button class="detail-close" onclick="closeOverlay('aboutOverlay')" aria-label="Close about popup">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
@@ -2144,17 +2185,14 @@ const PRACTICE_TARGET_OPTIONS = [
         <svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
       </button>
     </div>
-    <div class="inline-field" style="margin-bottom:12px">
-      <label>Current Password</label>
-      <input id="editCurrentPassword" class="modal-input" type="password" placeholder="Current password" style="margin-bottom:0">
-    </div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 12px 0">You're already signed in on this device, so you only need to choose a new password. The change will be saved globally to your account.</p>
     <div class="inline-field" style="margin-bottom:12px">
       <label>New Password</label>
-      <input id="editNewPassword" class="modal-input" type="password" placeholder="New password (min 4 chars)" style="margin-bottom:0">
+      <input id="editNewPassword" class="modal-input" type="password" placeholder="New password (min 4 chars)" autocomplete="new-password" style="margin-bottom:0">
     </div>
     <div class="inline-field" style="margin-bottom:16px">
       <label>Confirm New Password</label>
-      <input id="editConfirmPassword" class="modal-input" type="password" placeholder="Confirm new password" style="margin-bottom:0">
+      <input id="editConfirmPassword" class="modal-input" type="password" placeholder="Confirm new password" autocomplete="new-password" style="margin-bottom:0">
     </div>
     <button class="modal-btn primary" onclick="submitChangePassword()">SAVE PASSWORD</button>
     <button class="modal-btn" onclick="closeOverlay('editPasswordOverlay')">CANCEL</button>
@@ -2188,19 +2226,6 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="sort-sheet" onclick="event.stopPropagation()">
     <h4>Filter by Location</h4>
     <div id="locationOptionsContainer"></div>
-  </div>
-</div>
-
-<!-- Sort overlay -->
-<div class="sort-overlay" id="sortOverlay" onclick="closeSortOverlay(event)">
-  <div class="sort-sheet" onclick="event.stopPropagation()">
-    <h4>Sort Sessions</h4>
-    <button class="sort-option" data-sort="newest" onclick="setSort('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="oldest" onclick="setSort('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-high" onclick="setSort('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-low" onclick="setSort('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="grouping-best" onclick="setSort('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="grouping-worst" onclick="setSort('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
   </div>
 </div>
 
@@ -2536,6 +2561,9 @@ function getSyncedIds() {
 function markSynced(id) {
   try { const s = getSyncedIds(); s.add(String(id)); localStorage.setItem(SYNCED_KEY, JSON.stringify([...s])); } catch {}
 }
+function unmarkSynced(id) {
+  try { const s = getSyncedIds(); s.delete(String(id)); localStorage.setItem(SYNCED_KEY, JSON.stringify([...s])); } catch {}
+}
 function cfReady() { return true; }
 
 function getLoggedInAccount() {
@@ -2604,6 +2632,12 @@ async function cfPushSession(sessionObj) {
 async function cfAdminDeleteAccount(username) {
   return cfFetch(`/account/${encodeURIComponent(username)}`, { method: 'DELETE', withSecret: true, body: '{}' });
 }
+async function cfDeleteOwnAccount(username, password) {
+  return cfFetch(`/account/${encodeURIComponent(username)}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password })
+  });
+}
 async function cfPullSessions() {
   if (!cfReady()) throw new Error('Not configured');
   return cfFetch('/sessions');
@@ -2612,8 +2646,11 @@ async function cfDeleteSession(sessionId) {
   if (!cfReady()) return;
   try {
     await cfFetch(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+    unmarkSynced(sessionId);
+    updateSyncStatus();
   } catch (e) {
     console.warn('CF delete session failed:', e.message);
+    throw e;
   }
 }
 async function cfPatchSession(sessionObj) {
@@ -2945,14 +2982,20 @@ function showClubError(msg) {
 
 function renderClubHistory() {
   const list   = document.getElementById('clubList');
-  const myName = getDeviceArcherName().toLowerCase();
-
   let filtered = clubSessions.filter(s => sessionMatchesFilter(s, clubFilters, 'club') &&
                                           sessionMatchesSearch(s, homeSearchQuery));
   filtered = applySortToSessions(filtered, clubSort);
 
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">${icon('users')}</div>No club sessions yet.</div>`;
+    const hasActiveCriteria = !!homeSearchQuery ||
+      clubFilters.size > 0 ||
+      (activeArcherFilters.club && activeArcherFilters.club.size > 0) ||
+      (activeLocationFilters.club && activeLocationFilters.club.size > 0) ||
+      !!activeDateFiltersClub.start ||
+      !!activeDateFiltersClub.end;
+    list.innerHTML = hasActiveCriteria
+      ? `<div class="empty-state"><div class="es-icon">${icon('search')}</div>No club sessions match your search or filters.</div>`
+      : `<div class="empty-state"><div class="es-icon">${icon('users')}</div>No club sessions yet.</div>`;
     return;
   }
 
@@ -3043,7 +3086,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '2.1.1';
+const APP_VERSION = '2.2.11';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -3346,10 +3389,7 @@ function getActiveTheme() {
   return { ...preset, accent: themeState.accent || preset.accent, accent2: themeState.accent2 || preset.accent2, accent3: themeState.accent3 || preset.accent3, text: themeState.text || preset.text, gold: themeState.accent || preset.gold };
 }
 
-function renderThemePresets() {
-  // Legacy grid no longer used — sync the dropdown instead
-  syncThemeDropdown();
-}
+function renderThemePresets() { syncThemeDropdown(); }
 
 function getThemeColorLabel(key) {
   if (key === 'accent') return 'Primary Color';
@@ -3498,32 +3538,30 @@ async function submitChangeUsername() {
 
 // ── Change password ────────────────────────────────────────────────────────────
 function openEditPasswordOverlay() {
-  document.getElementById('editCurrentPassword').value = '';
   document.getElementById('editNewPassword').value = '';
   document.getElementById('editConfirmPassword').value = '';
   document.getElementById('editPasswordOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('editCurrentPassword').focus(), 80);
+  setTimeout(() => document.getElementById('editNewPassword').focus(), 80);
 }
 
 async function submitChangePassword() {
-  const currentPw = document.getElementById('editCurrentPassword').value;
   const newPw     = document.getElementById('editNewPassword').value;
   const confirmPw = document.getElementById('editConfirmPassword').value;
   const account   = getLoggedInAccount();
-  if (!currentPw) { appAlert('Please enter your current password.'); return; }
+  if (!account?.username || !account?.password) { appAlert('Please log in again before changing your password.'); return; }
   if (!newPw)     { appAlert('Please enter a new password.'); return; }
   if (newPw.length < 4) { appAlert('New password must be at least 4 characters.'); return; }
   if (newPw !== confirmPw) { appAlert('New passwords do not match.'); return; }
   try {
     await cfFetch('/account/update-password', {
       method: 'POST',
-      body: JSON.stringify({ username: account.username, oldPassword: currentPw, newPassword: newPw })
+      body: JSON.stringify({ username: account.username, oldPassword: account.password, newPassword: newPw })
     });
     setLoggedInAccount(account.username, newPw);
     closeOverlay('editPasswordOverlay');
-    appAlert('Password changed successfully.');
+    appAlert('Password changed globally for your account.');
   } catch(e) {
-    if (e.message.includes('401')) appAlert('Incorrect current password.');
+    if (e.message.includes('401')) appAlert('Your saved login is no longer valid. Please log in again and try changing your password.');
     else appAlert('Could not change password. Check your connection.');
   }
 }
@@ -3533,8 +3571,17 @@ function confirmDeleteAccount() {
   appConfirm('Delete your account? This will permanently remove all your sessions from the club server. Your local data will also be cleared.', async () => {
     const account = getLoggedInAccount();
     try {
-      if (account) await cfAdminDeleteAccount(account.username);
-    } catch {}
+      if (account?.username && account?.password) {
+        await cfDeleteOwnAccount(account.username, account.password);
+      }
+    } catch (e) {
+      if (e.message.includes('401')) {
+        appAlert('Could not delete your account globally because your saved login is no longer valid. Please log in again and retry.');
+      } else {
+        appAlert('Could not delete your account on the club server. Your local data was not removed.');
+      }
+      return;
+    }
     clearLoggedInAccount();
     try { localStorage.removeItem(SYNCED_KEY); } catch {}
     db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' } };
@@ -3769,6 +3816,8 @@ function buildFinishedSession() {
 function resetActiveSessionUI() {
   document.getElementById('scorePicker').style.display = 'block';
   document.getElementById('scoreActive').style.display = 'none';
+  closeOverlay('completedRoundsOverlay');
+  updateScoreScrollLock();
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
@@ -4219,6 +4268,21 @@ function flashScore(s) {
   setTimeout(() => { el.classList.remove('show','hide'); }, 900);
 }
 
+function updateScoreScrollLock() {
+  const scorePage = document.getElementById('page-score');
+  const scoreActive = document.getElementById('scoreActive');
+  const scorePageActive = scorePage?.classList.contains('active');
+  const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none';
+  document.body.classList.toggle('score-scroll-locked', scoringLive);
+  if (scorePage) scorePage.classList.toggle('score-scroll-locked', scoringLive);
+  if (scoreActive) scoreActive.classList.toggle('score-session-live', scoringLive);
+}
+
+function openCompletedRoundsOverlay() {
+  if (!session?.rounds?.length) return;
+  document.getElementById('completedRoundsOverlay').classList.add('open');
+}
+
 // ═══════════════════════════════════════════════
 //  SCORE PAGE RENDER
 // ═══════════════════════════════════════════════
@@ -4272,6 +4336,17 @@ function renderScorePage() {
     notesInput.disabled = cr.locked;
   }
 
+  const completedRoundsBtn = document.getElementById('completedRoundsBtn');
+  const completedRoundsMeta = document.getElementById('completedRoundsMeta');
+  const completedRoundsOverlayMeta = document.getElementById('completedRoundsOverlayMeta');
+  if (completedRoundsBtn) completedRoundsBtn.disabled = session.rounds.length === 0;
+  if (completedRoundsMeta) completedRoundsMeta.textContent = session.rounds.length ? `${session.rounds.length} saved` : 'No rounds yet';
+  if (completedRoundsOverlayMeta) {
+    completedRoundsOverlayMeta.textContent = session.rounds.length
+      ? `${session.rounds.length} completed round${session.rounds.length === 1 ? '' : 's'} in this session.`
+      : 'No rounds completed yet.';
+  }
+
   const overlay = document.getElementById('roundCompleteOverlay');
   const overlayTitle = document.getElementById('roundCompleteTitle');
   const overlayMessage = document.getElementById('roundCompleteMessage');
@@ -4301,6 +4376,7 @@ function renderScorePage() {
   });
 
   drawTarget(cr.arrows, cr.mode);
+  updateScoreScrollLock();
 }
 
 function arrowColor(s) {
@@ -4454,67 +4530,73 @@ const diagFilters = new Set();
 let homeSort = 'newest';
 let diagSort = 'newest';
 let homeSearchQuery = '';
-let historyViewMode = localStorage.getItem('historyViewMode') || 'personal';
 let activeSortContext = 'home';
 let activeLocationContext = 'home';
-
-function setHistoryView(mode) {
-  historyViewMode = mode;
-  try {
-    localStorage.setItem('historyViewMode', mode);
-  } catch (error) {
-    console.warn('Failed to save history view mode:', error);
-  }
-  
-  // Re-render the home view with the new filter
-  renderHome();
-}
-
-function filterSessionsByView(sessions) {
-  // Just return all sessions - no filtering by view anymore
-  return sessions;
-}
 
 function handleHomeSearch(val) {
   homeSearchQuery = val.toLowerCase().trim();
   const container = document.getElementById('homeSearchContainer');
   if (val) container.classList.add('has-text');
   else container.classList.remove('has-text');
-  renderHome();
+  if (activeHistoryTab === 'club') renderClubHistory();
+  else renderHome();
+}
+
+function buildSessionSearchCorpus(sessionObj) {
+  const date = new Date(sessionObj.date);
+  const total = getSessionTotal(sessionObj);
+  const locStr = formatLocation(sessionObj.location);
+  const roundDetails = (sessionObj.rounds || []).map((r, idx) => {
+    const descriptor = roundDescriptor(r);
+    const roundScore = (r.arrows || []).reduce((sum, a) => sum + (a.score || 0), 0);
+    const arrowScores = (r.arrows || []).map(a => a.score === 0 ? 'miss' : String(a.score)).join(' ');
+    const arrowLabels = (r.arrows || []).map(a => a.score === 0 ? 'm' : String(a.score)).join(' ');
+    const animal = r.animal || '';
+    const notes = r.notes || '';
+    return [
+      `round ${idx + 1}`,
+      descriptor.shortLabel,
+      descriptor.label || '',
+      r.mode || '',
+      animal,
+      `${r.distance || ''}m`,
+      `score ${roundScore}`,
+      `round score ${roundScore}`,
+      arrowScores,
+      arrowLabels,
+      notes
+    ].join(' ');
+  }).join(' ');
+
+  return [
+    sessionObj.archerName || '',
+    normalizePersonName(sessionObj.archerName) || '',
+    sessionTypeLabel(sessionObj),
+    isTournamentSession(sessionObj) ? 'tournament tournament session' : 'practice practice session',
+    locStr,
+    sessionObj.location?.label || '',
+    sessionObj.location?.city || '',
+    sessionObj.location?.state || '',
+    sessionObj.location?.country || '',
+    sessionObj.notes || '',
+    `score ${total}`,
+    `total ${total}`,
+    String(total),
+    date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }),
+    date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }),
+    String(date.getFullYear()),
+    date.toLocaleString('en-US', { month:'long' }),
+    roundDetails
+  ].join(' ').toLowerCase();
 }
 
 function sessionMatchesSearch(sessionObj, queryStr) {
   if (!queryStr) return true;
   const tokens = queryStr.split(/\s+/);
-  
-  // Build searchable corpus for this session
-  const dateStr = new Date(sessionObj.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
-  const typeStr = sessionTypeLabel(sessionObj);
-  const locStr = formatLocation(sessionObj.location);
-  const archerStr = sessionObj.archerName || '';
-  const sNotes = sessionObj.notes || '';
-  const rNotes = sessionObj.rounds.map(r => r.notes || '').join(' ');
-  const rDetails = sessionObj.rounds.map(r => roundDescriptor(r).shortLabel).join(' ');
-
-  const corpus = `${dateStr} ${typeStr} ${locStr} ${archerStr} ${sNotes} ${rNotes} ${rDetails}`.toLowerCase();
+  const corpus = buildSessionSearchCorpus(sessionObj);
 
   // Check if EVERY token is found in the corpus (allows "tournament missed" to match)
   return tokens.every(token => corpus.includes(token));
-}
-
-function openSortOverlay(context) {
-  activeSortContext = context;
-  const current = homeSort; // Always homeSort now
-  document.querySelectorAll('.sort-option').forEach(btn => btn.classList.toggle('active', btn.dataset.sort === current));
-  document.getElementById('sortOverlay').classList.add('open');
-}
-
-function closeSortOverlay(e) { document.getElementById('sortOverlay').classList.remove('open'); }
-
-function setSort(key) {
-  if (activeSortContext === 'home') { homeSort = key; document.getElementById('homeSortBtn').classList.toggle('active', key !== 'newest'); }
-  closeSortOverlay();
-  if (activeSortContext === 'home') renderHome();
 }
 
 function openLocationOverlay(context) {
@@ -4785,7 +4867,7 @@ function openFiltersOnlyOverlay(context) {
 
   // Populate location filter
   const locationContainer = document.getElementById('filtersOnlyLocationContainer');
-  const uniqueLocations = [...new Set(sourceSessions.map(s => s.location?.label).filter(Boolean))].sort();
+  const uniqueLocations = [...new Set(sourceSessions.map(s => formatLocation(s.location)).filter(Boolean))].sort();
   const activeLocSet = activeLocationFilters[context] || (activeLocationFilters[context] = new Set());
 
   let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
@@ -5304,10 +5386,18 @@ function generateScorecard(indices) {
 }
 function deleteHomeSelected() {
   if (homeSelectedSessions.size === 0) return;
-  appConfirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`, () => {
+  appConfirm(`Permanently delete ${homeSelectedSessions.size} selected session(s)?`, async () => {
     // Splice array safely by deleting highest indices first
     const sortedIndices = Array.from(homeSelectedSessions).sort((a,b) => b - a);
     const sessionsToDelete = sortedIndices.map(idx => db.sessions[idx]);
+    try {
+      for (const s of sessionsToDelete) {
+        if (s) await cfDeleteSession(s.id);
+      }
+    } catch (e) {
+      appAlert('Could not delete one or more sessions globally. No local sessions were removed.');
+      return;
+    }
     sortedIndices.forEach(idx => {
       db.sessions.splice(idx, 1);
     });
@@ -5318,8 +5408,6 @@ function deleteHomeSelected() {
     renderHome();
     renderDiag();
 
-    // Remove each deleted session from the server
-    sessionsToDelete.forEach(s => { if (s) cfDeleteSession(s.id); });
   });
 }
 
@@ -5328,8 +5416,7 @@ function renderHome() {
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => 
     sessionMatchesFilter(sessionObj, homeFilters, 'home') && sessionMatchesSearch(sessionObj, homeSearchQuery)
   );
-  const viewFiltered = filterSessionsByView(newestFirst);
-  const filtered = applySortToSessions(viewFiltered, homeSort);
+  const filtered = applySortToSessions(newestFirst, homeSort);
   window.currentVisibleHomeSessions = filtered;
 
   const archBtn = document.getElementById('homeArcherBtn');
@@ -5438,22 +5525,39 @@ function openSessionOverlay(idx) {
 }
 
 function deleteCurrentSession() {
-  appConfirm('Delete this entire session?', () => {
+  appConfirm('Delete this entire session?', async () => {
     const sessionToDelete = db.sessions[activeSessionIdx];
-    db.sessions.splice(activeSessionIdx, 1); save(); closeOverlay('sessionOverlay'); renderHome(); renderDiag();
-    // Remove from server so other devices see the deletion
-    if (sessionToDelete) cfDeleteSession(sessionToDelete.id);
+    if (!sessionToDelete) return;
+    try {
+      await cfDeleteSession(sessionToDelete.id);
+    } catch (e) {
+      appAlert('Could not delete this session globally. Please make sure you are logged in and try again.');
+      return;
+    }
+    db.sessions.splice(activeSessionIdx, 1);
+    save();
+    closeOverlay('sessionOverlay');
+    renderHome();
+    renderDiag();
   });
 }
 
 function deleteRound(sessionIdx, roundIdx) {
-  appConfirm('Delete this round?', () => {
+  appConfirm('Delete this round?', async () => {
+    const removedRound = db.sessions[sessionIdx]?.rounds?.[roundIdx];
+    if (!removedRound) return;
     db.sessions[sessionIdx].rounds.splice(roundIdx, 1);
     if (db.sessions[sessionIdx].rounds.length === 0) {
       const sessionToDelete = db.sessions[sessionIdx];
-      db.sessions.splice(sessionIdx, 1); closeOverlay('sessionOverlay');
-      // Session is now empty — remove it from the server too
-      cfDeleteSession(sessionToDelete.id);
+      try {
+        await cfDeleteSession(sessionToDelete.id);
+      } catch (e) {
+        db.sessions[sessionIdx].rounds.splice(roundIdx, 0, removedRound);
+        appAlert('Could not delete this session globally. Please make sure you are logged in and try again.');
+        return;
+      }
+      db.sessions.splice(sessionIdx, 1);
+      closeOverlay('sessionOverlay');
     } else {
       openSessionOverlay(sessionIdx);
       // Session still has rounds — push the updated version to the server
@@ -5564,41 +5668,10 @@ function goPage(name, btn) {
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
   if(name==='settings') { updateDeviceNameSummary(); initSettingsPage(); }
+  updateScoreScrollLock();
   window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
-}
-
-// ═══════════════════════════════════════════════
-//  SETTINGS
-// ═══════════════════════════════════════════════
-function confirmReset() { document.getElementById('resetOverlay').classList.add('open'); }
-
-async function resetData() {
-  const account = getLoggedInAccount();
-
-  if (account) {
-    // Delete account + all sessions from the server (requires password)
-    try {
-      await cfFetch(`/account/${encodeURIComponent(account.username)}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ password: account.password })
-      });
-    } catch (e) { console.warn('Server delete failed (offline?):', e.message); }
-  }
-
-  // Wipe everything local
-  try { localStorage.removeItem(SYNCED_KEY); } catch {}
-  clearLoggedInAccount();
-
-  db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' } };
-  session = null; finishingSession = null; activeSessionIdx = null; pendingSessionType = null; pendingLocationSessionId = null;
-  save(); refreshSavedLocationOptions(); resetActiveSessionUI();
-  document.querySelectorAll('.overlay').forEach(el => el.classList.remove('open'));
-  document.querySelectorAll('.detail-overlay').forEach(el => el.classList.remove('open'));
-  renderHome(); renderDiag(); updateDeviceNameSummary();
-  // Show login screen after wipe
-  setTimeout(() => openAccountOverlay('login'), 300);
 }
 
 // ═══════════════════════════════════════════════
