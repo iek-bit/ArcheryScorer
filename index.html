@@ -1742,6 +1742,89 @@
     margin-bottom: 0;
     flex: 1 1 180px;
   }
+  .photo-round-controls {
+    display: none;
+    margin: 10px 12px 0;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(240,160,75,.25);
+    background: rgba(240,160,75,.08);
+  }
+  .photo-round-controls.open { display: block; }
+  .photo-round-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    color: var(--accent2);
+  }
+  .photo-round-subtitle {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .photo-round-controls .photo-score-actions {
+    margin-top: 14px;
+  }
+  .score-mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .score-mode-card {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg3);
+    color: var(--text);
+    padding: 16px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .score-mode-card h4 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .score-mode-card p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .score-review-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .score-review-cell label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .score-review-cell select {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    text-align: center;
+  }
+  .photo-score-review-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
 
   /* score flash */
   .score-flash {
@@ -1858,6 +1941,15 @@ const PRACTICE_TARGET_OPTIONS = [
       <div>
         <div class="ri-label">SESSION</div>
         <div class="ri-val" id="sessionTotalDisplay">0</div>
+      </div>
+    </div>
+
+    <div class="photo-round-controls" id="photoRoundControls">
+      <div class="photo-round-title">Photo Score Round</div>
+      <div class="photo-round-subtitle" id="photoRoundSubtitle">Upload the tournament scorecard for this round, then review the detected values before they are applied.</div>
+      <div class="photo-score-actions">
+        <button class="modal-btn primary" id="photoRoundScanBtn" onclick="openRoundPhotoScoreOverlay()">Scan Scorecard</button>
+        <button class="modal-btn" id="photoRoundEditBtn" onclick="openRoundPhotoScoreOverlay()" style="display:none">Review / Edit Scores</button>
       </div>
     </div>
 
@@ -2463,10 +2555,38 @@ const PRACTICE_TARGET_OPTIONS = [
         <button class="modal-btn" onclick="downloadPhotoScoreCanvas('photoScoreGridCanvas', 'score-grid-focus.png')">Download Grid Focus</button>
       </div>
 
+      <div class="photo-score-panel" id="photoScoreRoundReview" style="display:none">
+        <div class="photo-score-metric-label">Detected Round Scores</div>
+        <div class="score-review-grid" id="photoScoreReviewGrid"></div>
+        <div class="photo-score-review-note" id="photoScoreReviewNote">Review the five values before applying them to this round.</div>
+        <div class="photo-score-actions">
+          <button class="modal-btn primary" id="photoScoreApplyBtn" onclick="applyPhotoScoresToCurrentRound()">Apply To Round</button>
+          <button class="modal-btn" onclick="openPhotoScoreOverlay('beta')">Use As Beta Tool Instead</button>
+        </div>
+      </div>
+
       <div class="photo-score-next">
         The normalized and grid-focus outputs are the next training assets to pay attention to. If those look clean and centered, you are ready to start building the second Roboflow model that reads marked score cells.
       </div>
     </div>
+  </div>
+</div>
+
+<div class="overlay centered" id="tournamentScoreModeOverlay">
+  <div class="modal">
+    <h3>Choose Scoring Mode</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:6px">Tournament rounds can use the current manual target workflow or a photo-score workflow with review before the round is saved.</p>
+    <div class="score-mode-grid">
+      <button class="score-mode-card" onclick="confirmTournamentScoringMode('manual')">
+        <h4>Manual</h4>
+        <p>Score each arrow on the target just like the current app flow.</p>
+      </button>
+      <button class="score-mode-card" onclick="confirmTournamentScoringMode('photo')">
+        <h4>Photo</h4>
+        <p>Upload a scorecard photo, infer the five values, then correct anything that looks wrong.</p>
+      </button>
+    </div>
+    <button class="modal-btn" onclick="closeOverlay('tournamentScoreModeOverlay')">Cancel</button>
   </div>
 </div>
 
@@ -2830,6 +2950,7 @@ const GUEST_MODE_KEY = 'achery_guest_mode';
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
 function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
 function getPhotoScoreUrl() { return `${getCfUrl()}/photo-score/detect`; }
+function getPhotoScoreReadUrl() { return `${getCfUrl()}/photo-score/read`; }
 function getSyncedIds() {
   try { return new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -3545,9 +3666,10 @@ function normalizeRound(round = {}) {
     animal: mode === '3d' ? (THREE_D_TARGET_LOOKUP[round.animal] ? round.animal : 'turkey') : null,
     notes: typeof round.notes === 'string' ? round.notes.trim() : '',
     arrows: Array.isArray(round.arrows) ? round.arrows.map(arrow => ({
-      nx: typeof arrow?.nx === 'number' ? arrow.nx : 0,
-      ny: typeof arrow?.ny === 'number' ? arrow.ny : 0,
-      score: normalizeArrowScore(arrow?.score)
+      nx: typeof arrow?.nx === 'number' ? arrow.nx : null,
+      ny: typeof arrow?.ny === 'number' ? arrow.ny : null,
+      score: normalizeArrowScore(arrow?.score),
+      source: arrow?.source === 'photo' ? 'photo' : 'manual'
     })) : [],
     locked: !!round.locked
   };
@@ -3573,6 +3695,7 @@ function normalizeSessionData(raw = {}) {
     date: raw.date || new Date().toISOString(),
     location: raw.location || null,
     archerName: normalizePersonName(raw.archerName),
+    scoringMode: raw.scoringMode === 'photo' ? 'photo' : 'manual',
     rounds: Array.isArray(raw.rounds) ? raw.rounds.map(normalizeRound) : [],
     currentRound: raw.currentRound ? normalizeRound(raw.currentRound) : {mode: 'bullseye', distance: 10, animal: null, arrows: [], locked: false},
     startAnimal: type === '3d_tournament' && THREE_D_TARGET_LOOKUP[raw.startAnimal] ? raw.startAnimal : undefined,
@@ -3712,18 +3835,24 @@ let medianIOSGeoReady = !/MedianIOS/i.test(navigator.userAgent);
 let locationInputDirty = false;
 let threeDTournamentSetup = {startAnimal: 'turkey', direction: 1};
 let pendingSessionType = null;
+let pendingTournamentModeType = null;
 let deviceNameOverlayContext = 'launch';
 let photoScoreState = {
+  context: 'beta',
   file: null,
   imageDataUrl: '',
   prediction: null,
   imageMeta: null,
+  gridImageDataUrl: '',
+  markPredictions: [],
+  inferredRoundScores: [],
   predictionsCount: 0,
   isLoading: false
 };
 
 function isTournamentSession(sessionObj) { return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament'; }
 function isThreeDSession(sessionObj) { return sessionObj?.type === '3d_tournament'; }
+function isPhotoTournamentSession(sessionObj = session) { return !!sessionObj && isTournamentSession(sessionObj) && sessionObj.scoringMode === 'photo'; }
 
 function createRound(mode = 'bullseye', value = 10) {
   return normalizeRound(mode === '3d'
@@ -4291,8 +4420,25 @@ function ensureDeviceNameForScoring(type) {
   return false;
 }
 
-function launchSession(type) { if (!ensureDeviceNameForScoring(type)) return; startSession(type); }
+function launchSession(type) {
+  if (!ensureDeviceNameForScoring(type)) return;
+  const normalizedType = normalizeSessionType(type);
+  if (normalizedType === 'bullseye_tournament' || normalizedType === '3d_tournament') {
+    pendingTournamentModeType = normalizedType;
+    document.getElementById('tournamentScoreModeOverlay').classList.add('open');
+    return;
+  }
+  startSession(normalizedType);
+}
 function launchEphemeralSession() { startSession('practice', { ephemeral: true }); }
+
+function confirmTournamentScoringMode(mode) {
+  const type = pendingTournamentModeType;
+  pendingTournamentModeType = null;
+  closeOverlay('tournamentScoreModeOverlay');
+  if (!type) return;
+  startSession(type, { scoringMode: mode === 'photo' ? 'photo' : 'manual' });
+}
 
 function openFinishOverlay() {
   locationInputDirty = false;
@@ -4368,6 +4514,7 @@ function startSession(type, options = {}) {
     id: Date.now(), 
     sessionId: generateSessionId(),
     type: normalizedType, 
+    scoringMode: options.scoringMode === 'photo' ? 'photo' : 'manual',
     date: new Date().toISOString(), 
     location: null,
     archerName: getDeviceArcherName() || '', 
@@ -4624,6 +4771,7 @@ function updateMagnifier(clientX, clientY) {
 
 function handleTargetClick(e) {
   if (!session) return;
+  if (isPhotoTournamentSession(session)) return;
   const cr = session.currentRound;
   if (cr.locked || cr.arrows.length >= 5) return;
   const rect = canvas.getBoundingClientRect();
@@ -4644,6 +4792,7 @@ function handleTargetClick(e) {
 
 function scoreMiss() {
   if (!session) return;
+  if (isPhotoTournamentSession(session)) return;
   const cr = session.currentRound;
   if (cr.locked || cr.arrows.length >= 5) return;
   // Push a miss way outside the target rings (nx: 1.5, ny: 1.5)
@@ -4666,6 +4815,7 @@ function toggleRingZoom() {
 
 function undoLastArrow() {
   if (!session) return;
+  if (isPhotoTournamentSession(session)) return;
   const cr = session.currentRound;
   if (!cr.arrows.length || cr.locked) return;
   cr.arrows.pop(); closeOverlay('roundCompleteOverlay'); renderScorePage();
@@ -4703,9 +4853,10 @@ function renderScorePage() {
   const cr = session.currentRound;
   const rn = sessionRoundNumber();
   const roundInfo = roundDescriptor(cr);
+  const usingPhotoMode = isPhotoTournamentSession(session);
 
   document.getElementById('scoreTitle').textContent = isTournamentSession(session) ? `Round ${rn} / 6` : `Round ${rn}`;
-  document.getElementById('scoreMeta').textContent = sessionTypeLabel(session).toUpperCase();
+  document.getElementById('scoreMeta').textContent = `${sessionTypeLabel(session).toUpperCase()}${usingPhotoMode ? ' · PHOTO MODE' : ''}`;
 
   document.getElementById('roundTargetLabel').textContent = roundInfo.mode === '3d' ? 'ANIMAL' : 'DISTANCE';
   const targetOptions = document.getElementById('roundTargetOptions');
@@ -4739,7 +4890,7 @@ function renderScorePage() {
 
   const done = cr.arrows.length === 5;
   const undoBtn = document.getElementById('undoArrowBtn');
-  undoBtn.disabled = !cr.arrows.length || cr.locked;
+  undoBtn.disabled = !cr.arrows.length || cr.locked || usingPhotoMode;
   document.getElementById('undoSecondaryBtn').style.display = cr.locked ? 'none' : '';
 
   const notesInput = document.getElementById('activeRoundNotes');
@@ -4786,6 +4937,33 @@ function renderScorePage() {
       <div class="rsr-score">${s}</div>`;
     list.appendChild(row);
   });
+
+  const photoControls = document.getElementById('photoRoundControls');
+  const targetWrap = document.querySelector('.target-wrap');
+  const notesMargin = document.getElementById('activeRoundNotes');
+  const scanBtn = document.getElementById('photoRoundScanBtn');
+  const editBtn = document.getElementById('photoRoundEditBtn');
+  if (usingPhotoMode) {
+    photoControls.classList.add('open');
+    targetWrap.style.display = 'none';
+    document.getElementById('missBtn').style.display = 'none';
+    document.getElementById('zoomRingsBtn').style.display = 'none';
+    if (scanBtn) {
+      scanBtn.textContent = cr.arrows.length ? 'Re-Scan Scorecard' : 'Scan Scorecard';
+      scanBtn.disabled = cr.locked;
+    }
+    if (editBtn) {
+      editBtn.style.display = cr.arrows.length ? '' : 'none';
+      editBtn.disabled = cr.locked;
+    }
+    if (notesMargin) notesMargin.style.marginTop = '12px';
+  } else {
+    photoControls.classList.remove('open');
+    targetWrap.style.display = '';
+    document.getElementById('missBtn').style.display = '';
+    document.getElementById('zoomRingsBtn').style.display = '';
+    if (notesMargin) notesMargin.style.marginTop = '8px';
+  }
 
   drawTarget(cr.arrows, cr.mode);
   updateScoreScrollLock();
@@ -4861,12 +5039,25 @@ function closeOverlay(id) {
 }
 function sessionHasProgress() { return !!session && (session.rounds.length > 0 || session.currentRound.arrows.length > 0); }
 
-function openPhotoScoreOverlay() {
+function openPhotoScoreOverlay(context = 'beta') {
+  photoScoreState.context = context === 'round' ? 'round' : 'beta';
+  updatePhotoScoreReviewVisibility();
   document.getElementById('photoScoreOverlay').classList.add('open');
 }
 
 function closePhotoScoreOverlay() {
   closeOverlay('photoScoreOverlay');
+}
+
+function openRoundPhotoScoreOverlay() {
+  if (!session || !isPhotoTournamentSession(session) || session.currentRound.locked) return;
+  openPhotoScoreOverlay('round');
+  if (session.currentRound.arrows.length && !photoScoreState.inferredRoundScores.length) {
+    photoScoreState.inferredRoundScores = session.currentRound.arrows.map(arrow => scoreToReviewLabel(arrow.score, session.currentRound.mode));
+    renderPhotoScoreReviewGrid();
+    updatePhotoScoreReviewVisibility();
+    setPhotoScoreStatus('You can rescan the scorecard or directly edit the current round values below.');
+  }
 }
 
 function setPhotoScoreStatus(message, tone = '') {
@@ -4877,10 +5068,14 @@ function setPhotoScoreStatus(message, tone = '') {
 
 function resetPhotoScoreState() {
   photoScoreState = {
+    context: photoScoreState.context === 'round' ? 'round' : 'beta',
     file: null,
     imageDataUrl: '',
     prediction: null,
     imageMeta: null,
+    gridImageDataUrl: '',
+    markPredictions: [],
+    inferredRoundScores: [],
     predictionsCount: 0,
     isLoading: false
   };
@@ -4898,6 +5093,9 @@ function resetPhotoScoreState() {
   normalizedCanvas.getContext('2d').clearRect(0, 0, normalizedCanvas.width, normalizedCanvas.height);
   const gridCanvas = document.getElementById('photoScoreGridCanvas');
   gridCanvas.getContext('2d').clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+  document.getElementById('photoScoreRoundReview').style.display = 'none';
+  document.getElementById('photoScoreReviewGrid').innerHTML = '';
+  updatePhotoScoreReviewVisibility();
   setPhotoScoreStatus('Start by choosing a scorecard photo.');
 }
 
@@ -4918,6 +5116,9 @@ async function handlePhotoScoreFileChange(event) {
   photoScoreState.imageDataUrl = imageDataUrl;
   photoScoreState.prediction = null;
   photoScoreState.imageMeta = null;
+  photoScoreState.gridImageDataUrl = '';
+  photoScoreState.markPredictions = [];
+  photoScoreState.inferredRoundScores = [];
   photoScoreState.predictionsCount = 0;
 
   document.getElementById('photoScoreFileName').textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -4964,7 +5165,11 @@ async function runPhotoScoreDetection() {
     photoScoreState.imageMeta = payload.image;
     photoScoreState.predictionsCount = payload.predictionsCount || 0;
     renderPhotoScoreResult();
-    setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
+    if (photoScoreState.context === 'round' && isPhotoTournamentSession(session)) {
+      await runPhotoScoreRead();
+    } else {
+      setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
+    }
   } catch (error) {
     setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
   } finally {
@@ -5053,6 +5258,7 @@ function buildPhotoScoreNormalizedViews(cropCanvas) {
     gridCanvas.width,
     gridCanvas.height
   );
+  photoScoreState.gridImageDataUrl = gridCanvas.toDataURL('image/png');
 }
 
 function fitRectWithin(sourceWidth, sourceHeight, targetWidth, targetHeight, insetRatio = 0) {
@@ -5078,6 +5284,143 @@ function downloadPhotoScoreCanvas(canvasId, filename) {
   link.href = canvas.toDataURL('image/png');
   link.download = filename;
   link.click();
+}
+
+function updatePhotoScoreReviewVisibility() {
+  const reviewPanel = document.getElementById('photoScoreRoundReview');
+  const isRoundContext = photoScoreState.context === 'round' && isPhotoTournamentSession(session);
+  reviewPanel.style.display = isRoundContext && photoScoreState.inferredRoundScores.length ? 'block' : 'none';
+}
+
+async function runPhotoScoreRead() {
+  if (!photoScoreState.gridImageDataUrl) throw new Error('The score grid was not generated.');
+  setPhotoScoreStatus('Reading the scoring marks for this round...');
+
+  const response = await fetch(getPhotoScoreReadUrl(), {
+    method: 'POST',
+    headers: cfHeaders(false),
+    body: JSON.stringify({
+      imageDataUrl: photoScoreState.gridImageDataUrl
+    })
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || 'The mark-reader model returned an error.');
+  }
+
+  photoScoreState.markPredictions = Array.isArray(payload.predictions) ? payload.predictions : [];
+  photoScoreState.inferredRoundScores = inferPhotoRoundScores(photoScoreState.markPredictions, sessionRoundNumber(), session.currentRound.mode);
+  renderPhotoScoreReviewGrid();
+  updatePhotoScoreReviewVisibility();
+  setPhotoScoreStatus('Detected round scores loaded. Review them below before applying.', 'success');
+}
+
+function inferPhotoRoundScores(predictions, roundNumber, mode = 'bullseye') {
+  const valid = predictions
+    .filter(pred => pred && typeof pred.x === 'number' && typeof pred.y === 'number' && typeof pred.class === 'string')
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+
+  if (!valid.length) return Array.from({ length: 5 }, () => '');
+
+  const avgHeight = valid.reduce((sum, pred) => sum + (pred.height || 0), 0) / valid.length || 24;
+  const rowThreshold = Math.max(18, avgHeight * 1.35);
+  const groups = [];
+  valid.forEach(pred => {
+    const lastGroup = groups[groups.length - 1];
+    if (!lastGroup || Math.abs(pred.y - lastGroup.centerY) > rowThreshold) {
+      groups.push({ items: [pred], centerY: pred.y });
+    } else {
+      lastGroup.items.push(pred);
+      lastGroup.centerY = lastGroup.items.reduce((sum, item) => sum + item.y, 0) / lastGroup.items.length;
+    }
+  });
+
+  const candidateGroups = groups
+    .map(group => ({
+      ...group,
+      items: group.items.sort((a, b) => a.x - b.x)
+    }))
+    .filter(group => group.items.length >= 3)
+    .sort((a, b) => a.centerY - b.centerY);
+
+  const targetGroup = candidateGroups[roundNumber - 1] || candidateGroups[candidateGroups.length - 1] || null;
+  if (!targetGroup) return Array.from({ length: 5 }, () => '');
+
+  const scores = targetGroup.items
+    .slice(0, 5)
+    .map(item => normalizePhotoScoreLabel(item.class, mode));
+
+  while (scores.length < 5) scores.push('');
+  return scores;
+}
+
+function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
+  const label = String(rawLabel).trim().toUpperCase();
+  if (label === 'X') return mode === '3d' ? '10' : 'X';
+  if (label === 'M') return 'M';
+  if (mode === '3d') {
+    if (['10', '9', '8', '7'].includes(label)) return label;
+    if (!Number.isNaN(Number(label))) return '7';
+  }
+  return ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'].includes(label) ? label : '';
+}
+
+function renderPhotoScoreReviewGrid() {
+  const grid = document.getElementById('photoScoreReviewGrid');
+  const values = photoScoreState.inferredRoundScores.length ? photoScoreState.inferredRoundScores : Array.from({ length: 5 }, () => '');
+  grid.innerHTML = values.map((value, index) => `
+    <div class="score-review-cell">
+      <label>Arrow ${index + 1}</label>
+      <select data-arrow-index="${index}" onchange="updatePhotoReviewScore(${index}, this.value)">
+        ${getPhotoReviewOptions(session?.currentRound?.mode || 'bullseye', value)}
+      </select>
+    </div>
+  `).join('');
+}
+
+function getPhotoReviewOptions(mode = 'bullseye', selected = '') {
+  const values = mode === '3d' ? ['', '10', '9', '8', '7', 'M'] : ['', 'X', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'M'];
+  return values.map(value => {
+    const label = value || '—';
+    const isSelected = value === selected ? ' selected' : '';
+    return `<option value="${value}"${isSelected}>${label}</option>`;
+  }).join('');
+}
+
+function updatePhotoReviewScore(index, value) {
+  photoScoreState.inferredRoundScores[index] = value;
+}
+
+function applyPhotoScoresToCurrentRound() {
+  if (!session || !isPhotoTournamentSession(session)) return;
+  const values = Array.from({ length: 5 }, (_, index) => photoScoreState.inferredRoundScores[index] || '');
+  if (values.some(value => !value)) {
+    appAlert('Please review all five arrow values before applying the round.');
+    return;
+  }
+
+  session.currentRound.arrows = values.map((value, index) => buildPhotoRoundArrow(value, index, session.currentRound.mode));
+  closePhotoScoreOverlay();
+  renderScorePage();
+}
+
+function buildPhotoRoundArrow(label, index, mode = 'bullseye') {
+  const numericScore = label === 'M' ? 0 : label === 'X' ? 10 : Number(label || 0);
+  const normalizedScore = normalizeRoundScore(mode, numericScore);
+  const fallbackX = -0.78 + index * 0.39;
+  const fallbackY = 1.28;
+  return {
+    nx: fallbackX,
+    ny: fallbackY,
+    score: normalizedScore,
+    source: 'photo'
+  };
+}
+
+function scoreToReviewLabel(score, mode = 'bullseye') {
+  if (score === 0) return 'M';
+  if (mode !== '3d' && score === 10) return '10';
+  return String(score);
 }
 
 function openDiscardSessionConfirm() {
@@ -5592,11 +5935,14 @@ function computeGroupingScore(sessionObj) {
   const rounds = sessionObj.rounds.filter(r => r.arrows && r.arrows.length);
   if (!rounds.length) return Infinity;
   const roundSpreads = rounds.map(r => {
-    const xs = r.arrows.map(a => a.nx), ys = r.arrows.map(a => a.ny);
+    const positioned = r.arrows.filter(a => typeof a.nx === 'number' && typeof a.ny === 'number' && a.source !== 'photo');
+    if (!positioned.length) return Infinity;
+    const xs = positioned.map(a => a.nx), ys = positioned.map(a => a.ny);
     const cx = xs.reduce((s,v) => s+v, 0) / xs.length, cy = ys.reduce((s,v) => s+v, 0) / ys.length;
-    return r.arrows.reduce((s,a) => s + Math.sqrt((a.nx-cx)**2+(a.ny-cy)**2), 0) / r.arrows.length;
+    return positioned.reduce((s,a) => s + Math.sqrt((a.nx-cx)**2+(a.ny-cy)**2), 0) / positioned.length;
   });
-  return roundSpreads.reduce((s,v) => s+v, 0) / roundSpreads.length;
+  const finite = roundSpreads.filter(Number.isFinite);
+  return finite.length ? finite.reduce((s,v) => s+v, 0) / finite.length : Infinity;
 }
 
 function applySortToSessions(sessions, sortKey) {
@@ -6269,7 +6615,9 @@ function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
   }
   arrows.forEach((a,idx)=>{
     // Ensure manual miss button arrows are not drawn on the face (they have nx/ny = 1.5)
+    if(a.source === 'photo') return;
     if(a.score === 0 && a.nx === 1.5 && a.ny === 1.5) return; 
+    if (typeof a.nx !== 'number' || typeof a.ny !== 'number') return;
     
     const px=CX2+a.nx*R2, py=CY2+a.ny*R2;
     c.beginPath(); c.arc(px+2,py+2,12,0,Math.PI*2); c.fillStyle='rgba(0,0,0,0.4)'; c.fill();
@@ -6561,7 +6909,9 @@ function drawHeatmap(arrows) {
   // Splat each arrow onto the density grid mathematically
   arrows.forEach(a => {
     // Skip manual button misses, but include true tapped misses just off the edge of the paper
+    if (a.source === 'photo') return;
     if (a.score === 0 && a.nx === 1.5 && a.ny === 1.5) return; 
+    if (typeof a.nx !== 'number' || typeof a.ny !== 'number') return;
     
     const px = (CX2 + a.nx * R2) / scale;
     const py = (CX2 + a.ny * R2) / scale;
