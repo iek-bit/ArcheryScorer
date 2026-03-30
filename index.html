@@ -1732,6 +1732,16 @@
     color: var(--text);
     line-height: 1.55;
   }
+  .photo-score-downloads {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .photo-score-downloads .modal-btn {
+    margin-bottom: 0;
+    flex: 1 1 180px;
+  }
 
   /* score flash */
   .score-flash {
@@ -2438,10 +2448,23 @@ const PRACTICE_TARGET_OPTIONS = [
           <h4>Cropped Card</h4>
           <canvas id="photoScoreCropCanvas" width="320" height="480"></canvas>
         </div>
+        <div class="photo-score-preview-card">
+          <h4>Normalized Card</h4>
+          <canvas id="photoScoreNormalizedCanvas" width="900" height="1500"></canvas>
+        </div>
+        <div class="photo-score-preview-card">
+          <h4>Scoring Grid Focus</h4>
+          <canvas id="photoScoreGridCanvas" width="720" height="1080"></canvas>
+        </div>
+      </div>
+
+      <div class="photo-score-downloads">
+        <button class="modal-btn" onclick="downloadPhotoScoreCanvas('photoScoreNormalizedCanvas', 'normalized-scorecard.png')">Download Normalized Card</button>
+        <button class="modal-btn" onclick="downloadPhotoScoreCanvas('photoScoreGridCanvas', 'score-grid-focus.png')">Download Grid Focus</button>
       </div>
 
       <div class="photo-score-next">
-        Next we still need to flatten the card perspective and train the second model to read which score cells are marked. This beta gives you the first production building block: reliable card detection through your Cloudflare Worker while keeping the Roboflow key in Worker secrets.
+        The normalized and grid-focus outputs are the next training assets to pay attention to. If those look clean and centered, you are ready to start building the second Roboflow model that reads marked score cells.
       </div>
     </div>
   </div>
@@ -4871,6 +4894,10 @@ function resetPhotoScoreState() {
   const cropCanvas = document.getElementById('photoScoreCropCanvas');
   const cropCtx = cropCanvas.getContext('2d');
   cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+  const normalizedCanvas = document.getElementById('photoScoreNormalizedCanvas');
+  normalizedCanvas.getContext('2d').clearRect(0, 0, normalizedCanvas.width, normalizedCanvas.height);
+  const gridCanvas = document.getElementById('photoScoreGridCanvas');
+  gridCanvas.getContext('2d').clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   setPhotoScoreStatus('Start by choosing a scorecard photo.');
 }
 
@@ -4977,8 +5004,81 @@ function renderPhotoScoreResult() {
     cropCanvas.height = Math.max(1, sh);
     cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
     cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+    buildPhotoScoreNormalizedViews(cropCanvas);
   };
   img.src = imageDataUrl;
+}
+
+function buildPhotoScoreNormalizedViews(cropCanvas) {
+  const normalizedCanvas = document.getElementById('photoScoreNormalizedCanvas');
+  const normalizedCtx = normalizedCanvas.getContext('2d');
+  const normalizedWidth = 900;
+  const normalizedHeight = 1500;
+  normalizedCanvas.width = normalizedWidth;
+  normalizedCanvas.height = normalizedHeight;
+  normalizedCtx.fillStyle = '#ffffff';
+  normalizedCtx.fillRect(0, 0, normalizedWidth, normalizedHeight);
+
+  const fit = fitRectWithin(cropCanvas.width, cropCanvas.height, normalizedWidth, normalizedHeight, 0.06);
+  normalizedCtx.drawImage(
+    cropCanvas,
+    0,
+    0,
+    cropCanvas.width,
+    cropCanvas.height,
+    fit.dx,
+    fit.dy,
+    fit.dw,
+    fit.dh
+  );
+
+  const gridCanvas = document.getElementById('photoScoreGridCanvas');
+  const gridCtx = gridCanvas.getContext('2d');
+  const gridRegion = {
+    x: normalizedWidth * 0.10,
+    y: normalizedHeight * 0.11,
+    width: normalizedWidth * 0.76,
+    height: normalizedHeight * 0.70
+  };
+  gridCanvas.width = Math.round(gridRegion.width);
+  gridCanvas.height = Math.round(gridRegion.height);
+  gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+  gridCtx.drawImage(
+    normalizedCanvas,
+    gridRegion.x,
+    gridRegion.y,
+    gridRegion.width,
+    gridRegion.height,
+    0,
+    0,
+    gridCanvas.width,
+    gridCanvas.height
+  );
+}
+
+function fitRectWithin(sourceWidth, sourceHeight, targetWidth, targetHeight, insetRatio = 0) {
+  const insetX = targetWidth * insetRatio;
+  const insetY = targetHeight * insetRatio;
+  const maxWidth = Math.max(1, targetWidth - insetX * 2);
+  const maxHeight = Math.max(1, targetHeight - insetY * 2);
+  const scale = Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight);
+  const dw = sourceWidth * scale;
+  const dh = sourceHeight * scale;
+  return {
+    dx: (targetWidth - dw) / 2,
+    dy: (targetHeight - dh) / 2,
+    dw,
+    dh
+  };
+}
+
+function downloadPhotoScoreCanvas(canvasId, filename) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = filename;
+  link.click();
 }
 
 function openDiscardSessionConfirm() {
