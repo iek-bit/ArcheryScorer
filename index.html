@@ -1948,8 +1948,18 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="photo-round-title">Photo Score Round</div>
       <div class="photo-round-subtitle" id="photoRoundSubtitle">Upload the tournament scorecard for this round, then review the detected values before they are applied.</div>
       <div class="photo-score-actions">
-        <button class="modal-btn primary" id="photoRoundScanBtn" onclick="openRoundPhotoScoreOverlay()">Scan Scorecard</button>
-        <button class="modal-btn" id="photoRoundEditBtn" onclick="openRoundPhotoScoreOverlay()" style="display:none">Review / Edit Scores</button>
+        <button class="modal-btn primary" id="photoRoundScanBtn" onclick="triggerRoundPhotoScorePicker()">Scan Scorecard</button>
+        <button class="modal-btn" id="photoRoundEditBtn" onclick="toggleInlinePhotoReview()" style="display:none">Review / Edit Scores</button>
+      </div>
+      <input id="photoRoundInput" type="file" accept="image/*" capture="environment" onchange="handleRoundPhotoScoreFileChange(event)" style="display:none">
+      <div class="photo-score-inline-review" id="photoRoundInlineReview" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+        <div class="photo-score-metric-label">Detected Tournament Scores</div>
+        <div class="score-review-grid" id="photoRoundInlineReviewGrid"></div>
+        <div class="photo-score-review-note" id="photoRoundInlineReviewNote">Review the tournament values before applying them.</div>
+        <div class="photo-score-actions">
+          <button class="modal-btn primary" onclick="applyPhotoScoresToCurrentRound()">Apply Tournament</button>
+          <button class="modal-btn" onclick="hideInlinePhotoReview()">Hide Review</button>
+        </div>
       </div>
     </div>
 
@@ -4943,17 +4953,19 @@ function renderScorePage() {
   const notesMargin = document.getElementById('activeRoundNotes');
   const scanBtn = document.getElementById('photoRoundScanBtn');
   const editBtn = document.getElementById('photoRoundEditBtn');
+  const inlineReviewPanel = document.getElementById('photoRoundInlineReview');
   if (usingPhotoMode) {
     photoControls.classList.add('open');
     targetWrap.style.display = 'none';
     document.getElementById('missBtn').style.display = 'none';
     document.getElementById('zoomRingsBtn').style.display = 'none';
+    setPhotoRoundSubtitle('Pick a tournament scorecard image and the app will detect and read it automatically.');
     if (scanBtn) {
       scanBtn.textContent = session.rounds.length ? 'Re-Scan Tournament' : 'Scan Tournament Scorecard';
       scanBtn.disabled = cr.locked;
     }
     if (editBtn) {
-      editBtn.style.display = cr.arrows.length ? '' : 'none';
+      editBtn.style.display = photoScoreState.reviewTournamentScores.length || session.rounds.length ? '' : 'none';
       editBtn.disabled = cr.locked;
     }
     if (notesMargin) notesMargin.style.marginTop = '12px';
@@ -4963,6 +4975,7 @@ function renderScorePage() {
     document.getElementById('missBtn').style.display = '';
     document.getElementById('zoomRingsBtn').style.display = '';
     if (notesMargin) notesMargin.style.marginTop = '8px';
+    if (inlineReviewPanel) inlineReviewPanel.style.display = 'none';
   }
 
   drawTarget(cr.arrows, cr.mode);
@@ -5051,13 +5064,7 @@ function closePhotoScoreOverlay() {
 
 function openRoundPhotoScoreOverlay() {
   if (!session || !isPhotoTournamentSession(session) || session.currentRound.locked) return;
-  openPhotoScoreOverlay('round');
-  if (!photoScoreState.reviewTournamentScores.length) {
-    photoScoreState.reviewTournamentScores = getExistingPhotoTournamentReviewValues();
-    renderPhotoScoreReviewGrid();
-    updatePhotoScoreReviewVisibility();
-    setPhotoScoreStatus('You can rescan the scorecard or directly edit the tournament values below.');
-  }
+  triggerRoundPhotoScorePicker();
 }
 
 function setPhotoScoreStatus(message, tone = '') {
@@ -5082,6 +5089,8 @@ function resetPhotoScoreState() {
 
   const input = document.getElementById('photoScoreInput');
   if (input) input.value = '';
+  const roundInput = document.getElementById('photoRoundInput');
+  if (roundInput) roundInput.value = '';
   document.getElementById('photoScoreFileName').textContent = 'No image selected yet.';
   document.getElementById('photoScoreDetectBtn').disabled = true;
   document.getElementById('photoScoreResults').style.display = 'none';
@@ -5095,22 +5104,35 @@ function resetPhotoScoreState() {
   gridCanvas.getContext('2d').clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   document.getElementById('photoScoreRoundReview').style.display = 'none';
   document.getElementById('photoScoreReviewGrid').innerHTML = '';
+  const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
+  if (inlineGrid) inlineGrid.innerHTML = '';
+  hideInlinePhotoReview();
   updatePhotoScoreReviewVisibility();
   setPhotoScoreStatus('Start by choosing a scorecard photo.');
 }
 
 async function handlePhotoScoreFileChange(event) {
   const file = event.target.files?.[0];
+  await preparePhotoScoreFile(file, 'beta');
+}
+
+async function handleRoundPhotoScoreFileChange(event) {
+  const file = event.target.files?.[0];
+  await preparePhotoScoreFile(file, 'round', true);
+}
+
+async function preparePhotoScoreFile(file, context = 'beta', autoRun = false) {
   if (!file) {
-    resetPhotoScoreState();
+    if (context !== 'round') resetPhotoScoreState();
     return;
   }
   if (!file.type.startsWith('image/')) {
     appAlert('Please choose an image file.');
-    resetPhotoScoreState();
+    if (context !== 'round') resetPhotoScoreState();
     return;
   }
 
+  photoScoreState.context = context === 'round' ? 'round' : 'beta';
   const imageDataUrl = await fileToDataUrl(file);
   photoScoreState.file = file;
   photoScoreState.imageDataUrl = imageDataUrl;
@@ -5125,7 +5147,12 @@ async function handlePhotoScoreFileChange(event) {
   document.getElementById('photoScoreOriginalPreview').src = imageDataUrl;
   document.getElementById('photoScoreDetectBtn').disabled = false;
   document.getElementById('photoScoreResults').style.display = 'none';
-  setPhotoScoreStatus('Image ready. Run detection to find the paper scorecard.');
+  if (context === 'round') {
+    setPhotoRoundSubtitle(`Processing ${file.name}...`);
+    if (autoRun) await runPhotoScoreDetection();
+  } else {
+    setPhotoScoreStatus('Image ready. Run detection to find the paper scorecard.');
+  }
 }
 
 function fileToDataUrl(file) {
@@ -5142,7 +5169,8 @@ async function runPhotoScoreDetection() {
 
   photoScoreState.isLoading = true;
   document.getElementById('photoScoreDetectBtn').disabled = true;
-  setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
+  if (photoScoreState.context === 'round') setPhotoRoundSubtitle('Detecting scorecard...');
+  else setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
 
   try {
     const response = await fetch(getPhotoScoreUrl(), {
@@ -5171,7 +5199,8 @@ async function runPhotoScoreDetection() {
       setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
     }
   } catch (error) {
-    setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
+    if (photoScoreState.context === 'round') setPhotoRoundSubtitle(error.message || 'Could not detect the scorecard.', true);
+    else setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
   } finally {
     photoScoreState.isLoading = false;
     document.getElementById('photoScoreDetectBtn').disabled = !photoScoreState.imageDataUrl;
@@ -5294,7 +5323,8 @@ function updatePhotoScoreReviewVisibility() {
 
 async function runPhotoScoreRead() {
   if (!photoScoreState.gridImageDataUrl) throw new Error('The score grid was not generated.');
-  setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
+  if (photoScoreState.context === 'round') setPhotoRoundSubtitle('Reading the scoring marks for the tournament...');
+  else setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
 
   const response = await fetch(getPhotoScoreReadUrl(), {
     method: 'POST',
@@ -5312,7 +5342,12 @@ async function runPhotoScoreRead() {
   photoScoreState.reviewTournamentScores = inferPhotoTournamentScores(photoScoreState.markPredictions, session);
   renderPhotoScoreReviewGrid();
   updatePhotoScoreReviewVisibility();
-  setPhotoScoreStatus('Detected tournament scores loaded. Review them below before applying.', 'success');
+  if (photoScoreState.context === 'round') {
+    showInlinePhotoReview();
+    setPhotoRoundSubtitle('Tournament scores detected. Review and correct them below if needed.');
+  } else {
+    setPhotoScoreStatus('Detected tournament scores loaded. Review them below before applying.', 'success');
+  }
 }
 
 function inferPhotoTournamentScores(predictions, sessionObj = session) {
@@ -5384,6 +5419,10 @@ function robustQuantile(values, ratio = 0.5) {
   return nums[lower] * (1 - weight) + nums[upper] * weight;
 }
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
   const label = String(rawLabel).trim().toUpperCase();
   if (label === 'X') return mode === '3d' ? '10' : 'X';
@@ -5396,12 +5435,13 @@ function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
 }
 
 function renderPhotoScoreReviewGrid() {
-  const grid = document.getElementById('photoScoreReviewGrid');
+  const modalGrid = document.getElementById('photoScoreReviewGrid');
+  const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
   const mode = session?.type === '3d_tournament' ? '3d' : 'bullseye';
   const values = photoScoreState.reviewTournamentScores.length
     ? photoScoreState.reviewTournamentScores
     : getExistingPhotoTournamentReviewValues();
-  grid.innerHTML = values.map((roundValues, roundIndex) => {
+  const markup = values.map((roundValues, roundIndex) => {
     const roundInfo = getTournamentRoundConfigByIndex(session, roundIndex);
     const descriptor = roundDescriptor(roundInfo).shortLabel;
     const cells = roundValues.map((value, arrowIndex) => `
@@ -5419,7 +5459,11 @@ function renderPhotoScoreReviewGrid() {
       </div>
     `;
   }).join('');
+  if (modalGrid) modalGrid.innerHTML = markup;
+  if (inlineGrid) inlineGrid.innerHTML = markup;
   document.getElementById('photoScoreReviewNote').textContent = 'Review all six rounds below. Blank cells mean the model did not detect that arrow, and duplicates have already been collapsed to the highest-confidence score in that arrow slot.';
+  const inlineNote = document.getElementById('photoRoundInlineReviewNote');
+  if (inlineNote) inlineNote.textContent = 'Review all six rounds below. Blank cells mean the model did not detect that arrow, and duplicates have already been collapsed to the highest-confidence score in that arrow slot.';
   document.getElementById('photoScoreApplyBtn').textContent = 'Apply Tournament';
 }
 
@@ -5459,6 +5503,7 @@ function applyPhotoScoresToCurrentRound() {
   });
   session.currentRound = getTournamentRoundConfigByIndex(session, 0);
   session.currentRound.arrows = [];
+  hideInlinePhotoReview();
   closePhotoScoreOverlay();
   renderScorePage();
   endSession();
@@ -5505,6 +5550,37 @@ function getExistingPhotoTournamentReviewValues() {
     values[0] = Array.from({ length: 5 }, (_, arrowIndex) => scoreToReviewLabel(session.currentRound.arrows?.[arrowIndex]?.score ?? '', session.currentRound.mode));
   }
   return values;
+}
+
+function triggerRoundPhotoScorePicker() {
+  if (!session || !isPhotoTournamentSession(session) || session.currentRound.locked) return;
+  const input = document.getElementById('photoRoundInput');
+  if (input) input.click();
+}
+
+function setPhotoRoundSubtitle(message, isError = false) {
+  const el = document.getElementById('photoRoundSubtitle');
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+function showInlinePhotoReview() {
+  const panel = document.getElementById('photoRoundInlineReview');
+  if (panel) panel.style.display = 'block';
+  const editBtn = document.getElementById('photoRoundEditBtn');
+  if (editBtn) editBtn.style.display = '';
+}
+
+function hideInlinePhotoReview() {
+  const panel = document.getElementById('photoRoundInlineReview');
+  if (panel) panel.style.display = 'none';
+}
+
+function toggleInlinePhotoReview() {
+  const panel = document.getElementById('photoRoundInlineReview');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 function openDiscardSessionConfirm() {
