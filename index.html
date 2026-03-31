@@ -2483,9 +2483,14 @@ const PRACTICE_TARGET_OPTIONS = [
         <h3 id="globalSessionTitle">Session</h3>
         <div id="globalSessionMeta" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px"></div>
       </div>
-      <button class="detail-close" onclick="closeOverlay('globalSessionOverlay')" aria-label="Close">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-      </button>
+      <div style="display:flex;gap:8px">
+        <button class="detail-close" onclick="printGlobalSession()" aria-label="Print session">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V4h12v5"></path><rect x="6" y="14" width="12" height="6"></rect><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path></svg>
+        </button>
+        <button class="detail-close" onclick="closeOverlay('globalSessionOverlay')" aria-label="Close">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+        </button>
+      </div>
     </div>
     <div class="session-owner-row">
       <div>
@@ -3504,6 +3509,7 @@ function handleServerAuthInvalid(message = 'You were signed out on this device b
 let activeHistoryTab = 'my';
 let clubSort = 'newest';
 let clubSessions = [];
+let activeGlobalSessionId = null;
 const clubFilters = new Set();
 const activeClubFilters = { club: new Set() };
 const activeDateFiltersClub = { start: null, end: null };
@@ -3600,6 +3606,7 @@ function renderClubHistory() {
 }
 
 function openGlobalSessionOverlay(id) {
+  activeGlobalSessionId = String(id);
   const s = clubSessions.find(s => String(s.id) === String(id));
   if (!s) return;
   const d = new Date(s.date);
@@ -3623,6 +3630,9 @@ function openGlobalSessionOverlay(id) {
         <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
         <div class="sor-pips">${pips}</div>
         <div class="sor-score">${rs}</div>
+        <button class="icon-btn" onclick="printGlobalSessionRound('${String(s.id)}', ${ri})" title="Print round" aria-label="Print round" style="margin-left:auto">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V4h12v5"></path><rect x="6" y="14" width="12" height="6"></rect><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -6527,6 +6537,11 @@ function generatePrintableHeatmap(arrows) {
 function generateScorecard(indices) {
   const sessionsToPrint = indices.map(idx => db.sessions[idx]).filter(Boolean);
   if (!sessionsToPrint.length) return;
+  generatePrintableSessionsReport(sessionsToPrint, 'Archery Scorecard');
+}
+
+function generatePrintableSessionsReport(sessionsToPrint, title = 'Archery Scorecard') {
+  if (!sessionsToPrint.length) return;
 
   const allArrows = [];
   const roundScores = [];
@@ -6589,7 +6604,7 @@ function generateScorecard(indices) {
 
   document.getElementById('printContainer').innerHTML = `
     <div class="print-header">
-      <h2>Archery Scorecard</h2>
+      <h2>${title}</h2>
       <div class="print-meta">
         <div><strong>${archerLabel}:</strong> ${archerStr}</div>
         <div><strong>${bowLabel}:</strong> ${bowStr}</div>
@@ -6627,6 +6642,27 @@ function generateScorecard(indices) {
   // mobile WebView wrappers (Median/GoNative included). The print stylesheet
   // hides all UI and shows only printContainer, so the scorecard renders correctly.
   window.print();
+}
+
+function printGlobalSession() {
+  const sessionObj = clubSessions.find(s => String(s.id) === String(activeGlobalSessionId));
+  if (!sessionObj) return;
+  const owner = normalizePersonName(sessionObj.archerName) || 'Club Archer';
+  generatePrintableSessionsReport([sessionObj], `${owner} · ${sessionTypeLabel(sessionObj)}`);
+}
+
+function printGlobalSessionRound(sessionId, roundIndex) {
+  const sessionObj = clubSessions.find(s => String(s.id) === String(sessionId));
+  if (!sessionObj) return;
+  const round = sessionObj.rounds?.[roundIndex];
+  if (!round) return;
+  const printableSession = {
+    ...sessionObj,
+    rounds: [round]
+  };
+  const info = roundDescriptor(round);
+  const owner = normalizePersonName(sessionObj.archerName) || 'Club Archer';
+  generatePrintableSessionsReport([printableSession], `${owner} · Round ${roundIndex + 1} (${info.shortLabel})`);
 }
 function deleteHomeSelected() {
   if (homeSelectedSessions.size === 0) return;
