@@ -1,7 +1,7 @@
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type,X-Club-Secret,Authorization'
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization'
 };
 
 function json(data, status = 200, origin = '') {
@@ -23,7 +23,7 @@ function corsHeaders(origin = '') {
   return {
     'Access-Control-Allow-Origin': origin || '*',
     'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Club-Secret'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
 }
 
@@ -90,10 +90,6 @@ async function verifyPassword(password, stored) {
     .join('');
 
   return check === hashHex;
-}
-
-function secretOk(request, env) {
-  return request.headers.get('X-Club-Secret') === env.CLUB_SECRET;
 }
 
 function parseAuth(request) {
@@ -405,15 +401,9 @@ export default {
       const accountDeleteMatch = path.match(/^\/account\/(.+)$/);
       if (accountDeleteMatch && request.method === 'DELETE') {
         const username = decodeURIComponent(accountDeleteMatch[1]).trim();
-
-        let authorised = secretOk(request, env);
-        if (!authorised) {
-          const body = await request.json().catch(() => null);
-          const account = await getAccount(env, username);
-          if (account && body?.password) {
-            authorised = await verifyPassword(body.password, account.passwordHash);
-          }
-        }
+        const body = await request.json().catch(() => null);
+        const account = await getAccount(env, username);
+        const authorised = !!(account && body?.password && await verifyPassword(body.password, account.passwordHash));
 
         if (!authorised) return err('Unauthorised', 401, origin);
 
@@ -499,7 +489,7 @@ export default {
         const stored = JSON.parse(existing);
         const isOwner = (stored.archerName || '').toLowerCase() === account.username.toLowerCase();
 
-        if (!secretOk(request, env) && !isOwner) {
+        if (!isOwner) {
           return err('Unauthorised', 401, origin);
         }
 

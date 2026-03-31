@@ -2492,9 +2492,6 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="session-owner-label">Archer</div>
         <div class="session-owner-name" id="globalSessionOwner"></div>
       </div>
-      <button id="adminDeleteAccountBtn" class="icon-btn danger" style="display:none;" onclick="adminDeleteGlobalAccount()" title="Delete account" aria-label="Delete account">
-        <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 12h8l1-12"></path><path d="M10 11v5"></path><path d="M14 11v5"></path></svg>
-      </button>
     </div>
     <div id="globalSessionRounds"></div>
     <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
@@ -3022,13 +3019,11 @@ const PRACTICE_TARGET_OPTIONS = [
 // ═══════════════════════════════════════════════
 //  ACCOUNT & AUTH LAYER
 // ═══════════════════════════════════════════════
-const CF_SECRET_KEY = 'achery_cf_secret';
 const SYNCED_KEY    = 'achery_synced_ids';
 const ACCOUNT_KEY   = 'achery_account'; // { username, password }
 const GUEST_MODE_KEY = 'achery_guest_mode';
 
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
-function getCfSecret() { try { return localStorage.getItem(CF_SECRET_KEY) || ''; } catch { return ''; } }
 function getPhotoScoreUrl() { return `${getCfUrl()}/photo-score/detect`; }
 function getPhotoScoreReadUrl() { return `${getCfUrl()}/photo-score/read`; }
 function getSyncedIds() {
@@ -3083,9 +3078,8 @@ function migrateLocalDataToAccount(username, previousName = normalizePersonName(
   clearGuestMode();
 }
 
-function cfHeaders(withSecret = false) {
+function cfHeaders() {
   const h = { 'Content-Type': 'application/json' };
-  if (withSecret) h['X-Club-Secret'] = getCfSecret();
   // Attach Basic Auth if logged in (used for /sessions and authenticated routes)
   const account = getLoggedInAccount();
   if (account?.username && account?.password) {
@@ -3096,7 +3090,7 @@ function cfHeaders(withSecret = false) {
 
 async function cfFetch(path, opts = {}) {
   const url = getCfUrl().replace(/\/$/, '') + path;
-  const res = await fetch(url, { ...opts, headers: { ...cfHeaders(opts.withSecret), ...(opts.headers || {}) } });
+  const res = await fetch(url, { ...opts, headers: { ...cfHeaders(), ...(opts.headers || {}) } });
   if (!res.ok) {
     let detail = '';
     try {
@@ -3137,9 +3131,6 @@ async function cfPushSession(sessionObj) {
     }
     updateSyncStatus();
   }
-}
-async function cfAdminDeleteAccount(username) {
-  return cfFetch(`/account/${encodeURIComponent(username)}`, { method: 'DELETE', withSecret: true, body: '{}' });
 }
 async function cfDeleteOwnAccount(username, password) {
   return cfFetch(`/account/${encodeURIComponent(username)}`, {
@@ -3215,15 +3206,14 @@ async function syncUnsyncedSessions() {
   appAlert(`Synced ${ok} of ${unsynced.length} sessions to the club.`);
 }
 
-// ── 5-tap admin unlock ────────────────────────────────────────────────────────
+// ── 5-tap hidden settings tap (unused admin path removed) ────────────────────
 let _settingsTapCount = 0, _settingsTapTimer = null;
 function handleSettingsTap() {
   _settingsTapCount++;
   clearTimeout(_settingsTapTimer);
   if (_settingsTapCount >= 5) {
     _settingsTapCount = 0;
-    const sec = document.getElementById('adminSecretSection');
-    if (sec) { const v = sec.style.display !== 'none'; sec.style.display = v ? 'none' : 'block'; if (!v) { loadCloudflareConfigIntoUI(); appAlert('Admin mode unlocked.'); } }
+    appAlert('No hidden admin mode is enabled on this account.');
   } else { _settingsTapTimer = setTimeout(() => { _settingsTapCount = 0; }, 1500); }
 }
 
@@ -3619,10 +3609,6 @@ function openGlobalSessionOverlay(id) {
   document.getElementById('globalSessionMeta').textContent = loc ? `${dateStr} · ${loc}` : dateStr;
   document.getElementById('globalSessionOwner').textContent = s.archerName || 'Unknown';
 
-  // Show delete button only if admin secret is set
-  const adminBtn = document.getElementById('adminDeleteAccountBtn');
-  if (adminBtn) adminBtn.style.display = getCfSecret() ? 'flex' : 'none';
-
   const container = document.getElementById('globalSessionRounds');
   container.innerHTML = (s.rounds || []).map((r, ri) => {
     const rs = r.arrows.reduce((x, a) => x + a.score, 0);
@@ -3643,24 +3629,6 @@ function openGlobalSessionOverlay(id) {
 
   document.getElementById('globalSessionTotal').textContent = getSessionTotal(s);
   document.getElementById('globalSessionOverlay').classList.add('open');
-}
-
-async function adminDeleteGlobalAccount() {
-  const ownerEl = document.getElementById('globalSessionOwner');
-  const username = ownerEl?.textContent?.trim();
-  if (!username || username === 'Unknown') { appAlert('No account to delete.'); return; }
-  appConfirm(`Delete the account "${username}" and ALL their sessions? This cannot be undone.`, async () => {
-    try {
-      await cfAdminDeleteAccount(username);
-      closeOverlay('globalSessionOverlay');
-      // Remove their sessions from the local club view
-      clubSessions = clubSessions.filter(s => (s.archerName || '').toLowerCase() !== username.toLowerCase());
-      renderClubHistory();
-      appAlert(`Account "${username}" and all their sessions have been deleted.`);
-    } catch(e) {
-      appAlert('Could not delete account. Check your admin secret or connection.');
-    }
-  });
 }
 
 // Sort for club tab
