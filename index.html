@@ -682,37 +682,53 @@
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
 
-  /* Stats 2x2 tile grid */
-  .stats-section-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
-    flex: 1;
-    min-height: 0;
-    box-sizing: border-box;
-  }
+  /* Stats grid: 2 squares on top row, 2 wide rectangles below */
+  /* Stats page: fixed full-height, no scroll */
   #page-diag {
     display: none;
     height: 100dvh;
     overflow: hidden;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
     box-sizing: border-box;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
   #page-diag.active {
     display: flex;
     flex-direction: column;
   }
+
+  .stats-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* Top row = squares (1fr each), bottom two rows = compact rectangles */
+    grid-template-rows: 1fr 0.62fr 0.62fr;
+    gap: 10px;
+    padding: 8px 16px 10px;
+    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Top two tiles: fill their row */
+  .stats-section-grid .stats-section-tile:nth-child(1),
+  .stats-section-grid .stats-section-tile:nth-child(2) {
+    aspect-ratio: unset;
+    min-height: 0;
+  }
+  /* Wide rectangle tiles: each spans full width */
+  .stats-section-grid .stats-section-tile:nth-child(3),
+  .stats-section-grid .stats-section-tile:nth-child(4) {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
   .stats-section-tile {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 14px;
+    padding: 12px 14px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex: 1;
+    gap: 6px;
     min-height: 0;
     transition: border-color .15s, transform .1s;
     -webkit-tap-highlight-color: transparent;
@@ -734,8 +750,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
     min-height: 0;
+    overflow: hidden;
+    width: 100%;
+  }
+  /* Square tiles: heatmap fills the preview area */
+  .stats-section-grid .stats-section-tile:nth-child(2) .sst-preview {
+    padding: 4px;
+  }
+  /* Wide tiles: override flex to stretch full width */
+  .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview,
+  .stats-section-grid .stats-section-tile:nth-child(4) .sst-preview {
+    align-items: stretch;
   }
   .sst-tap-hint {
     font-size: 10px;
@@ -915,16 +941,35 @@
   .timeline-tooltip {
     position: fixed;
     background: var(--bg2);
-    border: 1px solid var(--border);
+    border: 1px solid var(--accent);
     color: var(--text);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    pointer-events: none;
+    padding: 10px 14px;
+    border-radius: 12px;
+    pointer-events: all;
     display: none;
     z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     white-space: nowrap;
+    cursor: pointer;
+    min-width: 120px;
+  }
+  .tt-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .tt-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .tt-hint {
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+    opacity: 0.8;
   }
 
   .zone-bars { display: flex; flex-direction: column; gap: 6px; }
@@ -2360,30 +2405,34 @@ const PRACTICE_TARGET_OPTIONS = [
     <span id="dAvg"></span><span id="dArrows"></span><span id="dBest"></span><span id="dSessions"></span>
   </div>
 
-  <!-- Stats 2x2 grid -->
+  <!-- Stats grid: 2 squares on top, 2 wide rectangles below -->
   <div class="stats-section-grid" id="statsSectionGrid">
+    <!-- Square tile 1: Overall Statistics -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('overall')">
-      <div class="sst-label">Overall Statistics</div>
-      <div class="sst-preview" id="overallTilePreview" style="display:flex;flex-direction:column;gap:4px;width:100%;align-items:stretch;"></div>
+      <div class="sst-label">Overall Stats</div>
+      <div class="sst-preview" id="overallTilePreview" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;align-items:stretch;padding:2px 0;"></div>
       <div class="sst-tap-hint">Tap to expand</div>
     </div>
+    <!-- Square tile 2: Heatmap -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('heatmap')">
-      <div class="sst-label">Arrow Grouping Heatmap</div>
-      <div class="sst-preview" id="heatmapTilePreview">
-        <canvas id="heatmapPreviewCanvas" width="260" height="260" style="border-radius:50%;width:100%;max-width:100px;height:auto;aspect-ratio:1/1;pointer-events:none;display:block;margin:0 auto;"></canvas>
+      <div class="sst-label">Arrow Grouping</div>
+      <div class="sst-preview" id="heatmapTilePreview" style="align-items:center;justify-content:center;">
+        <canvas id="heatmapPreviewCanvas" width="260" height="260" style="border-radius:50%;width:100%;height:100%;object-fit:contain;pointer-events:none;display:block;aspect-ratio:1/1;"></canvas>
       </div>
       <div class="sst-tap-hint">Tap to expand</div>
     </div>
+    <!-- Wide rectangle tile 3: Timeline -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
       <div class="sst-label">Score Over Time</div>
-      <div class="sst-preview" id="timelineTilePreview">
-        <canvas id="timelinePreviewCanvas" width="400" height="125" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
+      <div class="sst-preview" id="timelineTilePreview" style="width:100%;">
+        <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
       </div>
       <div class="sst-tap-hint">Tap to expand</div>
     </div>
+    <!-- Wide rectangle tile 4: Zone distribution -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('zones')">
-      <div class="sst-label">Score Zone Distribution</div>
-      <div class="sst-preview" id="zonesTilePreview" style="width:100%;align-items:flex-end;gap:4px;justify-content:center;"></div>
+      <div class="sst-label">Score Distribution</div>
+      <div class="sst-preview" id="zonesTilePreview" style="width:100%;"></div>
       <div class="sst-tap-hint">Tap to expand</div>
     </div>
   </div>
@@ -3133,10 +3182,10 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 
-<div class="timeline-tooltip" id="timelineTooltip" onclick="openTimelineRoundDetail()" style="cursor:pointer;">
+<div class="timeline-tooltip" id="timelineTooltip" onclick="openTimelineRoundDetail()">
   <div class="tt-score" id="ttScore"></div>
   <div class="tt-date" id="ttDate"></div>
-  <div style="font-size:10px;color:var(--accent);margin-top:3px;opacity:.8;">Tap for details</div>
+  <div class="tt-hint">Tap for full details →</div>
 </div>
 
 <!-- End session overlay -->
@@ -6235,17 +6284,112 @@ function openStatsTileOverlay(tileKey) {
             <canvas id="statsTileTimelineCanvas" width="800" height="250" style="display:block;width:100%;"></canvas>
           </div>
         </div>
-        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Pinch/drag to explore</div>`;
+        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Pinch/drag to explore · Tap a point for details</div>`;
       overlay.classList.add('open');
       setTimeout(() => {
-        const src = document.getElementById('timelineCanvas');
-        const dst = document.getElementById('statsTileTimelineCanvas');
-        if (src && dst) {
-          const ctx = dst.getContext('2d');
-          ctx.clearRect(0, 0, dst.width, dst.height);
-          ctx.drawImage(src, 0, 0);
+        const rounds = window.currentTimelineRounds || [];
+        let overlayTimelineDataPoints = [];
+
+        function drawOverlayTimeline() {
+          const tc = document.getElementById('statsTileTimelineCanvas');
+          if (!tc) return;
+          const c = tc.getContext('2d');
+          const W3=800, H3=250;
+          tc.style.width='100%';
+          c.clearRect(0,0,W3,H3);
+          c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
+          overlayTimelineDataPoints = [];
+
+          if (rounds.length < 2) {
+            c.fillStyle='#6b7a99'; c.font='20px DM Mono, monospace'; c.textAlign='center'; c.textBaseline='middle';
+            c.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
+          }
+
+          const transformData = window.overlayTimelinePanZoom ? window.overlayTimelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
+          const scale = transformData.scale;
+          const screenTx = transformData.tx;
+          const rect = transformData.rect;
+          const canvasTx = rect.width ? screenTx * (W3 / rect.width) : 0;
+
+          const scores = rounds.map(r=>r.arrows.reduce((sum,a)=>sum+a.score,0));
+          const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
+          const pad=40;
+          const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * scale + canvasTx);
+          const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
+
+          c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
+          c.fillStyle='#6b7a99'; c.font='10px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
+          for(let g=0;g<=4;g++){
+            const val = minS + (g/4)*(maxS-minS);
+            const y=py(val);
+            c.beginPath(); c.moveTo(pad,y); c.lineTo(W3,y); c.stroke();
+            c.fillText(Math.round(val), pad-8, y);
+          }
+          c.save();
+          c.beginPath(); c.rect(pad, 0, W3-pad, H3); c.clip();
+          const step = Math.max(1, Math.ceil(rounds.length/5));
+          c.textAlign='center'; c.textBaseline='top';
+          for(let i=0; i<rounds.length; i+=step) {
+            const x=px(i);
+            c.beginPath(); c.moveTo(x,0); c.lineTo(x,H3-pad); c.stroke();
+            c.fillText(new Date(rounds[i].sessionDate).toLocaleDateString(undefined,{month:'short',day:'numeric'}), x, H3-pad+8);
+          }
+          c.beginPath(); c.moveTo(px(0),H3-pad);
+          scores.forEach((s,i)=>c.lineTo(px(i),py(s)));
+          c.lineTo(px(scores.length-1),H3-pad); c.closePath();
+          const grad=c.createLinearGradient(0,0,0,H3); grad.addColorStop(0,'rgba(232,197,71,0.3)'); grad.addColorStop(1,'rgba(232,197,71,0)');
+          c.fillStyle=grad; c.fill();
+          c.beginPath(); c.moveTo(px(0),py(scores[0]));
+          scores.forEach((s,i)=>{if(i>0)c.lineTo(px(i),py(s));});
+          c.strokeStyle='#e8c547'; c.lineWidth=2.5; c.lineJoin='round'; c.stroke();
+          scores.forEach((s,i)=>{
+            const x=px(i), y=py(s);
+            c.beginPath(); c.arc(x,y,5,0,Math.PI*2); c.fillStyle='#e8c547'; c.fill();
+            overlayTimelineDataPoints.push({x,y,score:s,date:rounds[i].sessionDate,round:rounds[i]});
+          });
+          c.restore();
         }
-        attachPanZoom('statsTileTimelineContainer', 'statsTileTimelineWrap', { constrainHorizontal: true });
+
+        window.overlayTimelinePanZoom = attachPanZoom('statsTileTimelineContainer', 'statsTileTimelineWrap', {
+          constrainHorizontal: true,
+          onUpdate: drawOverlayTimeline
+        });
+
+        drawOverlayTimeline();
+
+        // Tap-to-detail for overlay timeline
+        const overlayContainer = document.getElementById('statsTileTimelineContainer');
+        let overlayTooltipTimer;
+        overlayContainer.addEventListener('touchend', ev => {
+          if (ev.changedTouches.length !== 1) return;
+          const t = ev.changedTouches[0];
+          const rect = overlayContainer.getBoundingClientRect();
+          const W3 = 800;
+          const canvasX = (t.clientX - rect.left) * (W3 / rect.width);
+          let nearest = null, minDist = Infinity;
+          overlayTimelineDataPoints.forEach(pt => {
+            const dist = Math.abs(pt.x - canvasX);
+            if (dist < minDist && dist < 40) { minDist = dist; nearest = pt; }
+          });
+          const tooltip = document.getElementById('timelineTooltip');
+          if (nearest) {
+            document.getElementById('ttScore').textContent = nearest.score;
+            document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+            tooltip.style.display = 'block';
+            tooltip.style.left = '0px'; tooltip.style.top = '-9999px';
+            const tipW = tooltip.offsetWidth, tipH = tooltip.offsetHeight, margin = 8;
+            const displayX = rect.left + (nearest.x * (rect.width / W3));
+            const displayY = rect.top + (nearest.y * (rect.height / 250));
+            const clampedX = Math.max(margin, Math.min(window.innerWidth - tipW - margin, displayX - tipW/2));
+            const clampedY = Math.max(margin, displayY - tipH - 14);
+            tooltip.style.left = clampedX + 'px'; tooltip.style.top = clampedY + 'px';
+            activeTimelinePoint = nearest;
+            clearTimeout(overlayTooltipTimer);
+            overlayTooltipTimer = setTimeout(() => { tooltip.style.display='none'; activeTimelinePoint=null; }, 4000);
+          } else {
+            tooltip.style.display = 'none'; activeTimelinePoint = null;
+          }
+        });
       }, 50);
       break;
 
@@ -7731,16 +7875,17 @@ function renderStatsTilePreviews(allArrows, rounds) {
       const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
       return (count / total) * 100;
     }), 1);
-    zonesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:4px;width:100%;padding:4px 0;">` +
+    zonesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:5px;width:100%;padding:2px 0;">` +
       ZONES.map(z => {
         const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
         const pct = (count / total) * 100;
         const widthPct = (pct / maxPct) * 100;
-        return `<div style="display:flex;align-items:center;gap:6px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:28px;text-align:right;">${z.label}</div>
-          <div style="flex:1;height:12px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+        return `<div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:30px;text-align:right;">${z.label}</div>
+          <div style="flex:1;height:13px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
             <div style="height:100%;background:${z.color};width:${Math.max(2, widthPct)}%;border-radius:4px;opacity:0.9;"></div>
           </div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:28px;">${count}</div>
         </div>`;
       }).join('') +
       `</div>`;
@@ -7758,10 +7903,20 @@ function renderStatsTilePreviews(allArrows, rounds) {
       { label: 'Best Round',  val: best },
       { label: 'Arrows',      val: arr },
       { label: 'Sessions',    val: sess },
-    ].map(r => `<div class="sst-stat-row">
-      <span class="sst-stat-label">${r.label}</span>
-      <span class="sst-stat-val">${r.val}</span>
-    </div>`).join('');
+    ].map(r => `<div style="
+        background:var(--bg3);
+        border:1px solid var(--border);
+        border-radius:10px;
+        padding:8px 10px;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+        min-height:0;
+        overflow:hidden;
+      ">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${r.label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;margin-top:4px;">${r.val}</div>
+      </div>`).join('');
   }
 }
 
@@ -8032,6 +8187,12 @@ function openTimelineRoundDetail() {
   clearTimeout(tooltipHideTimer);
   document.getElementById('timelineTooltip').style.display = 'none';
   activeTimelinePoint = null;
+
+  // Close expanded overlay if open so detail modal can appear on top
+  const tileOverlay = document.getElementById('statsTileOverlay');
+  if (tileOverlay && tileOverlay.classList.contains('open')) {
+    tileOverlay.classList.remove('open');
+  }
 
   const round = pt.round;
   if (!round) return;
