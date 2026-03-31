@@ -5911,7 +5911,8 @@ function openArcherFilterOverlay(context) {
   const activeSet = activeArcherFilters[context];
   let html = `<button class="sort-option ${activeSet.size === 0 ? 'active' : ''}" onclick="setArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
   uniqueArchers.forEach(arch => {
-    html += `<button class="sort-option ${activeSet.has(arch) ? 'active' : ''}" onclick="setArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
+    const archLiteral = JSON.stringify(arch);
+    html += `<button class="sort-option ${activeSet.has(arch) ? 'active' : ''}" onclick="setArcherFilter(${archLiteral})"><span>${arch}</span><span class="so-check">✓</span></button>`;
   });
   
   if (uniqueArchers.length === 0) {
