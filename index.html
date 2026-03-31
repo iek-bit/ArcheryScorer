@@ -1838,6 +1838,22 @@
     letter-spacing: 1px;
     margin-bottom: 6px;
   }
+  .beta-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(240,160,75,.35);
+    background: rgba(240,160,75,.12);
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
   .score-mode-card p {
     font-size: 13px;
     line-height: 1.5;
@@ -1955,12 +1971,6 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div class="session-card" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
         <h2 style="color:var(--muted)">Quick Score</h2>
-      </div>
-      <div class="session-card photo-score" onclick="openPhotoScoreOverlay()" role="button" tabindex="0" aria-label="Open photo score beta" onkeydown="if(event.key==='Enter'||event.key===' ')openPhotoScoreOverlay()">
-        <div>
-          <h2>Photo Score Beta</h2>
-          <p>Upload a scorecard photo and let Roboflow detect the sheet before we read the marks.</p>
-        </div>
       </div>
     </div>
   </div>
@@ -2653,7 +2663,7 @@ const PRACTICE_TARGET_OPTIONS = [
         <p>Score each arrow on the target just like the current app flow.</p>
       </button>
       <button class="score-mode-card" onclick="confirmTournamentScoringMode('photo')">
-        <h4>Photo</h4>
+        <h4>Photo <span class="beta-pill">Beta</span></h4>
         <p>Upload a scorecard photo, infer the five values, then correct anything that looks wrong.</p>
       </button>
     </div>
@@ -4911,7 +4921,7 @@ function updateScoreScrollLock() {
   const scorePage = document.getElementById('page-score');
   const scoreActive = document.getElementById('scoreActive');
   const scorePageActive = scorePage?.classList.contains('active');
-  const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none';
+  const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
   document.body.classList.toggle('score-scroll-locked', scoringLive);
   if (scorePage) scorePage.classList.toggle('score-scroll-locked', scoringLive);
   if (scoreActive) scoreActive.classList.toggle('score-session-live', scoringLive);
