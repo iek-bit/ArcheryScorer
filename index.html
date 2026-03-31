@@ -5089,30 +5089,33 @@ function renderPracticeTargetOptions(cr) {
   const bullseyeActive = currentMode === 'bullseye';
   const threeDActive = currentMode === '3d';
 
+  const bullseyeClass = bullseyeActive ? ' active' : '';
+  const threeDClass = threeDActive ? ' active' : '';
+  const disAttr = locked ? ' disabled' : '';
+  const bullseyeChevron = practiceTargetExpanded === 'bullseye' ? ' ▲' : ' ▾';
+  const threeDChevron = practiceTargetExpanded === '3d' ? ' ▲' : ' ▾';
+
+  let subOptions = '';
   if (practiceTargetExpanded === 'bullseye') {
-    targetOptions.innerHTML =
-      `<button class="dist-btn active" onclick="togglePracticeCategory('bullseye')" style="gap:4px">Bullseye ▲</button>` +
+    subOptions = `<div style="width:100%;display:flex;gap:8px;flex-wrap:wrap;">` +
       [{distance:10,label:'10m'},{distance:15,label:'15m'}].map(opt => {
         const isActive = bullseyeActive && cr.distance === opt.distance;
         const dis = locked && !isActive ? ' disabled' : '';
         return `<button class="dist-btn${isActive ? ' active' : ''}"${dis} onclick="setPracticeRoundTarget('bullseye','${opt.distance}')">${opt.label}</button>`;
-      }).join('');
+      }).join('') + `</div>`;
   } else if (practiceTargetExpanded === '3d') {
-    targetOptions.innerHTML =
-      `<button class="dist-btn active" onclick="togglePracticeCategory('3d')" style="gap:4px">3D ▲</button>` +
+    subOptions = `<div style="width:100%;display:flex;gap:8px;flex-wrap:wrap;">` +
       THREE_D_TARGETS.map(target => {
         const isActive = threeDActive && cr.animal === target.key;
         const dis = locked && !isActive ? ' disabled' : '';
         return `<button class="dist-btn${isActive ? ' active' : ''}"${dis} onclick="setPracticeRoundTarget('3d','${target.key}')">${target.label}</button>`;
-      }).join('');
-  } else {
-    const bullseyeClass = bullseyeActive ? ' active' : '';
-    const threeDClass = threeDActive ? ' active' : '';
-    const disAttr = locked ? ' disabled' : '';
-    targetOptions.innerHTML =
-      `<button class="dist-btn${bullseyeClass}"${disAttr} onclick="togglePracticeCategory('bullseye')">Bullseye${bullseyeActive ? ' ▾' : ' ▾'}</button>` +
-      `<button class="dist-btn${threeDClass}"${disAttr} onclick="togglePracticeCategory('3d')">3D ▾</button>`;
+      }).join('') + `</div>`;
   }
+
+  targetOptions.innerHTML =
+    `<button class="dist-btn${bullseyeClass}"${disAttr} onclick="togglePracticeCategory('bullseye')">Bullseye${bullseyeChevron}</button>` +
+    `<button class="dist-btn${threeDClass}"${disAttr} onclick="togglePracticeCategory('3d')">3D${threeDChevron}</button>` +
+    subOptions;
 }
 
 function nextRound() {
