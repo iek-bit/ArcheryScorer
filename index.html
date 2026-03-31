@@ -3170,11 +3170,17 @@ async function cfPatchSession(sessionObj) {
 }
 
 function saveCloudflareConfig() {
-  try { const secret = document.getElementById('cfSecret')?.value.trim() || ''; localStorage.setItem(CF_SECRET_KEY, secret); } catch {}
+  try {
+    const secret = document.getElementById('cfSecret')?.value.trim() || '';
+    // Store the secret only in memory to avoid clear-text persistent storage.
+    window._cfSecret = secret;
+  } catch {}
 }
 function loadCloudflareConfigIntoUI() {
   const secretEl = document.getElementById('cfSecret');
-  if (secretEl) secretEl.value = getCfSecret();
+  if (secretEl && typeof window._cfSecret === 'string') {
+    secretEl.value = window._cfSecret;
+  }
 }
 
 async function autoSyncUnsyncedSessions() {
