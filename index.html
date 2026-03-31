@@ -2556,11 +2556,11 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
 
       <div class="photo-score-panel" id="photoScoreRoundReview" style="display:none">
-        <div class="photo-score-metric-label">Detected Round Scores</div>
+        <div class="photo-score-metric-label">Detected Tournament Scores</div>
         <div class="score-review-grid" id="photoScoreReviewGrid"></div>
-        <div class="photo-score-review-note" id="photoScoreReviewNote">Review the five values before applying them to this round.</div>
+        <div class="photo-score-review-note" id="photoScoreReviewNote">Review the tournament values before applying them.</div>
         <div class="photo-score-actions">
-          <button class="modal-btn primary" id="photoScoreApplyBtn" onclick="applyPhotoScoresToCurrentRound()">Apply To Round</button>
+          <button class="modal-btn primary" id="photoScoreApplyBtn" onclick="applyPhotoScoresToCurrentRound()">Apply Tournament</button>
           <button class="modal-btn" onclick="openPhotoScoreOverlay('beta')">Use As Beta Tool Instead</button>
         </div>
       </div>
@@ -3845,7 +3845,7 @@ let photoScoreState = {
   imageMeta: null,
   gridImageDataUrl: '',
   markPredictions: [],
-  inferredRoundScores: [],
+  reviewTournamentScores: [],
   predictionsCount: 0,
   isLoading: false
 };
@@ -4949,7 +4949,7 @@ function renderScorePage() {
     document.getElementById('missBtn').style.display = 'none';
     document.getElementById('zoomRingsBtn').style.display = 'none';
     if (scanBtn) {
-      scanBtn.textContent = cr.arrows.length ? 'Re-Scan Scorecard' : 'Scan Scorecard';
+      scanBtn.textContent = session.rounds.length ? 'Re-Scan Tournament' : 'Scan Tournament Scorecard';
       scanBtn.disabled = cr.locked;
     }
     if (editBtn) {
@@ -5052,11 +5052,11 @@ function closePhotoScoreOverlay() {
 function openRoundPhotoScoreOverlay() {
   if (!session || !isPhotoTournamentSession(session) || session.currentRound.locked) return;
   openPhotoScoreOverlay('round');
-  if (session.currentRound.arrows.length && !photoScoreState.inferredRoundScores.length) {
-    photoScoreState.inferredRoundScores = session.currentRound.arrows.map(arrow => scoreToReviewLabel(arrow.score, session.currentRound.mode));
+  if (!photoScoreState.reviewTournamentScores.length) {
+    photoScoreState.reviewTournamentScores = getExistingPhotoTournamentReviewValues();
     renderPhotoScoreReviewGrid();
     updatePhotoScoreReviewVisibility();
-    setPhotoScoreStatus('You can rescan the scorecard or directly edit the current round values below.');
+    setPhotoScoreStatus('You can rescan the scorecard or directly edit the tournament values below.');
   }
 }
 
@@ -5075,7 +5075,7 @@ function resetPhotoScoreState() {
     imageMeta: null,
     gridImageDataUrl: '',
     markPredictions: [],
-    inferredRoundScores: [],
+    reviewTournamentScores: [],
     predictionsCount: 0,
     isLoading: false
   };
@@ -5118,7 +5118,7 @@ async function handlePhotoScoreFileChange(event) {
   photoScoreState.imageMeta = null;
   photoScoreState.gridImageDataUrl = '';
   photoScoreState.markPredictions = [];
-  photoScoreState.inferredRoundScores = [];
+  photoScoreState.reviewTournamentScores = [];
   photoScoreState.predictionsCount = 0;
 
   document.getElementById('photoScoreFileName').textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -5289,12 +5289,12 @@ function downloadPhotoScoreCanvas(canvasId, filename) {
 function updatePhotoScoreReviewVisibility() {
   const reviewPanel = document.getElementById('photoScoreRoundReview');
   const isRoundContext = photoScoreState.context === 'round' && isPhotoTournamentSession(session);
-  reviewPanel.style.display = isRoundContext && photoScoreState.inferredRoundScores.length ? 'block' : 'none';
+  reviewPanel.style.display = isRoundContext && photoScoreState.reviewTournamentScores.length ? 'block' : 'none';
 }
 
 async function runPhotoScoreRead() {
   if (!photoScoreState.gridImageDataUrl) throw new Error('The score grid was not generated.');
-  setPhotoScoreStatus('Reading the scoring marks for this round...');
+  setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
 
   const response = await fetch(getPhotoScoreReadUrl(), {
     method: 'POST',
@@ -5309,18 +5309,20 @@ async function runPhotoScoreRead() {
   }
 
   photoScoreState.markPredictions = Array.isArray(payload.predictions) ? payload.predictions : [];
-  photoScoreState.inferredRoundScores = inferPhotoRoundScores(photoScoreState.markPredictions, sessionRoundNumber(), session.currentRound.mode);
+  photoScoreState.reviewTournamentScores = inferPhotoTournamentScores(photoScoreState.markPredictions, session);
   renderPhotoScoreReviewGrid();
   updatePhotoScoreReviewVisibility();
-  setPhotoScoreStatus('Detected round scores loaded. Review them below before applying.', 'success');
+  setPhotoScoreStatus('Detected tournament scores loaded. Review them below before applying.', 'success');
 }
 
-function inferPhotoRoundScores(predictions, roundNumber, mode = 'bullseye') {
+function inferPhotoTournamentScores(predictions, sessionObj = session) {
+  const roundCount = isTournamentSession(sessionObj) ? 6 : 1;
+  const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
   const valid = predictions
-    .filter(pred => pred && typeof pred.x === 'number' && typeof pred.y === 'number' && typeof pred.class === 'string')
+    .filter(pred => pred && typeof pred.x === 'number' && typeof pred.y === 'number' && typeof pred.class === 'string' && normalizePhotoScoreLabel(pred.class, mode))
     .sort((a, b) => a.y - b.y || a.x - b.x);
 
-  if (!valid.length) return Array.from({ length: 5 }, () => '');
+  if (!valid.length) return Array.from({ length: roundCount }, () => Array.from({ length: 5 }, () => ''));
 
   const avgHeight = valid.reduce((sum, pred) => sum + (pred.height || 0), 0) / valid.length || 24;
   const rowThreshold = Math.max(18, avgHeight * 1.35);
@@ -5340,18 +5342,46 @@ function inferPhotoRoundScores(predictions, roundNumber, mode = 'bullseye') {
       ...group,
       items: group.items.sort((a, b) => a.x - b.x)
     }))
-    .filter(group => group.items.length >= 3)
+    .filter(group => group.items.length >= 1)
     .sort((a, b) => a.centerY - b.centerY);
 
-  const targetGroup = candidateGroups[roundNumber - 1] || candidateGroups[candidateGroups.length - 1] || null;
-  if (!targetGroup) return Array.from({ length: 5 }, () => '');
+  const activeLeft = robustQuantile(valid.map(pred => pred.x - (pred.width || 0) / 2), 0.08);
+  const activeRight = robustQuantile(valid.map(pred => pred.x + (pred.width || 0) / 2), 0.92);
+  const fallbackLeft = Math.min(...valid.map(pred => pred.x - (pred.width || 0) / 2));
+  const fallbackRight = Math.max(...valid.map(pred => pred.x + (pred.width || 0) / 2));
+  const leftEdge = Number.isFinite(activeLeft) ? activeLeft : fallbackLeft;
+  const rightEdge = Number.isFinite(activeRight) ? activeRight : fallbackRight;
+  const usableWidth = Math.max(1, rightEdge - leftEdge);
+  const slotWidth = usableWidth / 5;
 
-  const scores = targetGroup.items
-    .slice(0, 5)
-    .map(item => normalizePhotoScoreLabel(item.class, mode));
+  return Array.from({ length: roundCount }, (_, roundIndex) => {
+    const row = candidateGroups[roundIndex];
+    if (!row) return Array.from({ length: 5 }, () => '');
 
-  while (scores.length < 5) scores.push('');
-  return scores;
+    const bestPerArrow = Array.from({ length: 5 }, () => null);
+    row.items.forEach(pred => {
+      const slotIndex = clamp(Math.floor((pred.x - leftEdge) / slotWidth), 0, 4);
+      const existing = bestPerArrow[slotIndex];
+      if (!existing || (pred.confidence || 0) > (existing.confidence || 0)) {
+        bestPerArrow[slotIndex] = pred;
+      }
+    });
+
+    return bestPerArrow.map(pred => pred ? normalizePhotoScoreLabel(pred.class, mode) : '');
+  });
+}
+
+function robustQuantile(values, ratio = 0.5) {
+  const nums = values.filter(value => typeof value === 'number' && Number.isFinite(value)).sort((a, b) => a - b);
+  if (!nums.length) return NaN;
+  if (nums.length === 1) return nums[0];
+  const clamped = clamp(ratio, 0, 1);
+  const index = (nums.length - 1) * clamped;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  if (lower === upper) return nums[lower];
+  const weight = index - lower;
+  return nums[lower] * (1 - weight) + nums[upper] * weight;
 }
 
 function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
@@ -5367,15 +5397,30 @@ function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
 
 function renderPhotoScoreReviewGrid() {
   const grid = document.getElementById('photoScoreReviewGrid');
-  const values = photoScoreState.inferredRoundScores.length ? photoScoreState.inferredRoundScores : Array.from({ length: 5 }, () => '');
-  grid.innerHTML = values.map((value, index) => `
-    <div class="score-review-cell">
-      <label>Arrow ${index + 1}</label>
-      <select data-arrow-index="${index}" onchange="updatePhotoReviewScore(${index}, this.value)">
-        ${getPhotoReviewOptions(session?.currentRound?.mode || 'bullseye', value)}
-      </select>
-    </div>
-  `).join('');
+  const mode = session?.type === '3d_tournament' ? '3d' : 'bullseye';
+  const values = photoScoreState.reviewTournamentScores.length
+    ? photoScoreState.reviewTournamentScores
+    : getExistingPhotoTournamentReviewValues();
+  grid.innerHTML = values.map((roundValues, roundIndex) => {
+    const roundInfo = getTournamentRoundConfigByIndex(session, roundIndex);
+    const descriptor = roundDescriptor(roundInfo).shortLabel;
+    const cells = roundValues.map((value, arrowIndex) => `
+      <div class="score-review-cell">
+        <label>Arrow ${arrowIndex + 1}</label>
+        <select data-round-index="${roundIndex}" data-arrow-index="${arrowIndex}" onchange="updatePhotoReviewScore(${roundIndex}, ${arrowIndex}, this.value)">
+          ${getPhotoReviewOptions(mode, value)}
+        </select>
+      </div>
+    `).join('');
+    return `
+      <div class="photo-tournament-review-row" style="margin-bottom:16px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Round ${roundIndex + 1} · ${descriptor}</div>
+        <div class="score-review-grid">${cells}</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('photoScoreReviewNote').textContent = 'Review all six rounds below. Blank cells mean the model did not detect that arrow, and duplicates have already been collapsed to the highest-confidence score in that arrow slot.';
+  document.getElementById('photoScoreApplyBtn').textContent = 'Apply Tournament';
 }
 
 function getPhotoReviewOptions(mode = 'bullseye', selected = '') {
@@ -5387,21 +5432,36 @@ function getPhotoReviewOptions(mode = 'bullseye', selected = '') {
   }).join('');
 }
 
-function updatePhotoReviewScore(index, value) {
-  photoScoreState.inferredRoundScores[index] = value;
+function updatePhotoReviewScore(roundIndex, arrowIndex, value) {
+  if (!photoScoreState.reviewTournamentScores[roundIndex]) {
+    photoScoreState.reviewTournamentScores[roundIndex] = Array.from({ length: 5 }, () => '');
+  }
+  photoScoreState.reviewTournamentScores[roundIndex][arrowIndex] = value;
 }
 
 function applyPhotoScoresToCurrentRound() {
   if (!session || !isPhotoTournamentSession(session)) return;
-  const values = Array.from({ length: 5 }, (_, index) => photoScoreState.inferredRoundScores[index] || '');
-  if (values.some(value => !value)) {
-    appAlert('Please review all five arrow values before applying the round.');
+  const values = photoScoreState.reviewTournamentScores.length
+    ? photoScoreState.reviewTournamentScores.map(round => Array.from({ length: 5 }, (_, index) => round?.[index] || ''))
+    : [];
+  if (!values.length || values.some(round => round.some(value => !value))) {
+    appAlert('Please review all detected rounds and fill every arrow value before applying the tournament.');
     return;
   }
 
-  session.currentRound.arrows = values.map((value, index) => buildPhotoRoundArrow(value, index, session.currentRound.mode));
+  session.rounds = values.map((roundValues, roundIndex) => {
+    const baseRound = getTournamentRoundConfigByIndex(session, roundIndex);
+    return normalizeRound({
+      ...baseRound,
+      arrows: roundValues.map((value, arrowIndex) => buildPhotoRoundArrow(value, arrowIndex, baseRound.mode)),
+      locked: true
+    });
+  });
+  session.currentRound = getTournamentRoundConfigByIndex(session, 0);
+  session.currentRound.arrows = [];
   closePhotoScoreOverlay();
   renderScorePage();
+  endSession();
 }
 
 function buildPhotoRoundArrow(label, index, mode = 'bullseye') {
@@ -5421,6 +5481,30 @@ function scoreToReviewLabel(score, mode = 'bullseye') {
   if (score === 0) return 'M';
   if (mode !== '3d' && score === 10) return '10';
   return String(score);
+}
+
+function getTournamentRoundConfigByIndex(sessionObj = session, roundIndex = 0) {
+  if (!sessionObj) return createRound('bullseye', 10);
+  if (sessionObj.type === '3d_tournament') {
+    const sequence = Array.isArray(sessionObj.tournamentSequence) && sessionObj.tournamentSequence.length === 6
+      ? sessionObj.tournamentSequence
+      : getThreeDTournamentSequence(sessionObj.startAnimal, sessionObj.direction);
+    return createRound('3d', sequence[roundIndex] || sequence[0] || 'turkey');
+  }
+  return createRound('bullseye', roundIndex < 3 ? 10 : 15);
+}
+
+function getExistingPhotoTournamentReviewValues() {
+  if (!session || !isTournamentSession(session)) return [];
+  const values = Array.from({ length: 6 }, (_, roundIndex) => {
+    const existingRound = session.rounds[roundIndex];
+    if (!existingRound) return Array.from({ length: 5 }, () => '');
+    return Array.from({ length: 5 }, (_, arrowIndex) => scoreToReviewLabel(existingRound.arrows?.[arrowIndex]?.score ?? '', existingRound.mode));
+  });
+  if (!session.rounds.length && session.currentRound?.arrows?.length) {
+    values[0] = Array.from({ length: 5 }, (_, arrowIndex) => scoreToReviewLabel(session.currentRound.arrows?.[arrowIndex]?.score ?? '', session.currentRound.mode));
+  }
+  return values;
 }
 
 function openDiscardSessionConfirm() {

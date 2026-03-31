@@ -17,7 +17,7 @@ export default {
           project: env.ROBOFLOW_PROJECT || 'scorecard-detector',
           version: env.ROBOFLOW_MODEL_VERSION || '3',
           markProject: env.ROBOFLOW_MARK_PROJECT || 'score-mark-reader',
-          markVersion: env.ROBOFLOW_MARK_MODEL_VERSION || '1'
+          markVersion: env.ROBOFLOW_MARK_MODEL_VERSION || '2'
         },
         200,
         request.headers.get('Origin')
@@ -38,7 +38,7 @@ export default {
         }
 
         const project = env.ROBOFLOW_MARK_PROJECT || 'score-mark-reader';
-        const version = env.ROBOFLOW_MARK_MODEL_VERSION || '1';
+        const version = env.ROBOFLOW_MARK_MODEL_VERSION || '2';
         const confidence = env.ROBOFLOW_MARK_CONFIDENCE || '0.25';
         const overlap = env.ROBOFLOW_MARK_OVERLAP || '0.3';
         const roboflowUrl = new URL(`https://serverless.roboflow.com/${encodeURIComponent(project)}/${encodeURIComponent(version)}`);
