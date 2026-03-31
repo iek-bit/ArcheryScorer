@@ -1766,6 +1766,57 @@
   .photo-round-controls .photo-score-actions {
     margin-top: 14px;
   }
+  .photo-round-scan-state {
+    display: none;
+    margin-top: 12px;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .photo-round-scan-state.open { display: flex; }
+  .photo-round-scan-thumb {
+    width: 86px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  .photo-round-scan-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-round-scan-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .photo-round-scan-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .photo-round-scan-file {
+    font-size: 13px;
+    color: var(--text);
+    word-break: break-word;
+    margin-bottom: 6px;
+  }
+  .photo-round-scan-status {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+  .photo-round-scan-status.processing { color: var(--accent); }
+  .photo-round-scan-status.error { color: var(--red); }
   .score-mode-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1952,6 +2003,16 @@ const PRACTICE_TARGET_OPTIONS = [
         <button class="modal-btn" id="photoRoundEditBtn" onclick="toggleInlinePhotoReview()" style="display:none">Review / Edit Scores</button>
       </div>
       <input id="photoRoundInput" type="file" accept="image/*" capture="environment" onchange="handleRoundPhotoScoreFileChange(event)" style="display:none">
+      <div class="photo-round-scan-state" id="photoRoundScanState">
+        <div class="photo-round-scan-thumb">
+          <img id="photoRoundScanPreview" alt="Selected scorecard preview">
+        </div>
+        <div class="photo-round-scan-meta">
+          <div class="photo-round-scan-label">Current Scan</div>
+          <div class="photo-round-scan-file" id="photoRoundScanFile">No image selected yet.</div>
+          <div class="photo-round-scan-status" id="photoRoundScanStatus">Choose a scorecard image to begin.</div>
+        </div>
+      </div>
       <div class="photo-score-inline-review" id="photoRoundInlineReview" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
         <div class="photo-score-metric-label">Detected Tournament Scores</div>
         <div class="score-review-grid" id="photoRoundInlineReviewGrid"></div>
@@ -4976,6 +5037,7 @@ function renderScorePage() {
     document.getElementById('zoomRingsBtn').style.display = '';
     if (notesMargin) notesMargin.style.marginTop = '8px';
     if (inlineReviewPanel) inlineReviewPanel.style.display = 'none';
+    clearRoundPhotoScanState();
   }
 
   drawTarget(cr.arrows, cr.mode);
@@ -5107,6 +5169,7 @@ function resetPhotoScoreState() {
   const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
   if (inlineGrid) inlineGrid.innerHTML = '';
   hideInlinePhotoReview();
+  clearRoundPhotoScanState();
   updatePhotoScoreReviewVisibility();
   setPhotoScoreStatus('Start by choosing a scorecard photo.');
 }
@@ -5148,6 +5211,8 @@ async function preparePhotoScoreFile(file, context = 'beta', autoRun = false) {
   document.getElementById('photoScoreDetectBtn').disabled = false;
   document.getElementById('photoScoreResults').style.display = 'none';
   if (context === 'round') {
+    hideInlinePhotoReview();
+    setRoundPhotoScanState(file.name, imageDataUrl, `Processing ${file.name}...`, 'processing');
     setPhotoRoundSubtitle(`Processing ${file.name}...`);
     if (autoRun) await runPhotoScoreDetection();
   } else {
@@ -5169,8 +5234,10 @@ async function runPhotoScoreDetection() {
 
   photoScoreState.isLoading = true;
   document.getElementById('photoScoreDetectBtn').disabled = true;
-  if (photoScoreState.context === 'round') setPhotoRoundSubtitle('Detecting scorecard...');
-  else setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
+  if (photoScoreState.context === 'round') {
+    setPhotoRoundSubtitle('Detecting scorecard...');
+    setRoundPhotoScanStatus('Detecting scorecard...', 'processing');
+  } else setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
 
   try {
     const response = await fetch(getPhotoScoreUrl(), {
@@ -5192,15 +5259,17 @@ async function runPhotoScoreDetection() {
     photoScoreState.prediction = payload.prediction;
     photoScoreState.imageMeta = payload.image;
     photoScoreState.predictionsCount = payload.predictionsCount || 0;
-    renderPhotoScoreResult();
+    await renderPhotoScoreResult();
     if (photoScoreState.context === 'round' && isPhotoTournamentSession(session)) {
       await runPhotoScoreRead();
     } else {
       setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
     }
   } catch (error) {
-    if (photoScoreState.context === 'round') setPhotoRoundSubtitle(error.message || 'Could not detect the scorecard.', true);
-    else setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
+    if (photoScoreState.context === 'round') {
+      setPhotoRoundSubtitle(error.message || 'Could not detect the scorecard.', true);
+      setRoundPhotoScanStatus(error.message || 'Could not detect the scorecard.', 'error');
+    } else setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
   } finally {
     photoScoreState.isLoading = false;
     document.getElementById('photoScoreDetectBtn').disabled = !photoScoreState.imageDataUrl;
@@ -5209,38 +5278,46 @@ async function runPhotoScoreDetection() {
 
 function renderPhotoScoreResult() {
   const { prediction, imageMeta, imageDataUrl, predictionsCount } = photoScoreState;
-  if (!prediction || !imageDataUrl) return;
+  if (!prediction || !imageDataUrl) return Promise.resolve();
 
   document.getElementById('photoScoreResults').style.display = 'block';
   document.getElementById('photoScoreConfidence').textContent = `${Math.round((prediction.confidence || 0) * 100)}%`;
   document.getElementById('photoScoreDetections').textContent = String(predictionsCount || 1);
 
-  const img = new Image();
-  img.onload = () => {
-    const cropCanvas = document.getElementById('photoScoreCropCanvas');
-    const cropCtx = cropCanvas.getContext('2d');
-    const inferenceWidth = imageMeta?.width || img.naturalWidth;
-    const inferenceHeight = imageMeta?.height || img.naturalHeight;
-    const scaleX = img.naturalWidth / inferenceWidth;
-    const scaleY = img.naturalHeight / inferenceHeight;
-    const rawX = (prediction.x - prediction.width / 2) * scaleX;
-    const rawY = (prediction.y - prediction.height / 2) * scaleY;
-    const rawWidth = prediction.width * scaleX;
-    const rawHeight = prediction.height * scaleY;
-    const paddingX = rawWidth * 0.04;
-    const paddingY = rawHeight * 0.04;
-    const sx = Math.max(0, Math.floor(rawX - paddingX));
-    const sy = Math.max(0, Math.floor(rawY - paddingY));
-    const sw = Math.min(img.naturalWidth - sx, Math.ceil(rawWidth + paddingX * 2));
-    const sh = Math.min(img.naturalHeight - sy, Math.ceil(rawHeight + paddingY * 2));
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const cropCanvas = document.getElementById('photoScoreCropCanvas');
+        const cropCtx = cropCanvas.getContext('2d');
+        const inferenceWidth = imageMeta?.width || img.naturalWidth;
+        const inferenceHeight = imageMeta?.height || img.naturalHeight;
+        const scaleX = img.naturalWidth / inferenceWidth;
+        const scaleY = img.naturalHeight / inferenceHeight;
+        const rawX = (prediction.x - prediction.width / 2) * scaleX;
+        const rawY = (prediction.y - prediction.height / 2) * scaleY;
+        const rawWidth = prediction.width * scaleX;
+        const rawHeight = prediction.height * scaleY;
+        const paddingX = rawWidth * 0.04;
+        const paddingY = rawHeight * 0.04;
+        const sx = Math.max(0, Math.floor(rawX - paddingX));
+        const sy = Math.max(0, Math.floor(rawY - paddingY));
+        const sw = Math.min(img.naturalWidth - sx, Math.ceil(rawWidth + paddingX * 2));
+        const sh = Math.min(img.naturalHeight - sy, Math.ceil(rawHeight + paddingY * 2));
 
-    cropCanvas.width = Math.max(1, sw);
-    cropCanvas.height = Math.max(1, sh);
-    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-    cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
-    buildPhotoScoreNormalizedViews(cropCanvas);
-  };
-  img.src = imageDataUrl;
+        cropCanvas.width = Math.max(1, sw);
+        cropCanvas.height = Math.max(1, sh);
+        cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+        cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
+        buildPhotoScoreNormalizedViews(cropCanvas);
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    };
+    img.onerror = () => reject(new Error('Could not render the detected scorecard image.'));
+    img.src = imageDataUrl;
+  });
 }
 
 function buildPhotoScoreNormalizedViews(cropCanvas) {
@@ -5323,8 +5400,10 @@ function updatePhotoScoreReviewVisibility() {
 
 async function runPhotoScoreRead() {
   if (!photoScoreState.gridImageDataUrl) throw new Error('The score grid was not generated.');
-  if (photoScoreState.context === 'round') setPhotoRoundSubtitle('Reading the scoring marks for the tournament...');
-  else setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
+  if (photoScoreState.context === 'round') {
+    setPhotoRoundSubtitle('Reading the scoring marks for the tournament...');
+    setRoundPhotoScanStatus('Reading the scoring marks for the tournament...', 'processing');
+  } else setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
 
   const response = await fetch(getPhotoScoreReadUrl(), {
     method: 'POST',
@@ -5345,6 +5424,7 @@ async function runPhotoScoreRead() {
   if (photoScoreState.context === 'round') {
     showInlinePhotoReview();
     setPhotoRoundSubtitle('Tournament scores detected. Review and correct them below if needed.');
+    setRoundPhotoScanStatus('Tournament scores detected. Review and correct them below if needed.');
   } else {
     setPhotoScoreStatus('Detected tournament scores loaded. Review them below before applying.', 'success');
   }
@@ -5555,7 +5635,10 @@ function getExistingPhotoTournamentReviewValues() {
 function triggerRoundPhotoScorePicker() {
   if (!session || !isPhotoTournamentSession(session) || session.currentRound.locked) return;
   const input = document.getElementById('photoRoundInput');
-  if (input) input.click();
+  if (input) {
+    input.value = '';
+    input.click();
+  }
 }
 
 function setPhotoRoundSubtitle(message, isError = false) {
@@ -5563,6 +5646,33 @@ function setPhotoRoundSubtitle(message, isError = false) {
   if (!el) return;
   el.textContent = message;
   el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+function setRoundPhotoScanState(fileName, imageSrc, status, tone = '') {
+  const panel = document.getElementById('photoRoundScanState');
+  const img = document.getElementById('photoRoundScanPreview');
+  const fileEl = document.getElementById('photoRoundScanFile');
+  if (panel) panel.classList.add('open');
+  if (img && imageSrc) img.src = imageSrc;
+  if (fileEl) fileEl.textContent = fileName || 'No image selected yet.';
+  setRoundPhotoScanStatus(status, tone);
+}
+
+function setRoundPhotoScanStatus(message, tone = '') {
+  const el = document.getElementById('photoRoundScanStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `photo-round-scan-status${tone ? ` ${tone}` : ''}`;
+}
+
+function clearRoundPhotoScanState() {
+  const panel = document.getElementById('photoRoundScanState');
+  const img = document.getElementById('photoRoundScanPreview');
+  const fileEl = document.getElementById('photoRoundScanFile');
+  if (panel) panel.classList.remove('open');
+  if (img) img.removeAttribute('src');
+  if (fileEl) fileEl.textContent = 'No image selected yet.';
+  setRoundPhotoScanStatus('Choose a scorecard image to begin.');
 }
 
 function showInlinePhotoReview() {
