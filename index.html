@@ -3768,8 +3768,11 @@ function normalizeSessionType(type) {
 }
 
 function generateSessionId() {
-  // Timestamp + random 4-digit suffix for collision avoidance
-  return Date.now() * 10000 + Math.floor(Math.random() * 10000);
+  // Timestamp + cryptographically secure random 4-digit suffix for collision avoidance
+  const randomArray = new Uint16Array(1);
+  (window.crypto || self.crypto).getRandomValues(randomArray);
+  const suffix = randomArray[0] % 10000;
+  return Date.now() * 10000 + suffix;
 }
 
 function normalizeSessionData(raw = {}) {
