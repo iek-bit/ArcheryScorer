@@ -6122,7 +6122,8 @@ function openFiltersOnlyOverlay(context) {
 
   let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
   uniqueArchers.forEach(arch => {
-    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
+    const escapedArch = arch.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('${escapedArch}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
   });
   if (uniqueArchers.length === 0) archerHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No archers yet.</div>`;
   archerContainer.innerHTML = archerHtml;
@@ -6134,7 +6135,8 @@ function openFiltersOnlyOverlay(context) {
 
   let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
   uniqueLocations.forEach(loc => {
-    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+    const escapedLoc = loc.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('${escapedLoc}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
   });
   if (uniqueLocations.length === 0) locationHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No locations yet.</div>`;
   locationContainer.innerHTML = locationHtml;
