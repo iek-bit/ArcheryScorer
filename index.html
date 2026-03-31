@@ -5985,6 +5985,12 @@ function clearDateFilter() {
 // ═══════════════════════════════════════════════
 let activeFiltersContext = null;
 
+function escapeJsSingleQuoted(value) {
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'");
+}
+
 function openFiltersOverlay(context) {
   activeFiltersContext = context;
   
@@ -5996,7 +6002,8 @@ function openFiltersOverlay(context) {
   
   let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
   uniqueArchers.forEach(arch => {
-    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersArcherFilter('${arch.replace(/'/g, "\\'")}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
+    const escapedArch = escapeJsSingleQuoted(arch);
+    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersArcherFilter('${escapedArch}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
   });
   if (uniqueArchers.length === 0) {
     archerHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No archers saved yet.</div>`;
@@ -6010,7 +6017,8 @@ function openFiltersOverlay(context) {
   
   let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
   uniqueLocations.forEach(loc => {
-    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+    const escapedLoc = escapeJsSingleQuoted(loc);
+    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersLocationFilter('${escapedLoc}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
   });
   if (uniqueLocations.length === 0) {
     locationHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No locations saved yet.</div>`;
