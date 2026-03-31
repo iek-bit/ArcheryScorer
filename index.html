@@ -5869,7 +5869,7 @@ function openLocationOverlay(context) {
   
   let html = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
   uniqueLocations.forEach(loc => {
-    html += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setLocationFilter('${loc.replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
+    html += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setLocationFilter('${loc.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
   });
   
   if (uniqueLocations.length === 0) {
