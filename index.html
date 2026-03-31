@@ -154,6 +154,40 @@
 
   .session-cards { padding: 24px 16px; display: flex; flex-direction: column; gap: 14px; }
 
+  /* 2x2 grid for the score picker home screen */
+  .session-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 16px;
+    height: calc(100dvh - env(safe-area-inset-bottom) - 64px - max(60px, calc(env(safe-area-inset-top) + 20px)));
+    box-sizing: border-box;
+  }
+  .session-cards-grid .session-card {
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    text-align: center;
+    border-radius: 20px;
+  }
+  .session-cards-grid .session-card h2 {
+    font-size: 22px;
+    line-height: 1.2;
+    letter-spacing: 1.5px;
+  }
+  .session-card-summary {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    opacity: 0.75;
+    line-height: 1.4;
+  }
+
   .session-card {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -648,7 +682,112 @@
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
 
-  /* Accordions for Stats UI to save mobile space */
+  /* Stats 2x2 tile grid */
+  .stats-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+    flex: 1;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+  #page-diag {
+    display: none;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  #page-diag.active {
+    display: flex;
+    flex-direction: column;
+  }
+  .stats-section-tile {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 130px;
+    transition: border-color .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overflow: hidden;
+  }
+  .stats-section-tile:active { transform: scale(.97); border-color: var(--accent); }
+  .sst-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+  .sst-preview {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .sst-tap-hint {
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.5;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  /* Mini zone bars in tile */
+  .sst-zone-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sst-zone-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .sst-zone-track {
+    flex: 1;
+    height: 5px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .sst-zone-fill { height: 100%; border-radius: 3px; }
+  /* Mini stat rows in overall tile */
+  .sst-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 0;
+  }
+  .sst-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sst-stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  /* Accordion for Stats UI to save mobile space */
   .accordion-header {
     display: flex; justify-content: space-between; align-items: center;
     cursor: pointer; padding: 14px 16px;
@@ -793,7 +932,7 @@
   .zone-bar-row .zb-label { font-family: 'DM Mono', monospace; font-size: 12px; width: 60px; text-align: right; color: var(--muted); }
   .zone-bar-track { flex: 1; height: 10px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
   .zone-bar-fill { height: 100%; border-radius: 5px; transition: width .5s ease; }
-  .zone-bar-row .zb-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 30px; }
+  .zone-bar-row .zb-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); width: 70px; }
 
   .inline-field {
     margin-top: 14px;
@@ -900,6 +1039,8 @@
     outline: none;
   }
   .modal-input::placeholder { color: var(--muted); }
+  .modal-input option { background: var(--bg2); color: var(--text); }
+  select.modal-input { cursor: pointer; }
   .modal-help {
     color: var(--muted);
     font-size: 12px;
@@ -1011,6 +1152,21 @@
   /* ── SETTINGS ── */
   .settings-section {
     margin: 16px 16px 0;
+  }
+  #page-settings {
+    display: none;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  #page-settings.active {
+    display: flex;
+    flex-direction: column;
+  }
+  .settings-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
   .settings-label {
     font-family: 'DM Mono', monospace; font-size: 10px;
@@ -1963,18 +2119,22 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <!-- idle: session picker -->
   <div id="scorePicker">
-    <div class="session-cards" style="padding-top: max(60px, calc(env(safe-area-inset-top) + 20px));">
+    <div class="session-cards-grid" style="padding-top: max(60px, calc(env(safe-area-inset-top) + 20px));">
       <div class="session-card tournament" onclick="launchSession('bullseye_tournament')" role="button" tabindex="0" aria-label="Start Bullseye Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('bullseye_tournament')">
         <h2>Bullseye Tournament</h2>
+        <div class="session-card-summary" id="summaryBullseye"></div>
       </div>
       <div class="session-card tournament" onclick="openThreeDTournamentSetup()" role="button" tabindex="0" aria-label="Start 3D Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')openThreeDTournamentSetup()">
         <h2>3D Tournament</h2>
+        <div class="session-card-summary" id="summary3d"></div>
       </div>
       <div class="session-card practice" onclick="launchSession('practice')" role="button" tabindex="0" aria-label="Start Practice session" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('practice')">
         <h2>Practice</h2>
+        <div class="session-card-summary" id="summaryPractice"></div>
       </div>
       <div class="session-card" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
         <h2 style="color:var(--muted)">Quick Score</h2>
+        <div class="session-card-summary" style="color:var(--muted);opacity:.5">No save</div>
       </div>
     </div>
   </div>
@@ -2190,65 +2350,77 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
   <div class="filter-bar" style="padding-top:8px;">
     <button class="sort-btn" onclick="openFiltersOverlay('diag')" style="flex: 1; justify-content: center;">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
       Filters
     </button>
   </div>
 
-  <div class="stat-grid">
-    <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val" id="dAvg">—</div></div>
-    <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val" id="dArrows">—</div></div>
-    <div class="stat-card"><div class="sc-label">Best Round</div><div class="sc-val" id="dBest">—</div></div>
-    <div class="stat-card"><div class="sc-label">Sessions</div><div class="sc-val" id="dSessions">—</div></div>
+  <!-- Hidden stat value holders (written by renderDiag, read by tile previews) -->
+  <div style="display:none">
+    <span id="dAvg"></span><span id="dArrows"></span><span id="dBest"></span><span id="dSessions"></span>
   </div>
 
-  <div class="diag-section">
-    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
-      <h3>Arrow Grouping Heatmap</h3>
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+  <!-- Stats 2x2 grid -->
+  <div class="stats-section-grid" id="statsSectionGrid">
+    <div class="stats-section-tile" onclick="openStatsTileOverlay('overall')">
+      <div class="sst-label">Overall Statistics</div>
+      <div class="sst-preview" id="overallTilePreview" style="display:flex;flex-direction:column;gap:4px;width:100%;align-items:stretch;"></div>
+      <div class="sst-tap-hint">Tap to expand</div>
     </div>
-    <div class="accordion-content">
-      <div class="interactive-canvas-container" id="heatmapContainer">
-        <div class="interactive-transform-wrap" id="heatmapTransformWrap">
-          <canvas id="heatmapCanvas" width="520" height="520"></canvas>
-        </div>
+    <div class="stats-section-tile" onclick="openStatsTileOverlay('heatmap')">
+      <div class="sst-label">Arrow Grouping Heatmap</div>
+      <div class="sst-preview" id="heatmapTilePreview">
+        <canvas id="heatmapPreviewCanvas" width="260" height="260" style="border-radius:50%;width:100%;max-width:100px;height:auto;aspect-ratio:1/1;pointer-events:none;display:block;margin:0 auto;"></canvas>
       </div>
-      
-      <div id="heatmapLegend" style="display:none; margin-top: 14px; padding: 0 10px; max-width: 400px; margin-left: auto; margin-right: auto;">
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text); font-family:'DM Mono', monospace; margin-bottom: 6px;">
-          <span>Low Density (1)</span>
-          <span>High Density (<span id="heatmapLegendMax">Max</span>)</span>
-        </div>
-        <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
-      </div>
-
-      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:12px;">Pinch to zoom, drag to pan</div>
+      <div class="sst-tap-hint">Tap to expand</div>
     </div>
-  </div>
-
-  <div class="diag-section">
-    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
-      <h3>Score Over Time (per round)</h3>
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
-    </div>
-    <div class="accordion-content">
-      <div class="score-timeline" id="timelineContainer">
-        <div class="interactive-transform-wrap" id="timelineTransformWrap">
-          <canvas id="timelineCanvas" width="800" height="250"></canvas>
-        </div>
+    <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
+      <div class="sst-label">Score Over Time</div>
+      <div class="sst-preview" id="timelineTilePreview">
+        <canvas id="timelinePreviewCanvas" width="400" height="125" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
       </div>
-      <div style="text-align:center; font-size:10px; color:var(--muted); margin-top:8px;">Pinch/drag to explore, tap a point for details</div>
+      <div class="sst-tap-hint">Tap to expand</div>
+    </div>
+    <div class="stats-section-tile" onclick="openStatsTileOverlay('zones')">
+      <div class="sst-label">Score Zone Distribution</div>
+      <div class="sst-preview" id="zonesTilePreview" style="width:100%;align-items:flex-end;gap:4px;justify-content:center;"></div>
+      <div class="sst-tap-hint">Tap to expand</div>
     </div>
   </div>
 
-  <div class="diag-section" style="margin-bottom: 20px">
-    <div class="accordion-header" onclick="this.parentElement.classList.toggle('open')">
-      <h3>Score Zone Distribution</h3>
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+  <!-- Hidden canvases still needed for rendering -->
+  <div style="display:none">
+    <div class="interactive-canvas-container" id="heatmapContainer">
+      <div class="interactive-transform-wrap" id="heatmapTransformWrap">
+        <canvas id="heatmapCanvas" width="520" height="520"></canvas>
+      </div>
     </div>
-    <div class="accordion-content">
-      <div class="zone-bars" id="zoneBars"></div>
+    <div id="heatmapLegend">
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text); font-family:'DM Mono', monospace; margin-bottom: 6px;">
+        <span>Low Density (1)</span>
+        <span>High Density (<span id="heatmapLegendMax">Max</span>)</span>
+      </div>
+      <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
     </div>
+    <div class="score-timeline" id="timelineContainer">
+      <div class="interactive-transform-wrap" id="timelineTransformWrap">
+        <canvas id="timelineCanvas" width="800" height="250"></canvas>
+      </div>
+    </div>
+    <div class="zone-bars" id="zoneBars"></div>
+  </div>
+</div>
+
+<!-- Stats tile expanded overlay -->
+<div class="detail-overlay" id="statsTileOverlay">
+  <div class="detail-modal" style="max-height:92dvh;display:flex;flex-direction:column;">
+    <div class="detail-modal-header" style="flex-shrink:0;">
+      <h3 id="statsTileOverlayTitle">Detail</h3>
+      <button class="detail-close" onclick="closeOverlay('statsTileOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
+    <div id="statsTileOverlayContent" style="overflow-y:auto;flex:1;padding-top:4px;"></div>
   </div>
 </div>
 
@@ -2265,6 +2437,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
     <div class="settings-version">v<span id="settingsVersion"></span></div>
   </div>
+  <div class="settings-scroll-area">
 
   <!-- BOW PROFILE inline -->
   <div class="settings-section">
@@ -2349,7 +2522,7 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="settings-row-chevron"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></div>
     </div>
   </div>
-</div>
+  </div><!-- end settings-scroll-area -->
 </div>
 
 <div class="detail-overlay" id="themeColorOverlay">
@@ -2749,12 +2922,6 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="sort-sheet" onclick="event.stopPropagation()">
     <h4>Filters</h4>
     
-    <!-- Archer Filter -->
-    <div style="margin-bottom: 16px;">
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Archer</div>
-      <div id="filtersArcherContainer"></div>
-    </div>
-    
     <!-- Date Filter -->
     <div style="margin-bottom: 16px;">
       <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Date Range</div>
@@ -2764,25 +2931,29 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="inline-field" style="margin-bottom: 8px;">
         <input id="filtersDateEnd" class="modal-input" type="date" placeholder="End Date">
       </div>
-      <button class="sort-option" onclick="applyFiltersDateFilter()"><span>Apply Date Filter</span><span class="so-check">✓</span></button>
-      <button class="sort-option" onclick="clearFiltersDateFilter()"><span>Clear Date Filter</span><span class="so-check">✗</span></button>
+      <div style="display:flex;gap:8px;">
+        <button class="sort-option" style="flex:1" onclick="applyFiltersDateFilter()"><span>Apply</span><span class="so-check">✓</span></button>
+        <button class="sort-option" style="flex:1" onclick="clearFiltersDateFilter()"><span>Clear</span><span class="so-check">✗</span></button>
+      </div>
     </div>
     
     <!-- Location Filter -->
     <div style="margin-bottom: 16px;">
       <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Location</div>
-      <div id="filtersLocationContainer"></div>
+      <select id="filtersLocationSelect" class="modal-input" onchange="setFiltersLocationFromDropdown(this.value)" style="appearance:auto;margin-bottom:0;">
+        <option value="all">All Locations</option>
+      </select>
     </div>
     
-    <!-- Sort -->
-    <div>
-      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Sort</div>
-      <button class="sort-option" data-sort="newest" onclick="setFiltersSort('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
-      <button class="sort-option" data-sort="oldest" onclick="setFiltersSort('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
-      <button class="sort-option" data-sort="score-high" onclick="setFiltersSort('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
-      <button class="sort-option" data-sort="score-low" onclick="setFiltersSort('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
-      <button class="sort-option" data-sort="grouping-best" onclick="setFiltersSort('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
-      <button class="sort-option" data-sort="grouping-worst" onclick="setFiltersSort('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
+    <!-- Round Type Filter -->
+    <div style="margin-bottom: 4px;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Session Type</div>
+      <select id="filtersRoundTypeSelect" class="modal-input" onchange="setFiltersRoundType(this.value)" style="appearance:auto;margin-bottom:0;">
+        <option value="all">All Types</option>
+        <option value="practice">Practice</option>
+        <option value="bullseye_tournament">Bullseye Tournament</option>
+        <option value="3d_tournament">3D Tournament</option>
+      </select>
     </div>
   </div>
 </div>
@@ -2792,10 +2963,12 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="sort-sheet" onclick="event.stopPropagation()">
     <h4>Filters</h4>
     
-    <!-- Archer Filter -->
-    <div style="margin-bottom: 16px;">
+    <!-- Archer Filter (club only) -->
+    <div id="filtersOnlyArcherSection" style="margin-bottom: 16px; display:none;">
       <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Archer</div>
-      <div id="filtersOnlyArcherContainer"></div>
+      <select id="filtersOnlyArcherSelect" class="modal-input" onchange="setFiltersOnlyArcherFromDropdown(this.value)" style="appearance:auto;margin-bottom:0;">
+        <option value="all">All Archers</option>
+      </select>
     </div>
     
     <!-- Date Filter -->
@@ -2807,14 +2980,29 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="inline-field" style="margin-bottom: 8px;">
         <input id="filtersOnlyDateEnd" class="modal-input" type="date" placeholder="End Date">
       </div>
-      <button class="sort-option" onclick="applyFiltersOnlyDateFilter()"><span>Apply Date Filter</span><span class="so-check">✓</span></button>
-      <button class="sort-option" onclick="clearFiltersOnlyDateFilter()"><span>Clear Date Filter</span><span class="so-check">✗</span></button>
+      <div style="display:flex;gap:8px;">
+        <button class="sort-option" style="flex:1" onclick="applyFiltersOnlyDateFilter()"><span>Apply</span><span class="so-check">✓</span></button>
+        <button class="sort-option" style="flex:1" onclick="clearFiltersOnlyDateFilter()"><span>Clear</span><span class="so-check">✗</span></button>
+      </div>
     </div>
     
     <!-- Location Filter -->
-    <div>
+    <div style="margin-bottom: 16px;">
       <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Location</div>
-      <div id="filtersOnlyLocationContainer"></div>
+      <select id="filtersOnlyLocationSelect" class="modal-input" onchange="setFiltersOnlyLocationFromDropdown(this.value)" style="appearance:auto;margin-bottom:0;">
+        <option value="all">All Locations</option>
+      </select>
+    </div>
+    
+    <!-- Round Type Filter -->
+    <div style="margin-bottom: 16px;">
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Round Type</div>
+      <select id="filtersOnlyRoundTypeSelect" class="modal-input" onchange="setFiltersOnlyRoundType(this.value)" style="appearance:auto;margin-bottom:0;">
+        <option value="all">All Types</option>
+        <option value="practice">Practice</option>
+        <option value="bullseye_tournament">Bullseye Tournament</option>
+        <option value="3d_tournament">3D Tournament</option>
+      </select>
     </div>
   </div>
 </div>
@@ -2823,12 +3011,14 @@ const PRACTICE_TARGET_OPTIONS = [
 <div class="sort-overlay" id="sortOnlyOverlay" onclick="closeOverlay('sortOnlyOverlay')">
   <div class="sort-sheet" onclick="event.stopPropagation()">
     <h4>Sort Sessions</h4>
-    <button class="sort-option" data-sort="newest" onclick="setSortOnly('newest')"><span>Newest → Oldest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="oldest" onclick="setSortOnly('oldest')"><span>Oldest → Newest</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-high" onclick="setSortOnly('score-high')"><span>Highest Score First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="score-low" onclick="setSortOnly('score-low')"><span>Lowest Score First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="grouping-best" onclick="setSortOnly('grouping-best')"><span>Best Grouping First</span><span class="so-check">✓</span></button>
-    <button class="sort-option" data-sort="grouping-worst" onclick="setSortOnly('grouping-worst')"><span>Worst Grouping First</span><span class="so-check">✓</span></button>
+    <select id="sortOnlySelect" class="modal-input" onchange="setSortOnly(this.value)" style="appearance:auto;margin-bottom:0;">
+      <option value="newest">Newest → Oldest</option>
+      <option value="oldest">Oldest → Newest</option>
+      <option value="score-high">Highest Score First</option>
+      <option value="score-low">Lowest Score First</option>
+      <option value="grouping-best">Best Grouping First</option>
+      <option value="grouping-worst">Worst Grouping First</option>
+    </select>
   </div>
 </div>
 
@@ -2923,9 +3113,10 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 
-<div class="timeline-tooltip" id="timelineTooltip">
+<div class="timeline-tooltip" id="timelineTooltip" onclick="openTimelineRoundDetail()" style="cursor:pointer;">
   <div class="tt-score" id="ttScore"></div>
   <div class="tt-date" id="ttDate"></div>
+  <div style="font-size:10px;color:var(--accent);margin-top:3px;opacity:.8;">Tap for details</div>
 </div>
 
 <!-- End session overlay -->
@@ -3607,12 +3798,11 @@ function renderClubHistory() {
     const archer  = s.archerName || 'Unknown';
     const dateStr = new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const loc     = formatLocation(s.location);
-    const metaParts = [dateStr, ...(loc ? [loc] : [])];
     return `<div class="recent-item" onclick="openGlobalSessionOverlay(${JSON.stringify(s.id)})" style="touch-action:pan-y;">
       <div class="ri-left">
         <span style="font-size:13px;font-weight:500;">${archer}</span>
         <span class="session-type">${sessionTypeBadge(s)}</span>
-        <span>${metaParts.join(' · ')}</span>
+        <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${dateStr}${loc ? ' · ' + loc : ''}</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="ri-score">${total}</div>
@@ -3671,7 +3861,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '2.2.11';
+const APP_VERSION = '3.1.0';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -3696,6 +3886,7 @@ const save = () => {
 // Location Filter States
 let activeLocationFilters = { home: new Set(), diag: new Set() };
 let activeArcherFilters = { home: new Set(), diag: new Set() };
+let activeRoundTypeFilters = { home: 'all', diag: 'all', club: 'all' };
 let activeDateFilters = { home: { start: null, end: null }, diag: { start: null, end: null } };
 let activeDateFilterContext = 'home';
 let activeArcherFilterContext = 'home';
@@ -4294,23 +4485,24 @@ function initSettingsPage() {
   if (vEl) vEl.textContent = APP_VERSION;
   // Theme dropdown + subtitle
   syncThemeDropdown();
-  // Theme accordion — reset to closed state
+  // Theme accordion — open by default
   const themeBody    = document.getElementById('themeAccordionBody');
   const themeChevron = document.getElementById('themeAccordionChevron');
-  if (themeBody)    themeBody.classList.remove('open');
-  if (themeChevron) themeChevron.style.transform = '';
-  // Bow inline — reset to closed state
+  if (themeBody)    themeBody.classList.add('open');
+  if (themeChevron) themeChevron.style.transform = 'rotate(180deg)';
+  // Bow inline — open by default and render content
   const body    = document.getElementById('bowInlineBody');
   const chevron = document.querySelector('.bow-chevron');
-  if (body)    body.classList.remove('open');
-  if (chevron) chevron.style.transform = '';
+  if (body)    body.classList.add('open');
+  if (chevron) chevron.style.transform = 'rotate(180deg)';
   const sub = document.getElementById('bowInlineSub');
   if (sub) {
     const name = getDeviceArcherName();
     const bow  = (db.deviceProfile.bows || {})[name] || {};
     const hasData = bow.name || bow.type || bow.drawWeight;
-    sub.textContent = hasData ? ([bow.name, bow.type].filter(Boolean).join(' · ')) : 'Tap to view';
+    sub.textContent = hasData ? ([bow.name, bow.type].filter(Boolean).join(' · ')) : 'No bow profile saved';
   }
+  renderBowInline();
 }
 
 function openAboutOverlay() {
@@ -4933,6 +5125,54 @@ function openCompletedRoundsOverlay() {
 // ═══════════════════════════════════════════════
 //  SCORE PAGE RENDER
 // ═══════════════════════════════════════════════
+function renderScorePickerSummaries() {
+  const sessions = db.sessions;
+
+  // Helper: get last session of a type + best score
+  function summaryForType(type) {
+    const matching = [...sessions].reverse().filter(s => s.type === type);
+    if (!matching.length) return null;
+    const last = matching[0];
+    const lastScore = getSessionTotal(last);
+    const best = Math.max(...matching.map(s => getSessionTotal(s)));
+    return { lastScore, best, count: matching.length };
+  }
+
+  const bullseye = summaryForType('bullseye_tournament');
+  const threeD   = summaryForType('3d_tournament');
+  const practice = [...sessions].reverse().filter(s => s.type === 'practice');
+
+  const bEl = document.getElementById('summaryBullseye');
+  const tEl = document.getElementById('summary3d');
+  const pEl = document.getElementById('summaryPractice');
+
+  if (bEl) {
+    if (bullseye) {
+      bEl.textContent = `Last: ${bullseye.lastScore} · Best: ${bullseye.best}`;
+    } else {
+      bEl.textContent = '6 rounds · 30 arrows';
+    }
+  }
+  if (tEl) {
+    if (threeD) {
+      tEl.textContent = `Last: ${threeD.lastScore} · Best: ${threeD.best}`;
+    } else {
+      tEl.textContent = '6 animals · 30 arrows';
+    }
+  }
+  if (pEl) {
+    if (practice.length) {
+      const lastPractice = practice[0];
+      const lastScore = getSessionTotal(lastPractice);
+      const roundCount = lastPractice.rounds.length;
+      pEl.textContent = `Last: ${lastScore} · ${roundCount} round${roundCount !== 1 ? 's' : ''}`;
+    } else {
+      pEl.textContent = 'Any distance, any target';
+    }
+  }
+}
+
+
 function renderScorePage() {
   if(!session) return;
   const cr = session.currentRound;
@@ -5845,8 +6085,98 @@ function confirmDiscardSession() {
 }
 
 // ═══════════════════════════════════════════════
-//  HOME & SORTING
+//  STATS TILE OVERLAY
 // ═══════════════════════════════════════════════
+function openStatsTileOverlay(tileKey) {
+  const overlay = document.getElementById('statsTileOverlay');
+  const title   = document.getElementById('statsTileOverlayTitle');
+  const content = document.getElementById('statsTileOverlayContent');
+  if (!overlay || !title || !content) return;
+
+  switch (tileKey) {
+    case 'heatmap':
+      title.textContent = 'Arrow Grouping Heatmap';
+      content.innerHTML = `
+        <div class="interactive-canvas-container" id="statsTileHeatmapContainer" style="touch-action:none;">
+          <div class="interactive-transform-wrap" id="statsTileHeatmapWrap">
+            <canvas id="statsTileHeatmapCanvas" width="520" height="520" style="border-radius:50%;display:block;width:100%;max-width:520px;height:auto;aspect-ratio:1/1;"></canvas>
+          </div>
+        </div>
+        <div id="statsTileHeatmapLegend" style="display:none;margin-top:14px;padding:0 10px;max-width:400px;margin-left:auto;margin-right:auto;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text);font-family:'DM Mono',monospace;margin-bottom:6px;">
+            <span>Low Density (1)</span><span>High Density</span>
+          </div>
+          <div style="height:8px;border-radius:4px;background:linear-gradient(to right,blue,cyan,lime,yellow,red);"></div>
+        </div>
+        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:12px;">Pinch to zoom, drag to pan</div>`;
+      overlay.classList.add('open');
+      // Copy heatmap rendering to the tile canvas
+      setTimeout(() => {
+        const src = document.getElementById('heatmapCanvas');
+        const dst = document.getElementById('statsTileHeatmapCanvas');
+        if (src && dst) {
+          const ctx = dst.getContext('2d');
+          ctx.clearRect(0, 0, dst.width, dst.height);
+          ctx.drawImage(src, 0, 0);
+        }
+        // Copy legend visibility
+        const srcLegend = document.getElementById('heatmapLegend');
+        const dstLegend = document.getElementById('statsTileHeatmapLegend');
+        if (srcLegend && dstLegend) dstLegend.style.display = srcLegend.style.display;
+        // Attach pan/zoom
+        attachPanZoom('statsTileHeatmapContainer', 'statsTileHeatmapWrap');
+      }, 50);
+      break;
+
+    case 'timeline':
+      title.textContent = 'Score Over Time';
+      content.innerHTML = `
+        <div class="score-timeline" id="statsTileTimelineContainer" style="touch-action:none;position:relative;">
+          <div class="interactive-transform-wrap" id="statsTileTimelineWrap">
+            <canvas id="statsTileTimelineCanvas" width="800" height="250" style="display:block;width:100%;"></canvas>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Pinch/drag to explore</div>`;
+      overlay.classList.add('open');
+      setTimeout(() => {
+        const src = document.getElementById('timelineCanvas');
+        const dst = document.getElementById('statsTileTimelineCanvas');
+        if (src && dst) {
+          const ctx = dst.getContext('2d');
+          ctx.clearRect(0, 0, dst.width, dst.height);
+          ctx.drawImage(src, 0, 0);
+        }
+        attachPanZoom('statsTileTimelineContainer', 'statsTileTimelineWrap', { constrainHorizontal: true });
+      }, 50);
+      break;
+
+    case 'zones':
+      title.textContent = 'Score Zone Distribution';
+      const zoneEl = document.getElementById('zoneBars');
+      content.innerHTML = `<div class="zone-bars">${zoneEl ? zoneEl.innerHTML : ''}</div>`;
+      overlay.classList.add('open');
+      break;
+
+    case 'overall': {
+      title.textContent = 'Overall Statistics';
+      const avg  = document.getElementById('dAvg')?.textContent || '—';
+      const arr  = document.getElementById('dArrows')?.textContent || '—';
+      const best = document.getElementById('dBest')?.textContent || '—';
+      const sess = document.getElementById('dSessions')?.textContent || '—';
+      content.innerHTML = `
+        <div class="stat-grid" style="padding:0 0 16px;">
+          <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val">${avg}</div></div>
+          <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val">${arr}</div></div>
+          <div class="stat-card"><div class="sc-label">Best Round</div><div class="sc-val">${best}</div></div>
+          <div class="stat-card"><div class="sc-label">Sessions</div><div class="sc-val">${sess}</div></div>
+        </div>`;
+      overlay.classList.add('open');
+      break;
+    }
+  }
+}
+
+
 const FILTER_DEFS = [
   {key: 'all', label: 'All', group: 'meta'},
   {key: 'practice', label: 'Practice', group: 'scope'},
@@ -6073,51 +6403,61 @@ function escapeJsSingleQuoted(value) {
 function openFiltersOverlay(context) {
   activeFiltersContext = context;
   
-  // Populate archer filter
-  const archerContainer = document.getElementById('filtersArcherContainer');
-  const uniqueArchers = [...new Set(db.sessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
-  db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
-  const activeArcherSet = activeArcherFilters[context];
-  
-  let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
-  uniqueArchers.forEach(arch => {
-    const escapedArch = escapeJsSingleQuoted(arch);
-    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersArcherFilter('${escapedArch}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
-  });
-  if (uniqueArchers.length === 0) {
-    archerHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No archers saved yet.</div>`;
+  // Populate location filter dropdown
+  const locationSelect = document.getElementById('filtersLocationSelect');
+  if (locationSelect) {
+    const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
+    const activeLocSet = activeLocationFilters[context];
+    const currentLoc = activeLocSet.size === 1 ? [...activeLocSet][0] : 'all';
+    locationSelect.innerHTML = `<option value="all">All Locations</option>` +
+      uniqueLocations.map(loc => `<option value="${loc.replace(/"/g,'&quot;')}"${currentLoc === loc ? ' selected' : ''}>${loc}</option>`).join('');
   }
-  archerContainer.innerHTML = archerHtml;
   
-  // Populate location filter
-  const locationContainer = document.getElementById('filtersLocationContainer');
-  const uniqueLocations = [...new Set(db.sessions.map(s => s.location?.label).filter(Boolean))].sort();
-  const activeLocSet = activeLocationFilters[context];
-  
-  let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
-  uniqueLocations.forEach(loc => {
-    const escapedLoc = escapeJsSingleQuoted(loc);
-    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersLocationFilter('${escapedLoc}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
-  });
-  if (uniqueLocations.length === 0) {
-    locationHtml += `<div style="padding: 12px 14px; color: var(--muted); font-size: 14px;">No locations saved yet.</div>`;
+  // Populate round type dropdown
+  const rtSelect = document.getElementById('filtersRoundTypeSelect');
+  if (rtSelect) {
+    const activeRt = activeRoundTypeFilters[context] || 'all';
+    rtSelect.value = activeRt;
   }
-  locationContainer.innerHTML = locationHtml;
   
   // Populate date filter
   const dateFilter = activeDateFilters[context];
   document.getElementById('filtersDateStart').value = dateFilter.start || '';
   document.getElementById('filtersDateEnd').value = dateFilter.end || '';
   
-  // Update sort buttons
-  const sortButtons = document.querySelectorAll('#filtersOverlay .sort-option[data-sort]');
-  sortButtons.forEach(btn => {
-    const sortKey = btn.getAttribute('data-sort');
-    const isActive = (context === 'home' ? homeSort : diagSort) === sortKey;
-    btn.classList.toggle('active', isActive);
-  });
-  
   document.getElementById('filtersOverlay').classList.add('open');
+}
+
+function setFiltersLocationFromDropdown(locLabel) {
+  const activeLocSet = activeLocationFilters[activeFiltersContext];
+  if (locLabel === 'all') {
+    activeLocSet.clear();
+  } else {
+    activeLocSet.clear();
+    activeLocSet.add(locLabel);
+  }
+  if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'diag') renderDiag();
+}
+
+// Round type filter state
+
+function setFiltersRoundType(val) {
+  activeRoundTypeFilters[activeFiltersContext] = val;
+  if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'diag') renderDiag();
+}
+
+function setFiltersOnlyRoundType(val) {
+  activeRoundTypeFilters[activeFiltersContext] = val;
+  if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'club') renderClubHistory();
+}
+
+function sessionMatchesRoundTypeFilter(sessionObj, context) {
+  const rt = activeRoundTypeFilters[context] || 'all';
+  if (rt === 'all') return true;
+  return sessionObj.type === rt;
 }
 
 function setFiltersArcherFilter(archLabel) {
@@ -6181,13 +6521,6 @@ function setFiltersSort(key) {
   if (activeFiltersContext === 'home') { homeSort = key; }
   else if (activeFiltersContext === 'diag') { diagSort = key; }
   
-  // Update sort buttons
-  const sortButtons = document.querySelectorAll('#filtersOverlay .sort-option[data-sort]');
-  sortButtons.forEach(btn => {
-    const sortKey = btn.getAttribute('data-sort');
-    btn.classList.toggle('active', sortKey === key);
-  });
-  
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6201,39 +6534,57 @@ function openFiltersOnlyOverlay(context) {
   // Source sessions depend on context
   const sourceSessions = context === 'club' ? clubSessions : db.sessions;
 
-  // Populate archer filter
-  const archerContainer = document.getElementById('filtersOnlyArcherContainer');
-  const uniqueArchers = [...new Set(sourceSessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
-  if (context === 'home') db.deviceProfile.archers.forEach(a => { if(a && !uniqueArchers.includes(a)) uniqueArchers.push(a); });
-  const activeArcherSet = activeArcherFilters[context] || (activeArcherFilters[context] = new Set());
+  // Archer filter: only show for club
+  const archerSection = document.getElementById('filtersOnlyArcherSection');
+  if (archerSection) archerSection.style.display = context === 'club' ? 'block' : 'none';
 
-  let archerHtml = `<button class="sort-option ${activeArcherSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('all')"><span>All Archers</span><span class="so-check">✓</span></button>`;
-  uniqueArchers.forEach(arch => {
-    const escapedArch = arch.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    archerHtml += `<button class="sort-option ${activeArcherSet.has(arch) ? 'active' : ''}" onclick="setFiltersOnlyArcherFilter('${escapedArch}')"><span>${arch}</span><span class="so-check">✓</span></button>`;
-  });
-  if (uniqueArchers.length === 0) archerHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No archers yet.</div>`;
-  archerContainer.innerHTML = archerHtml;
+  if (context === 'club') {
+    const archerSelect = document.getElementById('filtersOnlyArcherSelect');
+    if (archerSelect) {
+      const uniqueArchers = [...new Set(sourceSessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
+      const activeArcherSet = activeArcherFilters[context] || (activeArcherFilters[context] = new Set());
+      const currentArcher = activeArcherSet.size === 1 ? [...activeArcherSet][0] : 'all';
+      archerSelect.innerHTML = `<option value="all">All Archers</option>` +
+        uniqueArchers.map(a => `<option value="${a.replace(/"/g,'&quot;')}"${currentArcher === a ? ' selected' : ''}>${a}</option>`).join('');
+    }
+  }
 
-  // Populate location filter
-  const locationContainer = document.getElementById('filtersOnlyLocationContainer');
-  const uniqueLocations = [...new Set(sourceSessions.map(s => formatLocation(s.location)).filter(Boolean))].sort();
-  const activeLocSet = activeLocationFilters[context] || (activeLocationFilters[context] = new Set());
+  // Location filter dropdown
+  const locationSelect = document.getElementById('filtersOnlyLocationSelect');
+  if (locationSelect) {
+    const uniqueLocations = [...new Set(sourceSessions.map(s => formatLocation(s.location)).filter(Boolean))].sort();
+    const activeLocSet = activeLocationFilters[context] || (activeLocationFilters[context] = new Set());
+    const currentLoc = activeLocSet.size === 1 ? [...activeLocSet][0] : 'all';
+    locationSelect.innerHTML = `<option value="all">All Locations</option>` +
+      uniqueLocations.map(loc => `<option value="${loc.replace(/"/g,'&quot;')}"${currentLoc === loc ? ' selected' : ''}>${loc}</option>`).join('');
+  }
 
-  let locationHtml = `<button class="sort-option ${activeLocSet.size === 0 ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('all')"><span>All Locations</span><span class="so-check">✓</span></button>`;
-  uniqueLocations.forEach(loc => {
-    const escapedLoc = loc.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-    locationHtml += `<button class="sort-option ${activeLocSet.has(loc) ? 'active' : ''}" onclick="setFiltersOnlyLocationFilter('${escapedLoc}')"><span>${loc}</span><span class="so-check">✓</span></button>`;
-  });
-  if (uniqueLocations.length === 0) locationHtml += `<div style="padding:12px 14px;color:var(--muted);font-size:14px;">No locations yet.</div>`;
-  locationContainer.innerHTML = locationHtml;
+  // Round type dropdown
+  const rtSelect = document.getElementById('filtersOnlyRoundTypeSelect');
+  if (rtSelect) rtSelect.value = activeRoundTypeFilters[context] || 'all';
 
-  // Populate date filter
+  // Date filter
   const dateFilter = context === 'club' ? activeDateFiltersClub : (activeDateFilters[context] || { start: null, end: null });
   document.getElementById('filtersOnlyDateStart').value = dateFilter.start || '';
   document.getElementById('filtersOnlyDateEnd').value   = dateFilter.end   || '';
 
   document.getElementById('filtersOnlyOverlay').classList.add('open');
+}
+
+function setFiltersOnlyArcherFromDropdown(archLabel) {
+  const activeSet = activeArcherFilters[activeFiltersContext] || (activeArcherFilters[activeFiltersContext] = new Set());
+  if (archLabel === 'all') activeSet.clear();
+  else { activeSet.clear(); activeSet.add(archLabel); }
+  if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'club') renderClubHistory();
+}
+
+function setFiltersOnlyLocationFromDropdown(locLabel) {
+  const activeLocSet = activeLocationFilters[activeFiltersContext] || (activeLocationFilters[activeFiltersContext] = new Set());
+  if (locLabel === 'all') activeLocSet.clear();
+  else { activeLocSet.clear(); activeLocSet.add(locLabel); }
+  if (activeFiltersContext === 'home') renderHome();
+  else if (activeFiltersContext === 'club') renderClubHistory();
 }
 
 function setFiltersOnlyArcherFilter(archLabel) {
@@ -6285,25 +6636,17 @@ function clearFiltersOnlyDateFilter() {
 function openSortOnlyOverlay(context) {
   activeFiltersContext = context;
   const currentSort = context === 'club' ? clubSort : homeSort;
-  const sortButtons = document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]');
-  sortButtons.forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-sort') === currentSort);
-  });
+  const sortSel = document.getElementById('sortOnlySelect');
+  if (sortSel) sortSel.value = currentSort;
   document.getElementById('sortOnlyOverlay').classList.add('open');
 }
 
 function setSortOnly(key) {
   if (activeFiltersContext === 'club') {
     clubSort = key;
-    document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-sort') === key);
-    });
     renderClubHistory();
   } else {
     homeSort = key;
-    document.querySelectorAll('#sortOnlyOverlay .sort-option[data-sort]').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-sort') === key);
-    });
     renderHome();
   }
 }
@@ -6415,6 +6758,10 @@ function sessionMatchesFilter(sessionObj, filters, context) {
 
   const activeArchSet = (activeArcherFilters[context] || new Set());
   if (activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) return false;
+
+  // Round type filter
+  const rt = activeRoundTypeFilters[context] || 'all';
+  if (rt !== 'all' && sessionObj.type !== rt) return false;
 
   // Date filtering — club uses its own store
   const dateFilter = context === 'club' ? activeDateFiltersClub : (activeDateFilters[context] || { start: null, end: null });
@@ -6830,7 +7177,7 @@ function renderHome() {
     const isSel = homeSelectedSessions.has(realIdx);
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
     const loc = formatLocation(s.location);
-    const metaParts = [dateStr, ...(loc ? [loc] : [])];
+    const typeLabel = sessionTypeLabel(s);
     
     return `<div class="recent-item ${isSel ? 'selected' : ''}" 
       onpointerdown="handleHomeItemPointerDown(event, ${realIdx})" 
@@ -6838,7 +7185,7 @@ function renderHome() {
       style="touch-action: pan-y;">
       <div class="ri-left">
         <span class="session-type">${sessionTypeBadge(s)}</span>
-        <span>${metaParts.join(' · ')}</span>
+        <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${dateStr}${loc ? ' · ' + loc : ''}</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="ri-score">${total}</div>
@@ -7047,7 +7394,7 @@ function goPage(name, btn) {
 
   if(name==='score') {
     if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block'; renderScorePage(); }
-    else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); }
+    else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); renderScorePickerSummaries(); }
   }
   if(name==='diag') renderDiag();
   if(name==='home') renderHome();
@@ -7199,6 +7546,10 @@ function getFilteredRounds() {
     if (activeArchSet && activeArchSet.size > 0) {
       if (sess && !activeArchSet.has(normalizePersonName(sess.archerName))) return false;
     }
+
+    // Round type filter
+    const rt = activeRoundTypeFilters.diag || 'all';
+    if (rt !== 'all' && round.sessionType !== rt) return false;
     
     // Date filtering
     const dateFilter = activeDateFilters.diag;
@@ -7251,6 +7602,68 @@ function renderDiag() {
   drawHeatmap(allArrows);
   drawTimeline(rounds);
   drawZoneBars(allArrows);
+  renderStatsTilePreviews(allArrows, rounds);
+}
+
+function renderStatsTilePreviews(allArrows, rounds) {
+  // ── Heatmap preview ──────────────────────────────
+  const heatSrc = document.getElementById('heatmapCanvas');
+  const heatDst = document.getElementById('heatmapPreviewCanvas');
+  if (heatSrc && heatDst) {
+    heatDst.width = heatSrc.width;
+    heatDst.height = heatSrc.height;
+    heatDst.getContext('2d').drawImage(heatSrc, 0, 0);
+  }
+
+  // ── Timeline preview ─────────────────────────────
+  const timeSrc = document.getElementById('timelineCanvas');
+  const timeDst = document.getElementById('timelinePreviewCanvas');
+  if (timeSrc && timeDst) {
+    timeDst.width = timeSrc.width;
+    timeDst.height = timeSrc.height;
+    timeDst.getContext('2d').drawImage(timeSrc, 0, 0);
+  }
+
+  // ── Zone bars mini preview (vertical bar chart) ──
+  const zonesEl = document.getElementById('zonesTilePreview');
+  if (zonesEl) {
+    const total = allArrows.length || 1;
+    const maxPct = Math.max(...ZONES.map(z => {
+      const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
+      return (count / total) * 100;
+    }), 1);
+    zonesEl.innerHTML = `<div style="display:flex;align-items:flex-end;gap:3px;height:60px;width:100%;justify-content:center;">` +
+      ZONES.map(z => {
+        const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
+        const pct = (count / total) * 100;
+        const heightPct = (pct / maxPct) * 100;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div style="width:100%;background:${z.color};border-radius:3px 3px 0 0;height:${Math.max(2, heightPct * 0.6)}px;opacity:0.9;"></div>
+        </div>`;
+      }).join('') +
+      `</div>
+      <div style="display:flex;gap:3px;width:100%;justify-content:center;margin-top:2px;">` +
+      ZONES.map(z => `<div style="flex:1;text-align:center;font-family:'DM Mono',monospace;font-size:7px;color:var(--muted);overflow:hidden;">${z.label.split('–')[0].split(' ')[0]}</div>`).join('') +
+      `</div>`;
+  }
+
+  // ── Overall stats mini preview ───────────────────
+  const overallEl = document.getElementById('overallTilePreview');
+  if (overallEl) {
+    const avg  = document.getElementById('dAvg')?.textContent  || '—';
+    const best = document.getElementById('dBest')?.textContent || '—';
+    const arr  = document.getElementById('dArrows')?.textContent || '—';
+    const sess = document.getElementById('dSessions')?.textContent || '—';
+    overallEl.innerHTML = [
+      { label: 'Avg / Round', val: avg },
+      { label: 'Best Round',  val: best },
+      { label: 'Arrows',      val: arr },
+      { label: 'Sessions',    val: sess },
+    ].map(r => `<div class="sst-stat-row">
+      <span class="sst-stat-label">${r.label}</span>
+      <span class="sst-stat-val">${r.val}</span>
+    </div>`).join('');
+  }
 }
 
 // True Heatmap Helper
@@ -7452,7 +7865,7 @@ function drawTimeline(rounds) {
   scores.forEach((s,i)=>{
     const x = px(i), y = py(s);
     c.beginPath(); c.arc(x,y,4,0,Math.PI*2); c.fillStyle='#e8c547'; c.fill();
-    timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i });
+    timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i, round: rounds[i] });
   });
 
   c.restore(); // remove clip so we don't interfere with next draw cycle
@@ -7461,6 +7874,7 @@ function drawTimeline(rounds) {
 // Handle Timeline Taps for Details
 const tcContainer = document.getElementById('timelineContainer');
 let tooltipHideTimer;
+let activeTimelinePoint = null;
 
 tcContainer.addEventListener('touchend', e => {
   if (e.changedTouches.length !== 1) return;
@@ -7485,6 +7899,7 @@ tcContainer.addEventListener('touchend', e => {
 
   const tooltip = document.getElementById('timelineTooltip');
   if (nearest) {
+    activeTimelinePoint = nearest;
     document.getElementById('ttScore').textContent = nearest.score;
     document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
     
@@ -7505,13 +7920,42 @@ tcContainer.addEventListener('touchend', e => {
     tooltip.style.top = clampedY + 'px';
     
     clearTimeout(tooltipHideTimer);
-    tooltipHideTimer = setTimeout(() => { tooltip.style.display = 'none'; }, 2500);
+    tooltipHideTimer = setTimeout(() => { tooltip.style.display = 'none'; activeTimelinePoint = null; }, 4000);
   } else {
     tooltip.style.display = 'none';
+    activeTimelinePoint = null;
   }
 });
 
-// Zone bars
+function openTimelineRoundDetail() {
+  if (!activeTimelinePoint) return;
+  const pt = activeTimelinePoint;
+  clearTimeout(tooltipHideTimer);
+  document.getElementById('timelineTooltip').style.display = 'none';
+  activeTimelinePoint = null;
+
+  const round = pt.round;
+  if (!round) return;
+
+  // Find the session and round index by matching arrow content + mode
+  let foundSessionIdx = null, foundRoundIdx = null;
+  const roundArrowStr = JSON.stringify((round.arrows || []).map(a => ({nx:a.nx, ny:a.ny, score:a.score})));
+  db.sessions.forEach((s, si) => {
+    if (foundSessionIdx !== null) return;
+    s.rounds.forEach((r, ri) => {
+      if (foundSessionIdx !== null) return;
+      const rArrowStr = JSON.stringify((r.arrows || []).map(a => ({nx:a.nx, ny:a.ny, score:a.score})));
+      if (r.mode === round.mode && rArrowStr === roundArrowStr) {
+        foundSessionIdx = si;
+        foundRoundIdx = ri;
+      }
+    });
+  });
+
+  if (foundSessionIdx !== null && foundRoundIdx !== null) {
+    openRoundDetail(foundSessionIdx, foundRoundIdx);
+  }
+}
 const ZONES = [
   {label:'X / 10', min:9,  max:10, color:'#f7e900'},
   {label:'7–8',    min:7,  max:8,  color:'#e84040'},
@@ -7530,7 +7974,7 @@ function drawZoneBars(arrows) {
     el.innerHTML+=`<div class="zone-bar-row">
       <div class="zb-label">${z.label}</div>
       <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${pct}%;background:${z.color}"></div></div>
-      <div class="zb-count">${count}</div>
+      <div class="zb-count">${count} <span style="color:var(--muted);font-size:10px;">(${pct}%)</span></div>
     </div>`;
   });
 }
@@ -7549,6 +7993,7 @@ loadCloudflareConfigIntoUI();
 renderHome();
 drawTarget([]);
 resetPhotoScoreState();
+renderScorePickerSummaries();
 
 // On open: push any unsynced local sessions to the club server
 setTimeout(async () => {
