@@ -3046,7 +3046,7 @@ function getLoggedInAccount() {
   try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null'); } catch { return null; }
 }
 function setLoggedInAccount(username, password) {
-  try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ username })); } catch {}
+  try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ username, password })); } catch {}
 }
 function clearLoggedInAccount() {
   try { localStorage.removeItem(ACCOUNT_KEY); } catch {}
