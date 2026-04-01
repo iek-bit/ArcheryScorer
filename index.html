@@ -3672,6 +3672,11 @@ async function submitPasswordSetup() {
 async function pullSessionsForAccount(username) {
   try {
     const all = await cfPullSessions();
+
+    // Build global location pool from ALL archers' sessions (not just mine)
+    buildGlobalLocationPool(all);
+    refreshSavedLocationOptions();
+
     const mine = all.filter(s => (s.archerName || '').toLowerCase() === username.toLowerCase());
 
     // Build a set of server-side IDs for this account
@@ -3837,6 +3842,9 @@ async function loadClubHistory() {
      </div>`;
   try {
     const all = await cfPullSessions();
+    // Build global location pool from all sessions whenever we have a full pull
+    buildGlobalLocationPool(all);
+    refreshSavedLocationOptions();
     const myName = getDeviceArcherName().toLowerCase();
     // Exclude the current archer's own sessions
     clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
@@ -3949,7 +3957,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.2.3';
+const APP_VERSION = '3.3.3';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -4678,31 +4686,130 @@ function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
   return dx * dx + dy * dy;
 }
 
+// ── Global location pool ─────────────────────────────────────────────────────
+// Populated from all pulled sessions across all archers. Each entry:
+//   { label, lat, lng, firstSeenDate }
+// "firstSeenDate" is the earliest session date that used this label, so that
+// when two locations are equidistant we prefer the one created first.
+let _globalLocationPool = {}; // keyed by label.toLowerCase()
+
+function buildGlobalLocationPool(allSessions) {
+  // Merge sessions from all archers into the pool
+  allSessions.forEach(s => {
+    const label = s.location?.label?.trim();
+    const lat   = s.location?.lat;
+    const lng   = s.location?.lng;
+    if (!label || typeof lat !== 'number' || typeof lng !== 'number') return;
+    const key = label.toLowerCase();
+    const sessionDate = s.date ? new Date(s.date).getTime() : Infinity;
+    if (!_globalLocationPool[key]) {
+      _globalLocationPool[key] = { label, lat, lng, firstSeenDate: sessionDate };
+    } else {
+      // Update coords if this entry has GPS data and the existing one doesn't
+      if (typeof _globalLocationPool[key].lat !== 'number') {
+        _globalLocationPool[key].lat = lat;
+        _globalLocationPool[key].lng = lng;
+      }
+      // Keep earliest date
+      if (sessionDate < _globalLocationPool[key].firstSeenDate) {
+        _globalLocationPool[key].firstSeenDate = sessionDate;
+      }
+    }
+  });
+}
+
+function getGlobalLocationList() {
+  // Merge db.savedLocations (local) with the global pool, deduped by label
+  const merged = {}; // label.toLowerCase() -> entry
+  // Start with global pool (may have entries from other archers)
+  Object.values(_globalLocationPool).forEach(loc => {
+    merged[loc.label.toLowerCase()] = { ...loc };
+  });
+  // Local savedLocations override/supplement (local GPS data is trusted)
+  db.savedLocations.forEach(loc => {
+    if (!loc?.label) return;
+    const key = loc.label.toLowerCase();
+    if (!merged[key]) {
+      merged[key] = { label: loc.label, lat: loc.lat, lng: loc.lng, firstSeenDate: loc.createdAt ? new Date(loc.createdAt).getTime() : Infinity };
+    } else {
+      // Local coords are more precise — prefer them
+      if (typeof loc.lat === 'number') merged[key].lat = loc.lat;
+      if (typeof loc.lng === 'number') merged[key].lng = loc.lng;
+    }
+  });
+  return Object.values(merged);
+}
+
+// Threshold: two squared-degree distances this close are considered "tied"
+// ~0.000001 deg² ≈ ~100 m at mid-latitudes — anything closer than this is a tie
+const LOCATION_TIE_THRESHOLD = 1e-6;
+
 function getNearestSavedLocation(lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-  let best = null, bestDistance = Infinity;
-  db.savedLocations.forEach(loc => {
-    if (!loc?.label || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
-    const dist = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
-    if (dist < bestDistance) { bestDistance = dist; best = loc; }
+  const pool = getGlobalLocationList().filter(
+    loc => loc?.label && typeof loc.lat === 'number' && typeof loc.lng === 'number'
+  );
+  if (!pool.length) return null;
+
+  // Find the minimum distance across all candidates
+  let minDist = Infinity;
+  pool.forEach(loc => {
+    const d = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
+    if (d < minDist) minDist = d;
   });
-  return best;
+
+  // Collect all candidates within the tie threshold of the minimum
+  const candidates = pool.filter(loc => {
+    const d = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
+    return d <= minDist + LOCATION_TIE_THRESHOLD;
+  });
+
+  if (candidates.length === 1) return candidates[0];
+
+  // Tie-break: prefer the one with the earliest firstSeenDate (created first)
+  candidates.sort((a, b) => (a.firstSeenDate ?? Infinity) - (b.firstSeenDate ?? Infinity));
+  return candidates[0];
 }
 
 function refreshSavedLocationOptions() {
   const datalist = document.getElementById('savedLocationOptions');
   if (!datalist) return;
-  const uniqueLabels = [...new Set(db.savedLocations.map(loc => loc?.label).filter(Boolean))];
-  datalist.innerHTML = uniqueLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
+  // Show labels from both local saved locations and the global pool
+  const allLabels = [...new Set(
+    getGlobalLocationList().map(loc => loc?.label).filter(Boolean)
+  )].sort();
+  datalist.innerHTML = allLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
 }
 
 function saveChosenLocation(location) {
   const label = location?.label?.trim();
   if (!label) return;
   const existing = db.savedLocations.find(loc => loc.label.toLowerCase() === label.toLowerCase());
-  const next = { label, lat: typeof location.lat === 'number' ? location.lat : existing?.lat, lng: typeof location.lng === 'number' ? location.lng : existing?.lng, updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const next = {
+    label,
+    lat: typeof location.lat === 'number' ? location.lat : existing?.lat,
+    lng: typeof location.lng === 'number' ? location.lng : existing?.lng,
+    updatedAt: now,
+    createdAt: existing?.createdAt || now
+  };
   if (existing) Object.assign(existing, next);
   else db.savedLocations.push(next);
+
+  // Keep global pool in sync so the new location is immediately available for suggestions
+  const key = label.toLowerCase();
+  const sessionDate = new Date().getTime();
+  if (!_globalLocationPool[key]) {
+    _globalLocationPool[key] = {
+      label,
+      lat: next.lat,
+      lng: next.lng,
+      firstSeenDate: sessionDate
+    };
+  } else {
+    if (typeof next.lat === 'number') _globalLocationPool[key].lat = next.lat;
+    if (typeof next.lng === 'number') _globalLocationPool[key].lng = next.lng;
+  }
 }
 
 function assignLocationToSession(sessionId, location) {
@@ -8253,6 +8360,9 @@ function drawZoneBars(arrows) {
 //  INIT
 // ═══════════════════════════════════════════════
 applyTheme();
+// Seed the global location pool from local sessions immediately at startup
+// so suggestions work even before any network pull completes
+buildGlobalLocationPool(db.sessions);
 refreshSavedLocationOptions();
 renderHomeFilters();
 renderDiagFilters();
