@@ -793,10 +793,11 @@
   .stats-section-grid .stats-section-tile:nth-child(2) .sst-preview {
     padding: 4px;
   }
-  /* Wide tiles: override flex to stretch full width */
+  /* Wide tiles: stretch and bleed canvas to card edges */
   .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview,
   .stats-section-grid .stats-section-tile:nth-child(4) .sst-preview {
     align-items: stretch;
+    margin: 0 -14px -12px;
   }
   .sst-tap-hint {
     font-size: 10px;
