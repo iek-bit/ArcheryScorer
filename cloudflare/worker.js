@@ -253,6 +253,7 @@ export default {
       const url = new URL(request.url);
       const path = normalizePath(url.pathname);
 
+      // --- Public & Health Routes ---
       if (path === '/ping' && request.method === 'GET') {
         return json({ ok: true }, 200, origin);
       }
@@ -273,6 +274,7 @@ export default {
         return err('KV binding ARCHERY_KV is missing', 500, origin);
       }
 
+      // --- Account Management ---
       if (path === '/account/check' && request.method === 'GET') {
         const username = url.searchParams.get('username')?.trim().toLowerCase();
         if (!username) return err('username required', 400, origin);
@@ -350,6 +352,7 @@ export default {
 
         await env.ARCHERY_KV.delete(`account:${oldUsername.toLowerCase()}`);
 
+        // Update all related sessions
         let cursor;
         do {
           const list = await env.ARCHERY_KV.list({ prefix: 'session:', cursor });
@@ -430,6 +433,7 @@ export default {
         return json({ ok: true }, 200, origin);
       }
 
+      // --- Read All Sessions (Club History) ---
       if (path === '/sessions' && request.method === 'GET') {
         let cursor;
         const sessions = [];
@@ -451,19 +455,54 @@ export default {
         return json(sessions, 200, origin);
       }
 
+      // --- Read All Global Locations ---
+      if (path === '/locations' && request.method === 'GET') {
+        let cursor;
+        const locations = [];
+
+        do {
+          const list = await env.ARCHERY_KV.list({ prefix: 'location:', cursor });
+          cursor = list.list_complete ? undefined : list.cursor;
+
+          const chunk = await Promise.all(
+            list.keys.map(async ({ name }) => {
+              const value = await env.ARCHERY_KV.get(name);
+              return value ? JSON.parse(value) : null;
+            })
+          );
+
+          locations.push(...chunk.filter(Boolean));
+        } while (cursor);
+
+        return json(locations, 200, origin);
+      }
+
+      // --- Protected Routes Below This Point ---
       const account = await verifyAuth(request, env);
       if (!account) return err('Unauthorised', 401, origin);
 
+      // --- Session Management ---
       if (path === '/sessions' && request.method === 'POST') {
         const session = await request.json().catch(() => null);
         if (!session?.id) return err('session.id required', 400, origin);
+
+        if ((session.archerName || '').toLowerCase() !== account.username.toLowerCase()) {
+          return err('Unauthorised: archerName mismatch', 401, origin);
+        }
+
+        const existing = await env.ARCHERY_KV.get(`session:${session.id}`);
+        if (existing) {
+          const stored = JSON.parse(existing);
+          if ((stored.archerName || '').toLowerCase() !== account.username.toLowerCase()) {
+            return err('Unauthorised: Cannot overwrite another user\'s session', 401, origin);
+          }
+        }
 
         await env.ARCHERY_KV.put(`session:${session.id}`, JSON.stringify(session));
         return json({ ok: true }, 200, origin);
       }
 
       const sessionMatch = path.match(/^\/sessions\/(.+)$/);
-
       if (sessionMatch && request.method === 'PATCH') {
         const sessionId = sessionMatch[1];
         const existing = await env.ARCHERY_KV.get(`session:${sessionId}`);
@@ -471,11 +510,15 @@ export default {
 
         const stored = JSON.parse(existing);
         if ((stored.archerName || '').toLowerCase() !== account.username.toLowerCase()) {
-          return err('Unauthorised', 401, origin);
+          return err('Unauthorised: Cannot modify another user\'s session', 401, origin);
         }
 
         const replacement = await request.json().catch(() => null);
         if (!replacement) return err('Invalid body', 400, origin);
+
+        if ((replacement.archerName || '').toLowerCase() !== account.username.toLowerCase()) {
+          return err('Unauthorised: archerName mismatch on updated session', 401, origin);
+        }
 
         await env.ARCHERY_KV.put(`session:${sessionId}`, JSON.stringify(replacement));
         return json({ ok: true }, 200, origin);
@@ -490,10 +533,43 @@ export default {
         const isOwner = (stored.archerName || '').toLowerCase() === account.username.toLowerCase();
 
         if (!isOwner) {
-          return err('Unauthorised', 401, origin);
+          return err('Unauthorised: Cannot delete another user\'s session', 401, origin);
         }
 
         await env.ARCHERY_KV.delete(`session:${sessionId}`);
+        return json({ ok: true }, 200, origin);
+      }
+
+      // --- Location Management ---
+      if (path === '/locations' && request.method === 'POST') {
+        const location = await request.json().catch(() => null);
+        if (!location?.id) return err('location.id required', 400, origin);
+
+        await env.ARCHERY_KV.put(`location:${location.id}`, JSON.stringify(location));
+        return json({ ok: true }, 200, origin);
+      }
+
+      const locationMatch = path.match(/^\/locations\/(.+)$/);
+      if (locationMatch && request.method === 'PATCH') {
+        const locationId = locationMatch[1];
+        const existing = await env.ARCHERY_KV.get(`location:${locationId}`);
+        if (!existing) return err('Not found', 404, origin);
+
+        const replacement = await request.json().catch(() => null);
+        if (!replacement) return err('Invalid body', 400, origin);
+
+        // Optional: Ensure the ID in the payload matches the route
+        if (replacement.id && replacement.id !== locationId) {
+            replacement.id = locationId; 
+        }
+
+        await env.ARCHERY_KV.put(`location:${locationId}`, JSON.stringify(replacement));
+        return json({ ok: true }, 200, origin);
+      }
+
+      if (locationMatch && request.method === 'DELETE') {
+        const locationId = locationMatch[1];
+        await env.ARCHERY_KV.delete(`location:${locationId}`);
         return json({ ok: true }, 200, origin);
       }
 
