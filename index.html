@@ -725,17 +725,32 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 12px 14px;
-    cursor: pointer;
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-height: 0;
-    transition: border-color .15s, transform .1s;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
     overflow: hidden;
   }
-  .stats-section-tile:active { transform: scale(.97); border-color: var(--accent); }
+  /* Remove interactive border/bg from canvas containers when nested inside a tile */
+  .stats-section-tile .interactive-canvas-container {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    height: 100%;
+  }
+  .stats-section-tile .score-timeline {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+  .stats-section-tile .zone-bars {
+    width: 100%;
+    flex: 1;
+    justify-content: space-around;
+  }
   .sst-label {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
@@ -2433,42 +2448,46 @@ const PRACTICE_TARGET_OPTIONS = [
   <!-- Stats grid: 2 squares on top, 2 wide rectangles below -->
   <div class="stats-section-grid" id="statsSectionGrid">
     <!-- Square tile 1: Overall Statistics -->
-    <div class="stats-section-tile" onclick="openStatsTileOverlay('overall')">
+    <div class="stats-section-tile">
       <div class="sst-label">Overall Stats</div>
       <div class="sst-preview" id="overallTilePreview" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;align-items:stretch;padding:2px 0;"></div>
-      <div class="sst-tap-hint">Tap to expand</div>
     </div>
-    <!-- Square tile 2: Heatmap -->
-    <div class="stats-section-tile" onclick="openStatsTileOverlay('heatmap')">
+    <!-- Square tile 2: Heatmap (live, pan/zoom) -->
+    <div class="stats-section-tile">
       <div class="sst-label">Arrow Grouping</div>
-      <div class="sst-preview" id="heatmapTilePreview" style="align-items:center;justify-content:center;">
-        <canvas id="heatmapPreviewCanvas" width="260" height="260" style="border-radius:50%;width:100%;height:100%;object-fit:contain;pointer-events:none;display:block;aspect-ratio:1/1;"></canvas>
+      <div class="sst-preview" style="align-items:stretch;padding:0;">
+        <div class="interactive-canvas-container" id="heatmapContainer" style="touch-action:none;">
+          <div class="interactive-transform-wrap" id="heatmapTransformWrap">
+            <canvas id="heatmapCanvas" width="520" height="520"></canvas>
+          </div>
+        </div>
       </div>
-      <div class="sst-tap-hint">Tap to expand</div>
     </div>
-    <!-- Wide rectangle tile 3: Timeline -->
-    <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
+    <!-- Wide rectangle tile 3: Timeline (live, pan/zoom + tap points) -->
+    <div class="stats-section-tile">
       <div class="sst-label">Score Over Time</div>
-      <div class="sst-preview" id="timelineTilePreview" style="width:100%;">
-        <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;aspect-ratio:800/250;pointer-events:none;display:block;border-radius:6px;"></canvas>
+      <div class="sst-preview" style="align-items:stretch;padding:0;">
+        <div class="score-timeline" id="timelineContainer" style="position:relative;touch-action:none;flex:1;min-height:0;">
+          <div class="interactive-transform-wrap" id="timelineTransformWrap">
+            <canvas id="timelineCanvas" width="800" height="250"></canvas>
+          </div>
+          <div id="timelineEmptyMsg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;">
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">Need 2+ rounds for timeline</span>
+          </div>
+        </div>
       </div>
-      <div class="sst-tap-hint">Tap to expand</div>
     </div>
-    <!-- Wide rectangle tile 4: Zone distribution -->
-    <div class="stats-section-tile" onclick="openStatsTileOverlay('zones')">
+    <!-- Wide rectangle tile 4: Zone distribution (live) -->
+    <div class="stats-section-tile">
       <div class="sst-label">Score Distribution</div>
-      <div class="sst-preview" id="zonesTilePreview" style="width:100%;"></div>
-      <div class="sst-tap-hint">Tap to expand</div>
+      <div class="sst-preview" style="align-items:stretch;padding:2px 0;">
+        <div class="zone-bars" id="zoneBars" style="flex:1;justify-content:space-around;"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Hidden canvases still needed for rendering -->
+  <!-- Hidden heatmap legend (used for overlay copy — kept for compatibility) -->
   <div style="display:none">
-    <div class="interactive-canvas-container" id="heatmapContainer">
-      <div class="interactive-transform-wrap" id="heatmapTransformWrap">
-        <canvas id="heatmapCanvas" width="520" height="520"></canvas>
-      </div>
-    </div>
     <div id="heatmapLegend">
       <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text); font-family:'DM Mono', monospace; margin-bottom: 6px;">
         <span>Low Density (1)</span>
@@ -2476,28 +2495,6 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
     </div>
-    <div class="score-timeline" id="timelineContainer" style="position:relative;">
-      <div class="interactive-transform-wrap" id="timelineTransformWrap">
-        <canvas id="timelineCanvas" width="800" height="250"></canvas>
-      </div>
-      <div id="timelineEmptyMsg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;">
-        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">Need 2+ rounds for timeline</span>
-      </div>
-    </div>
-    <div class="zone-bars" id="zoneBars"></div>
-  </div>
-</div>
-
-<!-- Stats tile expanded overlay -->
-<div class="detail-overlay" id="statsTileOverlay">
-  <div class="detail-modal" style="max-height:92dvh;display:flex;flex-direction:column;">
-    <div class="detail-modal-header" style="flex-shrink:0;">
-      <h3 id="statsTileOverlayTitle">Detail</h3>
-      <button class="detail-close" onclick="closeOverlay('statsTileOverlay')" aria-label="Close">
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
-      </button>
-    </div>
-    <div id="statsTileOverlayContent" style="overflow-y:auto;flex:1;padding-top:4px;"></div>
   </div>
 </div>
 
@@ -6462,215 +6459,6 @@ function confirmDiscardSession() {
   resetActiveSessionUI(); renderHome(); goPage('score', document.getElementById('nav-score'));
 }
 
-// ═══════════════════════════════════════════════
-//  STATS TILE OVERLAY
-// ═══════════════════════════════════════════════
-function openStatsTileOverlay(tileKey) {
-  const overlay = document.getElementById('statsTileOverlay');
-  const title   = document.getElementById('statsTileOverlayTitle');
-  const content = document.getElementById('statsTileOverlayContent');
-  if (!overlay || !title || !content) return;
-
-  switch (tileKey) {
-    case 'heatmap':
-      title.textContent = 'Arrow Grouping Heatmap';
-      content.innerHTML = `
-        <div class="interactive-canvas-container" id="statsTileHeatmapContainer" style="touch-action:none;">
-          <div class="interactive-transform-wrap" id="statsTileHeatmapWrap">
-            <canvas id="statsTileHeatmapCanvas" width="520" height="520" style="border-radius:50%;display:block;width:100%;max-width:520px;height:auto;aspect-ratio:1/1;"></canvas>
-          </div>
-        </div>
-        <div id="statsTileHeatmapLegend" style="display:none;margin-top:14px;padding:0 10px;max-width:400px;margin-left:auto;margin-right:auto;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text);font-family:'DM Mono',monospace;margin-bottom:6px;">
-            <span>Low Density (1)</span><span>High Density</span>
-          </div>
-          <div style="height:8px;border-radius:4px;background:linear-gradient(to right,blue,cyan,lime,yellow,red);"></div>
-        </div>
-        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:12px;">Pinch to zoom, drag to pan</div>`;
-      overlay.classList.add('open');
-      // Copy heatmap rendering to the tile canvas
-      setTimeout(() => {
-        const src = document.getElementById('heatmapCanvas');
-        const dst = document.getElementById('statsTileHeatmapCanvas');
-        if (src && dst) {
-          const ctx = dst.getContext('2d');
-          ctx.clearRect(0, 0, dst.width, dst.height);
-          ctx.drawImage(src, 0, 0);
-        }
-        // Copy legend visibility
-        const srcLegend = document.getElementById('heatmapLegend');
-        const dstLegend = document.getElementById('statsTileHeatmapLegend');
-        if (srcLegend && dstLegend) dstLegend.style.display = srcLegend.style.display;
-        // Attach pan/zoom
-        attachPanZoom('statsTileHeatmapContainer', 'statsTileHeatmapWrap');
-      }, 50);
-      break;
-
-    case 'timeline':
-      title.textContent = 'Score Over Time';
-      content.innerHTML = `
-        <div class="score-timeline" id="statsTileTimelineContainer" style="touch-action:none;position:relative;">
-          <div class="interactive-transform-wrap" id="statsTileTimelineWrap">
-            <canvas id="statsTileTimelineCanvas" width="800" height="250" style="display:block;width:100%;"></canvas>
-          </div>
-          <div id="overlayTimelineEmptyMsg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;">
-            <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">Need 2+ rounds for timeline</span>
-          </div>
-        </div>
-        <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Pinch/drag to explore · Tap a point for details</div>`;
-      overlay.classList.add('open');
-      setTimeout(() => {
-        const rounds = window.currentTimelineRounds || [];
-        let overlayTimelineDataPoints = [];
-
-        function drawOverlayTimeline() {
-          const tc = document.getElementById('statsTileTimelineCanvas');
-          if (!tc) return;
-          const c = tc.getContext('2d');
-
-          // DPR-aware sizing — same fix as the main timeline
-          const dpr = window.devicePixelRatio || 1;
-          const cssW = tc.parentElement ? tc.parentElement.clientWidth || 800 : 800;
-          const cssH = Math.round(cssW * (250 / 800));
-          const W3 = cssW, H3 = cssH;
-
-          tc.width  = W3 * dpr;
-          tc.height = H3 * dpr;
-          tc.style.width  = W3 + 'px';
-          tc.style.height = H3 + 'px';
-          c.scale(dpr, dpr);
-
-          c.clearRect(0,0,W3,H3);
-          c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
-          overlayTimelineDataPoints = [];
-
-          if (rounds.length < 2) {
-            const overlayEmpty = document.getElementById('overlayTimelineEmptyMsg');
-            if (overlayEmpty) overlayEmpty.style.display = 'flex';
-            return;
-          }
-          const overlayEmpty = document.getElementById('overlayTimelineEmptyMsg');
-          if (overlayEmpty) overlayEmpty.style.display = 'none';
-
-          const transformData = window.overlayTimelinePanZoom ? window.overlayTimelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
-          const panScale = transformData.scale;
-          const screenTx = transformData.tx;
-          const rect = transformData.rect;
-          const canvasTx = rect.width ? screenTx * (W3 / rect.width) : 0;
-
-          const scores = rounds.map(r=>r.arrows.reduce((sum,a)=>sum+a.score,0));
-          const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
-          const pad=40;
-          const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * panScale + canvasTx);
-          const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
-
-          c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
-          c.fillStyle='#6b7a99'; c.font='11px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
-          for(let g=0;g<=4;g++){
-            const val = minS + (g/4)*(maxS-minS);
-            const y=py(val);
-            c.beginPath(); c.moveTo(pad,y); c.lineTo(W3,y); c.stroke();
-            c.fillText(Math.round(val), pad-6, y);
-          }
-          c.save();
-          c.beginPath(); c.rect(pad, 0, W3-pad, H3); c.clip();
-          const step = Math.max(1, Math.ceil(rounds.length/5));
-          c.textAlign='center'; c.textBaseline='top';
-          for(let i=0; i<rounds.length; i+=step) {
-            const x=px(i);
-            c.beginPath(); c.moveTo(x,0); c.lineTo(x,H3-pad); c.stroke();
-            c.fillText(new Date(rounds[i].sessionDate).toLocaleDateString(undefined,{month:'short',day:'numeric'}), x, H3-pad+8);
-          }
-          c.beginPath(); c.moveTo(px(0),H3-pad);
-          scores.forEach((s,i)=>c.lineTo(px(i),py(s)));
-          c.lineTo(px(scores.length-1),H3-pad); c.closePath();
-          const grad=c.createLinearGradient(0,0,0,H3); grad.addColorStop(0,'rgba(232,197,71,0.3)'); grad.addColorStop(1,'rgba(232,197,71,0)');
-          c.fillStyle=grad; c.fill();
-          c.beginPath(); c.moveTo(px(0),py(scores[0]));
-          scores.forEach((s,i)=>{if(i>0)c.lineTo(px(i),py(s));});
-          c.strokeStyle='#e8c547'; c.lineWidth=2.5; c.lineJoin='round'; c.stroke();
-          scores.forEach((s,i)=>{
-            const x=px(i), y=py(s);
-            c.beginPath(); c.arc(x,y,5,0,Math.PI*2); c.fillStyle='#e8c547'; c.fill();
-            overlayTimelineDataPoints.push({x,y,score:s,date:rounds[i].sessionDate,round:rounds[i]});
-          });
-          c.restore();
-        }
-
-        window.overlayTimelinePanZoom = attachPanZoom('statsTileTimelineContainer', 'statsTileTimelineWrap', {
-          constrainHorizontal: true,
-          onUpdate: drawOverlayTimeline
-        });
-
-        drawOverlayTimeline();
-
-        // Tap-to-detail for overlay timeline
-        const overlayContainer = document.getElementById('statsTileTimelineContainer');
-        let overlayTooltipTimer;
-        overlayContainer.addEventListener('touchend', ev => {
-          if (ev.changedTouches.length !== 1) return;
-          const t = ev.changedTouches[0];
-          const rect = overlayContainer.getBoundingClientRect();
-          // Use live canvas CSS width/height for accurate hit-testing
-          const tc2 = document.getElementById('statsTileTimelineCanvas');
-          const cssW2 = tc2 ? parseFloat(tc2.style.width) || rect.width : rect.width;
-          const cssH2 = tc2 ? parseFloat(tc2.style.height) || rect.height : rect.height;
-          const canvasX = (t.clientX - rect.left) * (cssW2 / rect.width);
-          const canvasY = (t.clientY - rect.top)  * (cssH2 / rect.height);
-          let nearest = null, minDist = Infinity;
-          overlayTimelineDataPoints.forEach(pt => {
-            const dist = Math.hypot(pt.x - canvasX, pt.y - canvasY);
-            if (dist < minDist && dist < 44) { minDist = dist; nearest = pt; }
-          });
-          const tooltip = document.getElementById('timelineTooltip');
-          if (nearest) {
-            document.getElementById('ttScore').textContent = nearest.score;
-            document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
-            tooltip.style.display = 'block';
-            tooltip.style.left = '0px'; tooltip.style.top = '-9999px';
-            const tipW = tooltip.offsetWidth, tipH = tooltip.offsetHeight, margin = 8;
-            const displayX = rect.left + (nearest.x / cssW2) * rect.width;
-            const displayY = rect.top  + (nearest.y / cssH2) * rect.height;
-            const clampedX = Math.max(margin, Math.min(window.innerWidth - tipW - margin, displayX - tipW/2));
-            const clampedY = Math.max(margin, displayY - tipH - 14);
-            tooltip.style.left = clampedX + 'px'; tooltip.style.top = clampedY + 'px';
-            activeTimelinePoint = nearest;
-            clearTimeout(overlayTooltipTimer);
-            overlayTooltipTimer = setTimeout(() => { tooltip.style.display='none'; activeTimelinePoint=null; }, 4000);
-          } else {
-            tooltip.style.display = 'none'; activeTimelinePoint = null;
-          }
-        });
-      }, 50);
-      break;
-
-    case 'zones':
-      title.textContent = 'Score Zone Distribution';
-      const zoneEl = document.getElementById('zoneBars');
-      content.innerHTML = `<div class="zone-bars">${zoneEl ? zoneEl.innerHTML : ''}</div>`;
-      overlay.classList.add('open');
-      break;
-
-    case 'overall': {
-      title.textContent = 'Overall Statistics';
-      const avg  = document.getElementById('dAvg')?.textContent || '—';
-      const arr  = document.getElementById('dArrows')?.textContent || '—';
-      const best = document.getElementById('dBest')?.textContent || '—';
-      const sess = document.getElementById('dSessions')?.textContent || '—';
-      content.innerHTML = `
-        <div class="stat-grid" style="padding:0 0 16px;">
-          <div class="stat-card"><div class="sc-label">Avg Score / Round</div><div class="sc-val">${avg}</div></div>
-          <div class="stat-card"><div class="sc-label">Total Arrows</div><div class="sc-val">${arr}</div></div>
-          <div class="stat-card"><div class="sc-label">Best Round</div><div class="sc-val">${best}</div></div>
-          <div class="stat-card"><div class="sc-label">Sessions</div><div class="sc-val">${sess}</div></div>
-        </div>`;
-      overlay.classList.add('open');
-      break;
-    }
-  }
-}
-
-
 const FILTER_DEFS = [
   {key: 'all', label: 'All', group: 'meta'},
   {key: 'practice', label: 'Practice', group: 'scope'},
@@ -8375,52 +8163,6 @@ function renderDiag() {
 }
 
 function renderStatsTilePreviews(allArrows, rounds) {
-  // ── Heatmap preview ──────────────────────────────
-  const heatSrc = document.getElementById('heatmapCanvas');
-  const heatDst = document.getElementById('heatmapPreviewCanvas');
-  if (heatSrc && heatDst) {
-    heatDst.width = heatSrc.width;
-    heatDst.height = heatSrc.height;
-    heatDst.getContext('2d').drawImage(heatSrc, 0, 0);
-  }
-
-  // ── Timeline preview ─────────────────────────────
-  const timeSrc = document.getElementById('timelineCanvas');
-  const timeDst = document.getElementById('timelinePreviewCanvas');
-  if (timeSrc && timeDst) {
-    // Draw at a fixed logical resolution — don't copy the DPR-inflated
-    // pixel dimensions from the source or the preview canvas will be
-    // internally huge and get CSS-squished, causing warped text.
-    const PW = 800, PH = 250;
-    timeDst.width  = PW;
-    timeDst.height = PH;
-    timeDst.getContext('2d').drawImage(timeSrc, 0, 0, PW, PH);
-  }
-
-  // ── Zone bars mini preview (horizontal bar chart) ──
-  const zonesEl = document.getElementById('zonesTilePreview');
-  if (zonesEl) {
-    const total = allArrows.length || 1;
-    const maxPct = Math.max(...ZONES.map(z => {
-      const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
-      return (count / total) * 100;
-    }), 1);
-    zonesEl.innerHTML = `<div style="display:flex;flex-direction:column;justify-content:space-around;width:100%;height:100%;">` +
-      ZONES.map(z => {
-        const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
-        const pct = (count / total) * 100;
-        const widthPct = (pct / maxPct) * 100;
-        return `<div style="display:flex;align-items:center;gap:8px;min-height:0;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:30px;text-align:right;">${z.label}</div>
-          <div style="flex:1;height:9px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;background:${z.color};width:${Math.max(2, widthPct)}%;border-radius:4px;opacity:0.9;"></div>
-          </div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:28px;">${count}</div>
-        </div>`;
-      }).join('') +
-      `</div>`;
-  }
-
   // ── Overall stats mini preview ───────────────────
   const overallEl = document.getElementById('overallTilePreview');
   if (overallEl) {
@@ -8749,12 +8491,6 @@ function openTimelineRoundDetail() {
   clearTimeout(tooltipHideTimer);
   document.getElementById('timelineTooltip').style.display = 'none';
   activeTimelinePoint = null;
-
-  // Close expanded overlay if open so detail modal can appear on top
-  const tileOverlay = document.getElementById('statsTileOverlay');
-  if (tileOverlay && tileOverlay.classList.contains('open')) {
-    tileOverlay.classList.remove('open');
-  }
 
   const round = pt.round;
   if (!round) return;
