@@ -681,6 +681,22 @@
   }
   .sort-btn.active { border-color: var(--accent); color: var(--accent); }
   .sort-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    padding: 0 4px;
+    margin-left: 2px;
+  }
 
   /* Stats grid: 2 squares on top row, 2 wide rectangles below */
   /* Stats page: fixed full-height, no scroll */
@@ -2423,7 +2439,7 @@ const PRACTICE_TARGET_OPTIONS = [
       </button>
     </div>
     <div class="filter-bar" id="homeFilterBar">
-      <button class="sort-btn" onclick="openFiltersOnlyOverlay('home')" style="flex: 1; justify-content: center;">
+      <button id="filterBtnHome" class="sort-btn" onclick="openFiltersOnlyOverlay('home')" style="flex: 1; justify-content: center;">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
         Filters
       </button>
@@ -2442,7 +2458,7 @@ const PRACTICE_TARGET_OPTIONS = [
       <span id="clubErrorMsg">Could not reach the club server.</span>
     </div>
     <div class="filter-bar" id="clubFilterBar">
-      <button class="sort-btn" onclick="openFiltersOnlyOverlay('club')" style="flex: 1; justify-content: center;">
+      <button id="filterBtnClub" class="sort-btn" onclick="openFiltersOnlyOverlay('club')" style="flex: 1; justify-content: center;">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
         Filters
       </button>
@@ -2460,7 +2476,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <h2>STATS</h2>
   </div>
   <div class="filter-bar" style="padding-top:8px;">
-    <button class="sort-btn" onclick="openFiltersOverlay('diag')" style="flex: 1; justify-content: center;">
+    <button id="filterBtnDiag" class="sort-btn" onclick="openFiltersOverlay('diag')" style="flex: 1; justify-content: center;">
       <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg>
       Filters
     </button>
@@ -6708,6 +6724,52 @@ function escapeJsSingleQuoted(value) {
     .replace(/'/g, "\\'");
 }
 
+// ── Filter badge helpers ──────────────────────────────────────────────────────
+function countActiveFilters(context) {
+  let n = 0;
+  // Location
+  const locSet = activeLocationFilters[context];
+  if (locSet && locSet.size > 0) n++;
+  // Round type
+  if ((activeRoundTypeFilters[context] || 'all') !== 'all') n++;
+  // Date
+  const dateF = context === 'club' ? activeDateFiltersClub : (activeDateFilters[context] || {});
+  if (dateF.start || dateF.end) n++;
+  // Archer (club only)
+  if (context === 'club') {
+    const archSet = activeArcherFilters.club;
+    if (archSet && archSet.size > 0) n++;
+  }
+  return n;
+}
+
+function updateFilterBadge(context) {
+  const btnId = context === 'home' ? 'filterBtnHome'
+              : context === 'club' ? 'filterBtnClub'
+              : 'filterBtnDiag';
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const count = countActiveFilters(context);
+  // Remove any existing badge
+  const existing = btn.querySelector('.filter-badge');
+  if (existing) existing.remove();
+  if (count > 0) {
+    btn.classList.add('active');
+    const badge = document.createElement('span');
+    badge.className = 'filter-badge';
+    badge.textContent = count;
+    btn.appendChild(badge);
+  } else {
+    btn.classList.remove('active');
+  }
+}
+
+function updateAllFilterBadges() {
+  updateFilterBadge('home');
+  updateFilterBadge('club');
+  updateFilterBadge('diag');
+}
+
 function openFiltersOverlay(context) {
   activeFiltersContext = context;
   
@@ -6744,6 +6806,7 @@ function setFiltersLocationFromDropdown(locLabel) {
     activeLocSet.clear();
     activeLocSet.add(locLabel);
   }
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6752,12 +6815,14 @@ function setFiltersLocationFromDropdown(locLabel) {
 
 function setFiltersRoundType(val) {
   activeRoundTypeFilters[activeFiltersContext] = val;
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
 
 function setFiltersOnlyRoundType(val) {
   activeRoundTypeFilters[activeFiltersContext] = val;
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'club') renderClubHistory();
 }
@@ -6776,10 +6841,8 @@ function setFiltersArcherFilter(archLabel) {
     if (activeSet.has(archLabel)) activeSet.delete(archLabel);
     else activeSet.add(archLabel);
   }
-  
-  // Re-render the overlay to update checkmarks
+  updateFilterBadge(activeFiltersContext);
   openFiltersOverlay(activeFiltersContext);
-  
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6795,10 +6858,8 @@ function setFiltersLocationFilter(locLabel) {
       activeLocSet.add(locLabel);
     }
   }
-  
-  // Re-render the overlay to update checkmarks
+  updateFilterBadge(activeFiltersContext);
   openFiltersOverlay(activeFiltersContext);
-  
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6806,12 +6867,11 @@ function setFiltersLocationFilter(locLabel) {
 function applyFiltersDateFilter() {
   const startVal = document.getElementById('filtersDateStart').value;
   const endVal = document.getElementById('filtersDateEnd').value;
-  
   activeDateFilters[activeFiltersContext] = {
     start: startVal || null,
     end: endVal || null
   };
-  
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6820,7 +6880,7 @@ function clearFiltersDateFilter() {
   activeDateFilters[activeFiltersContext] = { start: null, end: null };
   document.getElementById('filtersDateStart').value = '';
   document.getElementById('filtersDateEnd').value = '';
-  
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'diag') renderDiag();
 }
@@ -6883,6 +6943,7 @@ function setFiltersOnlyArcherFromDropdown(archLabel) {
   const activeSet = activeArcherFilters[activeFiltersContext] || (activeArcherFilters[activeFiltersContext] = new Set());
   if (archLabel === 'all') activeSet.clear();
   else { activeSet.clear(); activeSet.add(archLabel); }
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'club') renderClubHistory();
 }
@@ -6891,6 +6952,7 @@ function setFiltersOnlyLocationFromDropdown(locLabel) {
   const activeLocSet = activeLocationFilters[activeFiltersContext] || (activeLocationFilters[activeFiltersContext] = new Set());
   if (locLabel === 'all') activeLocSet.clear();
   else { activeLocSet.clear(); activeLocSet.add(locLabel); }
+  updateFilterBadge(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'club') renderClubHistory();
 }
@@ -6900,6 +6962,7 @@ function setFiltersOnlyArcherFilter(archLabel) {
   if (archLabel === 'all') activeSet.clear();
   else if (activeSet.has(archLabel)) activeSet.delete(archLabel);
   else activeSet.add(archLabel);
+  updateFilterBadge(activeFiltersContext);
   openFiltersOnlyOverlay(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'club') renderClubHistory();
@@ -6910,6 +6973,7 @@ function setFiltersOnlyLocationFilter(locLabel) {
   if (locLabel === 'all') activeLocSet.clear();
   else if (activeLocSet.has(locLabel)) activeLocSet.delete(locLabel);
   else activeLocSet.add(locLabel);
+  updateFilterBadge(activeFiltersContext);
   openFiltersOnlyOverlay(activeFiltersContext);
   if (activeFiltersContext === 'home') renderHome();
   else if (activeFiltersContext === 'club') renderClubHistory();
@@ -6926,6 +6990,7 @@ function applyFiltersOnlyDateFilter() {
     activeDateFilters[activeFiltersContext] = { start: startVal || null, end: endVal || null };
     if (activeFiltersContext === 'home') renderHome();
   }
+  updateFilterBadge(activeFiltersContext);
 }
 
 function clearFiltersOnlyDateFilter() {
@@ -6938,6 +7003,7 @@ function clearFiltersOnlyDateFilter() {
     activeDateFilters[activeFiltersContext] = { start: null, end: null };
     if (activeFiltersContext === 'home') renderHome();
   }
+  updateFilterBadge(activeFiltersContext);
 }
 
 
@@ -8596,6 +8662,7 @@ updateDeviceNameSummary();
 loadCloudflareConfigIntoUI();
 
 renderHome();
+updateAllFilterBadges();
 drawTarget([]);
 resetPhotoScoreState();
 renderScorePickerSummaries();
