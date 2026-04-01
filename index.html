@@ -7767,17 +7767,17 @@ function renderComparePickerList() {
     return;
   }
 
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   list.innerHTML = others.map(s => {
     const total   = (s.rounds || []).reduce((x, r) => x + r.arrows.reduce((y, a) => y + a.score, 0), 0);
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
     const archer  = comparePickerTab === 'club' ? (s.archerName || '') : '';
-    // Serialise the session object safely for the onclick
-    const safeId  = JSON.stringify(String(s.id));
+    const safeId  = esc(String(s.id));
     const src     = comparePickerTab === 'club' ? 'club' : 'my';
-    return `<button class="sort-option" onclick="runSessionCompareById(${safeId}, '${src}')" style="display:flex;justify-content:space-between;align-items:center;">
+    return `<button class="sort-option" onclick="runSessionCompareById('${safeId}', '${src}')" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="text-align:left;">
-        <div style="font-size:13px;font-weight:500;">${sessionTypeLabel(s)}${archer ? ` · ${archer}` : ''}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateStr}${s.location?.label ? ' · ' + s.location.label : ''}</div>
+        <div style="font-size:13px;font-weight:500;">${esc(sessionTypeLabel(s))}${archer ? ` · ${esc(archer)}` : ''}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${esc(dateStr)}${s.location?.label ? ' · ' + esc(s.location.label) : ''}</div>
       </div>
       <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);">${total}</span>
     </button>`;
@@ -8424,16 +8424,6 @@ function renderStatsTilePreviews(allArrows, rounds) {
     const best = document.getElementById('dBest')?.textContent || '—';
     const arr  = document.getElementById('dArrows')?.textContent || '—';
     const sess = document.getElementById('dSessions')?.textContent || '—';
-
-    const escapeHtml = (str) => {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    };
-
     overallEl.innerHTML = [
       { label: 'Avg / Round', val: avg },
       { label: 'Best Round',  val: best },
@@ -8450,8 +8440,8 @@ function renderStatsTilePreviews(allArrows, rounds) {
         min-height:0;
         overflow:hidden;
       ">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${escapeHtml(r.label)}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;margin-top:4px;">${escapeHtml(r.val)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${r.label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;margin-top:4px;">${r.val}</div>
       </div>`).join('');
   }
 }
