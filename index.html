@@ -2111,9 +2111,270 @@
   .score-flash.show { transform: translate(-50%,-50%) scale(1); }
   .score-flash.hide { opacity: 0; }
 
+  /* ══════════════════════════════════════════════
+     DESKTOP LAYOUT  (≥ 768 px)
+     ══════════════════════════════════════════════ */
+  @media (min-width: 768px) {
+
+    /* Allow body to scroll on desktop */
+    body { overflow-y: auto; overscroll-behavior-y: auto; touch-action: auto; }
+
+    /* ── App shell: sidebar + content ── */
+    #app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: auto;
+      width: 200px;
+      flex-direction: column;
+      border-top: none;
+      border-right: 1px solid var(--border);
+      padding-bottom: 0;
+      min-height: 100vh;
+      padding-top: max(24px, env(safe-area-inset-top));
+      gap: 4px;
+      justify-content: flex-start;
+      align-items: stretch;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    nav::before {
+      content: 'ACHERY';
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      padding: 0 20px 24px;
+      flex-shrink: 0;
+    }
+    nav button {
+      flex: none;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      padding: 12px 20px;
+      font-size: 12px;
+      border-radius: 10px;
+      margin: 0 8px;
+      width: calc(100% - 16px);
+      text-align: left;
+      white-space: nowrap;
+    }
+    nav button span { width: auto; }
+    nav button svg { width: 20px; height: 20px; flex-shrink: 0; }
+    nav button.active {
+      background: rgba(232,197,71,.1);
+      border-radius: 10px;
+    }
+    nav button:active { opacity: 1; background: rgba(232,197,71,.15); }
+
+    /* ── Pages: fill all space right of sidebar ── */
+    .page {
+      margin-left: 200px;
+      width: calc(100vw - 200px);
+      min-height: 100vh;
+      padding-bottom: 40px;
+      box-sizing: border-box;
+    }
+    /* Score page has no bottom padding on desktop since there's no bottom nav */
+    #page-score { padding-bottom: 0; }
+
+    /* ── Score picker: 2x2 grid with fixed height ── */
+    .session-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      height: 100vh;
+      width: 100%;
+      padding: 24px;
+      gap: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+    /* Override the inline padding-top that's set for mobile safe-area */
+    .session-cards-grid[style] {
+      padding-top: 24px !important;
+    }
+    .session-cards-grid .session-card {
+      border-radius: 20px;
+    }
+    .session-cards-grid .session-card h2 { font-size: 32px; }
+
+    /* ── Active scoring: side-by-side on wide screens ── */
+    #scoreActive.score-session-live {
+      display: grid !important;
+      grid-template-columns: 1fr 360px;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+      max-height: none;
+      overflow: visible;
+      padding-left: 0;
+    }
+    #scoreActive .scoring-header {
+      grid-column: 1 / -1;
+    }
+    #scoreActive .target-wrap {
+      grid-column: 1;
+      grid-row: 2;
+      padding: 24px;
+      align-items: center;
+      max-width: none;
+    }
+    #scoreActive #targetCanvas {
+      max-width: min(560px, calc(100vh - 200px));
+    }
+    #scoreActive .round-info {
+      grid-column: 2;
+      grid-row: 2;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 16px;
+      margin: 24px 24px 0 0;
+      padding: 20px;
+    }
+    #scoreActive .arrows-row {
+      grid-column: 2;
+      grid-row: 3;
+      padding: 8px 24px 8px 8px;
+    }
+    #scoreActive .score-history-trigger-wrap {
+      grid-column: 1 / -1;
+      padding: 8px 24px 24px;
+    }
+
+    /* ── History page: fixed height, flex column ── */
+    #page-home.active {
+      display: flex !important;
+      flex-direction: column;
+      height: 100vh;
+      width: calc(100vw - 200px);
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+    #page-home .diag-header { flex-shrink: 0; }
+    #page-home .history-tab-toggle { flex-shrink: 0; padding: 10px 24px 0; }
+    #page-home #myHistoryPanel,
+    #page-home #clubHistoryPanel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #page-home #recentList,
+    #page-home #clubList {
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      min-height: 0;
+      padding-bottom: 24px;
+    }
+    #page-home .selection-bar,
+    #page-home .filter-bar,
+    #page-home #clubErrorBanner { flex-shrink: 0; }
+    /* Session items: readable width, not squished */
+    .recent-item {
+      max-width: none;
+      margin-left: 24px;
+      margin-right: 24px;
+    }
+
+    /* ── Stats page ── */
+    #page-diag {
+      height: 100vh;
+      width: calc(100vw - 200px);
+      overflow: hidden;
+      padding-bottom: 0;
+    }
+    .stats-section-grid {
+      padding: 12px 24px 24px;
+      gap: 14px;
+    }
+    .stats-section-tile { border-radius: 18px; }
+    /* Larger stat numbers in tile previews */
+    .sst-stat-val { font-size: 24px; }
+    .sst-stat-label { font-size: 10px; }
+
+    /* ── Settings page ── */
+    #page-settings {
+      height: 100vh;
+      width: calc(100vw - 200px);
+    }
+    .settings-scroll-area {
+      padding-bottom: 40px;
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .settings-section { margin: 16px 0 0; }
+
+    /* ── Headers: consistent padding ── */
+    .diag-header,
+    .scoring-header,
+    .settings-header {
+      padding-left: 28px;
+      padding-right: 28px;
+    }
+    .filter-bar { padding-left: 28px; padding-right: 28px; }
+    .recent-item { margin-left: 28px; margin-right: 28px; }
+
+    /* ── Modals: centered with max-width ── */
+    .sort-sheet {
+      border-radius: 20px;
+      margin-bottom: 40px;
+      max-width: 520px;
+    }
+    .detail-modal { max-width: 560px; }
+    .modal { max-width: 480px; border-radius: 22px; }
+    .overlay { align-items: center; padding: 40px; }
+    .overlay .modal { transform: scale(.96); border-radius: 22px; }
+    .overlay.open .modal { transform: scale(1); }
+    .overlay.centered .modal { transform: scale(.96); }
+    .overlay.centered.open .modal { transform: scale(1); }
+
+    /* ── Page headers: safe-area top not needed on desktop ── */
+    .diag-header { padding-top: 24px; }
+    .scoring-header { padding-top: 20px; }
+    .settings-header { padding-top: 20px; }
+
+    /* ── Wider content areas ── */
+    .filter-bar { padding-top: 12px; }
+
+    /* ── Fix z-index: overlays cover sidebar ── */
+    .overlay, .detail-overlay, .sort-overlay,
+    .round-complete-overlay, .account-popup-overlay { z-index: 400; }
+    nav { z-index: 100; }
+
+    /* ── Score locked: no overflow constraint needed ── */
+    body.score-scroll-locked { overflow: auto; }
+    .page.score-scroll-locked { overflow: visible; }
+  }
+
+  /* Tablet tweaks (768–1024px) */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    nav { width: 72px; }
+    nav::before { display: none; }
+    nav button { flex-direction: column; justify-content: center; padding: 10px 0; font-size: 10px; gap: 4px; }
+    nav button span { display: block; font-size: 9px; }
+    .page { margin-left: 72px; width: calc(100vw - 72px); }
+    .session-cards-grid { max-width: none; }
+    .settings-scroll-area { max-width: none; margin: 0; }
+    .settings-section { margin: 16px 16px 0; }
+    .diag-header, .scoring-header, .settings-header, .filter-bar { padding-left: 20px; padding-right: 20px; }
+    .recent-item { margin-left: 16px; margin-right: 16px; max-width: none; }
+  }
 </style>
 </head>
 <body>
+<div id="app-shell">
 
 <script>
 const ICONS = {
@@ -3672,11 +3933,6 @@ async function submitPasswordSetup() {
 async function pullSessionsForAccount(username) {
   try {
     const all = await cfPullSessions();
-
-    // Build global location pool from ALL archers' sessions (not just mine)
-    buildGlobalLocationPool(all);
-    refreshSavedLocationOptions();
-
     const mine = all.filter(s => (s.archerName || '').toLowerCase() === username.toLowerCase());
 
     // Build a set of server-side IDs for this account
@@ -3819,8 +4075,10 @@ function switchHistoryTab(tab) {
   activeHistoryTab = tab;
   document.getElementById('tabMyHistory').classList.toggle('active',   tab === 'my');
   document.getElementById('tabClubHistory').classList.toggle('active', tab === 'club');
-  document.getElementById('myHistoryPanel').style.display   = tab === 'my'   ? 'block' : 'none';
-  document.getElementById('clubHistoryPanel').style.display = tab === 'club' ? 'block' : 'none';
+  const isDesktop = window.innerWidth >= 768;
+  const showVal = isDesktop ? 'flex' : 'block';
+  document.getElementById('myHistoryPanel').style.display   = tab === 'my'   ? showVal : 'none';
+  document.getElementById('clubHistoryPanel').style.display = tab === 'club' ? showVal : 'none';
 
   if (tab === 'my') { renderHome(); return; }
 
@@ -3842,9 +4100,6 @@ async function loadClubHistory() {
      </div>`;
   try {
     const all = await cfPullSessions();
-    // Build global location pool from all sessions whenever we have a full pull
-    buildGlobalLocationPool(all);
-    refreshSavedLocationOptions();
     const myName = getDeviceArcherName().toLowerCase();
     // Exclude the current archer's own sessions
     clubSessions = all.filter(s => (s.archerName || '').toLowerCase() !== myName);
@@ -3957,7 +4212,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.3.3';
+const APP_VERSION = '3.2.4';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -4686,130 +4941,31 @@ function distanceBetweenCoords(aLat, aLng, bLat, bLng) {
   return dx * dx + dy * dy;
 }
 
-// ── Global location pool ─────────────────────────────────────────────────────
-// Populated from all pulled sessions across all archers. Each entry:
-//   { label, lat, lng, firstSeenDate }
-// "firstSeenDate" is the earliest session date that used this label, so that
-// when two locations are equidistant we prefer the one created first.
-let _globalLocationPool = {}; // keyed by label.toLowerCase()
-
-function buildGlobalLocationPool(allSessions) {
-  // Merge sessions from all archers into the pool
-  allSessions.forEach(s => {
-    const label = s.location?.label?.trim();
-    const lat   = s.location?.lat;
-    const lng   = s.location?.lng;
-    if (!label || typeof lat !== 'number' || typeof lng !== 'number') return;
-    const key = label.toLowerCase();
-    const sessionDate = s.date ? new Date(s.date).getTime() : Infinity;
-    if (!_globalLocationPool[key]) {
-      _globalLocationPool[key] = { label, lat, lng, firstSeenDate: sessionDate };
-    } else {
-      // Update coords if this entry has GPS data and the existing one doesn't
-      if (typeof _globalLocationPool[key].lat !== 'number') {
-        _globalLocationPool[key].lat = lat;
-        _globalLocationPool[key].lng = lng;
-      }
-      // Keep earliest date
-      if (sessionDate < _globalLocationPool[key].firstSeenDate) {
-        _globalLocationPool[key].firstSeenDate = sessionDate;
-      }
-    }
-  });
-}
-
-function getGlobalLocationList() {
-  // Merge db.savedLocations (local) with the global pool, deduped by label
-  const merged = {}; // label.toLowerCase() -> entry
-  // Start with global pool (may have entries from other archers)
-  Object.values(_globalLocationPool).forEach(loc => {
-    merged[loc.label.toLowerCase()] = { ...loc };
-  });
-  // Local savedLocations override/supplement (local GPS data is trusted)
-  db.savedLocations.forEach(loc => {
-    if (!loc?.label) return;
-    const key = loc.label.toLowerCase();
-    if (!merged[key]) {
-      merged[key] = { label: loc.label, lat: loc.lat, lng: loc.lng, firstSeenDate: loc.createdAt ? new Date(loc.createdAt).getTime() : Infinity };
-    } else {
-      // Local coords are more precise — prefer them
-      if (typeof loc.lat === 'number') merged[key].lat = loc.lat;
-      if (typeof loc.lng === 'number') merged[key].lng = loc.lng;
-    }
-  });
-  return Object.values(merged);
-}
-
-// Threshold: two squared-degree distances this close are considered "tied"
-// ~0.000001 deg² ≈ ~100 m at mid-latitudes — anything closer than this is a tie
-const LOCATION_TIE_THRESHOLD = 1e-6;
-
 function getNearestSavedLocation(lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-  const pool = getGlobalLocationList().filter(
-    loc => loc?.label && typeof loc.lat === 'number' && typeof loc.lng === 'number'
-  );
-  if (!pool.length) return null;
-
-  // Find the minimum distance across all candidates
-  let minDist = Infinity;
-  pool.forEach(loc => {
-    const d = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
-    if (d < minDist) minDist = d;
+  let best = null, bestDistance = Infinity;
+  db.savedLocations.forEach(loc => {
+    if (!loc?.label || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return;
+    const dist = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
+    if (dist < bestDistance) { bestDistance = dist; best = loc; }
   });
-
-  // Collect all candidates within the tie threshold of the minimum
-  const candidates = pool.filter(loc => {
-    const d = distanceBetweenCoords(lat, lng, loc.lat, loc.lng);
-    return d <= minDist + LOCATION_TIE_THRESHOLD;
-  });
-
-  if (candidates.length === 1) return candidates[0];
-
-  // Tie-break: prefer the one with the earliest firstSeenDate (created first)
-  candidates.sort((a, b) => (a.firstSeenDate ?? Infinity) - (b.firstSeenDate ?? Infinity));
-  return candidates[0];
+  return best;
 }
 
 function refreshSavedLocationOptions() {
   const datalist = document.getElementById('savedLocationOptions');
   if (!datalist) return;
-  // Show labels from both local saved locations and the global pool
-  const allLabels = [...new Set(
-    getGlobalLocationList().map(loc => loc?.label).filter(Boolean)
-  )].sort();
-  datalist.innerHTML = allLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
+  const uniqueLabels = [...new Set(db.savedLocations.map(loc => loc?.label).filter(Boolean))];
+  datalist.innerHTML = uniqueLabels.map(label => `<option value="${label.replace(/"/g, '&quot;')}"></option>`).join('');
 }
 
 function saveChosenLocation(location) {
   const label = location?.label?.trim();
   if (!label) return;
   const existing = db.savedLocations.find(loc => loc.label.toLowerCase() === label.toLowerCase());
-  const now = new Date().toISOString();
-  const next = {
-    label,
-    lat: typeof location.lat === 'number' ? location.lat : existing?.lat,
-    lng: typeof location.lng === 'number' ? location.lng : existing?.lng,
-    updatedAt: now,
-    createdAt: existing?.createdAt || now
-  };
+  const next = { label, lat: typeof location.lat === 'number' ? location.lat : existing?.lat, lng: typeof location.lng === 'number' ? location.lng : existing?.lng, updatedAt: new Date().toISOString() };
   if (existing) Object.assign(existing, next);
   else db.savedLocations.push(next);
-
-  // Keep global pool in sync so the new location is immediately available for suggestions
-  const key = label.toLowerCase();
-  const sessionDate = new Date().getTime();
-  if (!_globalLocationPool[key]) {
-    _globalLocationPool[key] = {
-      label,
-      lat: next.lat,
-      lng: next.lng,
-      firstSeenDate: sessionDate
-    };
-  } else {
-    if (typeof next.lat === 'number') _globalLocationPool[key].lat = next.lat;
-    if (typeof next.lng === 'number') _globalLocationPool[key].lng = next.lng;
-  }
 }
 
 function assignLocationToSession(sessionId, location) {
@@ -5371,7 +5527,9 @@ function updateScoreScrollLock() {
   const scorePage = document.getElementById('page-score');
   const scoreActive = document.getElementById('scoreActive');
   const scorePageActive = scorePage?.classList.contains('active');
-  const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
+  const isDesktop = window.innerWidth >= 768;
+  // On desktop the scoring UI is not scroll-locked — the layout handles it via grid
+  const scoringLive = !isDesktop && !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
   document.body.classList.toggle('score-scroll-locked', scoringLive);
   if (scorePage) scorePage.classList.toggle('score-scroll-locked', scoringLive);
   if (scoreActive) scoreActive.classList.toggle('score-session-live', scoringLive);
@@ -7496,6 +7654,12 @@ function deleteHomeSelected() {
 }
 
 function renderHome() {
+  // Ensure myHistoryPanel uses correct display value for current breakpoint
+  const myPanel = document.getElementById('myHistoryPanel');
+  if (myPanel && myPanel.style.display !== 'none') {
+    myPanel.style.display = window.innerWidth >= 768 ? 'flex' : 'block';
+  }
+
   const list = document.getElementById('recentList');
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => 
     sessionMatchesFilter(sessionObj, homeFilters, 'home') && sessionMatchesSearch(sessionObj, homeSearchQuery)
@@ -7757,7 +7921,9 @@ function goPage(name, btn) {
   if(name==='home') renderHome();
   if(name==='settings') { updateDeviceNameSummary(); initSettingsPage(); }
   updateScoreScrollLock();
-  window.scrollTo(0,0);
+  // On desktop, scroll the main window; on mobile the individual page containers handle scroll
+  const isDesktop = window.innerWidth >= 768;
+  if (isDesktop) { window.scrollTo(0,0); } else { window.scrollTo(0,0); }
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
@@ -8360,9 +8526,6 @@ function drawZoneBars(arrows) {
 //  INIT
 // ═══════════════════════════════════════════════
 applyTheme();
-// Seed the global location pool from local sessions immediately at startup
-// so suggestions work even before any network pull completes
-buildGlobalLocationPool(db.sessions);
 refreshSavedLocationOptions();
 renderHomeFilters();
 renderDiagFilters();
@@ -8383,6 +8546,7 @@ setTimeout(async () => {
 // Update sync status when network state changes
 window.addEventListener('online',  () => { updateSyncStatus(); setTimeout(() => autoSyncUnsyncedSessions(), 1000); });
 window.addEventListener('offline', () => { updateSyncStatus(); });
+window.addEventListener('resize', () => { updateScoreScrollLock(); });
 
 function wipeEphemeralOnExit() {
   if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
@@ -8468,5 +8632,6 @@ if (window.visualViewport) {
   };
 })();
 </script>
+</div><!-- #app-shell -->
 </body>
 </html>
