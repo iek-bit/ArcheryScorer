@@ -8424,6 +8424,16 @@ function renderStatsTilePreviews(allArrows, rounds) {
     const best = document.getElementById('dBest')?.textContent || '—';
     const arr  = document.getElementById('dArrows')?.textContent || '—';
     const sess = document.getElementById('dSessions')?.textContent || '—';
+
+    const escapeHtml = (str) => {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
     overallEl.innerHTML = [
       { label: 'Avg / Round', val: avg },
       { label: 'Best Round',  val: best },
@@ -8440,8 +8450,8 @@ function renderStatsTilePreviews(allArrows, rounds) {
         min-height:0;
         overflow:hidden;
       ">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${r.label}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;margin-top:4px;">${r.val}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${escapeHtml(r.label)}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;margin-top:4px;">${escapeHtml(r.val)}</div>
       </div>`).join('');
   }
 }
