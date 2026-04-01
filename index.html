@@ -2450,7 +2450,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
       <div class="sst-label">Score Over Time</div>
       <div class="sst-preview" id="timelineTilePreview" style="width:100%;">
-        <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
+        <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;aspect-ratio:800/250;pointer-events:none;display:block;border-radius:6px;"></canvas>
       </div>
       <div class="sst-tap-hint">Tap to expand</div>
     </div>
@@ -8405,14 +8405,14 @@ function renderStatsTilePreviews(allArrows, rounds) {
       const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
       return (count / total) * 100;
     }), 1);
-    zonesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:5px;width:100%;padding:2px 0;">` +
+    zonesEl.innerHTML = `<div style="display:flex;flex-direction:column;justify-content:space-around;width:100%;height:100%;">` +
       ZONES.map(z => {
         const count = allArrows.filter(a => a.score >= z.min && a.score <= z.max).length;
         const pct = (count / total) * 100;
         const widthPct = (pct / maxPct) * 100;
-        return `<div style="display:flex;align-items:center;gap:8px;">
+        return `<div style="display:flex;align-items:center;gap:8px;min-height:0;">
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:30px;text-align:right;">${z.label}</div>
-          <div style="flex:1;height:13px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+          <div style="flex:1;height:9px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
             <div style="height:100%;background:${z.color};width:${Math.max(2, widthPct)}%;border-radius:4px;opacity:0.9;"></div>
           </div>
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);min-width:28px;">${count}</div>
