@@ -8020,6 +8020,8 @@ function runSessionCompare(a, b) {
   document.getElementById('sessionCompareOverlay').classList.add('open');
 }
 
+function deleteCurrentSession() { deleteSession(); }
+
 function deleteSession() {
   appConfirm('Delete this entire session?', async () => {
     const sessionToDelete = db.sessions[activeSessionIdx];
