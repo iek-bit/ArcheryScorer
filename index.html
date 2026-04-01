@@ -759,12 +759,17 @@
     min-height: 0;
     overflow: hidden;
   }
-  /* Timeline canvas: always fill the full width of its tile */
+  /* Timeline canvas: stretch to fill the full tile — no aspect-ratio constraint */
   .stats-section-tile #timelineCanvas {
     width: 100% !important;
-    height: auto !important;
-    aspect-ratio: 800 / 250;
+    height: 100% !important;
     display: block;
+  }
+  /* The transform wrap must also fill full height */
+  .stats-section-tile #timelineTransformWrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
   }
   .stats-section-tile .zone-bars {
     width: 100%;
@@ -8369,16 +8374,17 @@ function drawTimeline(rounds) {
   const c = tc.getContext('2d');
 
   // Size the canvas to its actual CSS display size × device pixel ratio
-  // This prevents stretched/warped text on desktop and retina screens
   const dpr = window.devicePixelRatio || 1;
-  const cssW = tc.parentElement ? tc.parentElement.clientWidth || 800 : 800;
-  const cssH = Math.round(cssW * (250 / 800)); // maintain aspect ratio
-  const W3 = cssW, H3 = cssH;
+  const container = tc.parentElement;
+  const cssW = container ? (container.clientWidth  || 800) : 800;
+  const cssH = container ? (container.clientHeight || Math.round(cssW * (250 / 800))) : Math.round(cssW * (250 / 800));
+  const W3 = cssW, H3 = Math.max(cssH, 60); // at least 60px tall
 
   tc.width  = W3 * dpr;
   tc.height = H3 * dpr;
-  tc.style.width  = W3 + 'px';
-  tc.style.height = H3 + 'px';
+  // Don't override CSS height — let the CSS fill rule control it
+  tc.style.width  = '100%';
+  tc.style.height = '100%';
   c.scale(dpr, dpr);
 
   c.clearRect(0, 0, W3, H3);
@@ -8475,7 +8481,9 @@ tcContainer.addEventListener('touchend', e => {
   if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
   const { rect } = window.timelinePanZoom.getTransform();
-  const W3=800, H3=250;
+  const tc2 = document.getElementById('timelineCanvas');
+  const W3 = tc2 ? tc2.width  / (window.devicePixelRatio || 1) : 800;
+  const H3 = tc2 ? tc2.height / (window.devicePixelRatio || 1) : 250;
   
   // Untransform the screen tap back to internal canvas coordinates
   const canvasX = (t.clientX - rect.left) * (W3 / rect.width);
