@@ -758,22 +758,10 @@
   .stats-section-grid .stats-section-tile:nth-child(2) .sst-preview {
     padding: 4px;
   }
-  /* Zone tile: stretch to fill */
+  /* Wide tiles: override flex to stretch full width */
+  .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview,
   .stats-section-grid .stats-section-tile:nth-child(4) .sst-preview {
     align-items: stretch;
-  }
-  /* Timeline tile: center vertically so canvas keeps its aspect ratio */
-  .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview {
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
-  }
-  #timelinePreviewCanvas {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 6px;
-    flex-shrink: 0;
   }
   .sst-tap-hint {
     font-size: 10px;
@@ -1128,6 +1116,8 @@
   .detail-overlay.open { opacity: 1; pointer-events: all; }
   /* Round detail must always appear above session/global overlays */
   #detailOverlay { z-index: 270; }
+  #sessionCompareOverlay { z-index: 271; }
+  #sessionComparePicker { z-index: 272; }
   .detail-modal {
     background: var(--bg2); border-radius: 20px;
     width: 100%; max-width: 440px; max-height: 90vh; max-height: 90dvh; overflow-y: auto;
@@ -2123,294 +2113,9 @@
   .score-flash.show { transform: translate(-50%,-50%) scale(1); }
   .score-flash.hide { opacity: 0; }
 
-  /* ══════════════════════════════════════════════
-     DESKTOP LAYOUT  (≥ 768 px)
-     ══════════════════════════════════════════════ */
-  @media (min-width: 768px) {
-
-    /* Allow body to scroll on desktop */
-    body { overflow-y: auto; overscroll-behavior-y: auto; touch-action: auto; }
-
-    /* ── App shell: sidebar + content ── */
-    #app-shell {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    /* ── Sidebar nav ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; bottom: 0; right: auto;
-      width: 200px;
-      flex-direction: column;
-      border-top: none;
-      border-right: 1px solid var(--border);
-      padding-bottom: 0;
-      min-height: 100vh;
-      padding-top: max(24px, env(safe-area-inset-top));
-      gap: 4px;
-      justify-content: flex-start;
-      align-items: stretch;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-    nav::before {
-      content: 'ACHERY';
-      display: block;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      letter-spacing: 3px;
-      color: var(--accent);
-      padding: 0 20px 24px;
-      flex-shrink: 0;
-    }
-    nav button {
-      flex: none;
-      flex-direction: row;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-      padding: 12px 20px;
-      font-size: 12px;
-      border-radius: 10px;
-      margin: 0 8px;
-      width: calc(100% - 16px);
-      text-align: left;
-      white-space: nowrap;
-    }
-    nav button span { width: auto; }
-    nav button svg { width: 20px; height: 20px; flex-shrink: 0; }
-    nav button.active {
-      background: rgba(232,197,71,.1);
-      border-radius: 10px;
-    }
-    nav button:active { opacity: 1; background: rgba(232,197,71,.15); }
-
-    /* ── Pages: fill all space right of sidebar ── */
-    .page {
-      margin-left: 200px;
-      width: calc(100vw - 200px);
-      min-height: 100vh;
-      padding-bottom: 40px;
-      box-sizing: border-box;
-    }
-    /* Score page has no bottom padding on desktop since there's no bottom nav */
-    #page-score { padding-bottom: 0; }
-
-    /* ── Score picker: 2x2 grid with fixed height ── */
-    .session-cards-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      height: 100vh;
-      width: 100%;
-      padding: 24px;
-      gap: 16px;
-      max-width: 960px;
-      margin: 0 auto;
-      box-sizing: border-box;
-    }
-    /* Override the inline padding-top that's set for mobile safe-area */
-    .session-cards-grid[style] {
-      padding-top: 24px !important;
-    }
-    .session-cards-grid .session-card {
-      border-radius: 20px;
-    }
-    .session-cards-grid .session-card h2 { font-size: 32px; }
-
-    /* ── Active scoring: side-by-side on wide screens ── */
-    #scoreActive.score-session-live {
-      display: grid !important;
-      grid-template-columns: 1fr 360px;
-      grid-template-rows: auto 1fr auto;
-      min-height: 100vh;
-      max-height: none;
-      overflow: visible;
-      padding-left: 0;
-    }
-    #scoreActive .scoring-header {
-      grid-column: 1 / -1;
-    }
-    #scoreActive .target-wrap {
-      grid-column: 1;
-      grid-row: 2;
-      padding: 24px;
-      align-items: center;
-      max-width: none;
-    }
-    #scoreActive #targetCanvas {
-      max-width: min(560px, calc(100vh - 200px));
-    }
-    #scoreActive .round-info {
-      grid-column: 2;
-      grid-row: 2;
-      flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
-      gap: 16px;
-      margin: 24px 24px 0 0;
-      padding: 20px;
-    }
-    #scoreActive .arrows-row {
-      grid-column: 2;
-      grid-row: 3;
-      padding: 8px 24px 8px 8px;
-    }
-    #scoreActive .score-history-trigger-wrap {
-      grid-column: 1 / -1;
-      padding: 8px 24px 24px;
-    }
-
-    /* ── History page: fixed height, flex column ── */
-    #page-home.active {
-      display: flex !important;
-      flex-direction: column;
-      height: 100vh;
-      width: calc(100vw - 200px);
-      overflow: hidden;
-      padding-bottom: 0;
-    }
-    #page-home .diag-header { flex-shrink: 0; }
-    #page-home .history-tab-toggle { flex-shrink: 0; padding: 10px 24px 0; }
-    #page-home #myHistoryPanel,
-    #page-home #clubHistoryPanel {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    #page-home #recentList,
-    #page-home #clubList {
-      flex: 1;
-      overflow-y: auto;
-      overscroll-behavior-y: contain;
-      min-height: 0;
-      padding-bottom: 24px;
-    }
-    #page-home .selection-bar,
-    #page-home .filter-bar,
-    #page-home #clubErrorBanner { flex-shrink: 0; }
-    /* Session items: readable width, not squished */
-    .recent-item {
-      max-width: none;
-      margin-left: 24px;
-      margin-right: 24px;
-    }
-
-    /* ── Stats page ── */
-    #page-diag {
-      height: 100vh;
-      width: calc(100vw - 200px);
-      overflow: hidden;
-      padding-bottom: 0;
-    }
-    .stats-section-grid {
-      padding: 12px 24px 24px;
-      gap: 14px;
-    }
-    .stats-section-tile { border-radius: 18px; }
-    /* Larger stat numbers in tile previews */
-    .sst-stat-val { font-size: 24px; }
-    .sst-stat-label { font-size: 10px; }
-
-    /* ── Settings page ── */
-    #page-settings {
-      height: 100vh;
-      width: calc(100vw - 200px);
-    }
-    .settings-scroll-area {
-      padding-bottom: 40px;
-      max-width: 640px;
-      margin: 0 auto;
-      width: 100%;
-    }
-    .settings-section { margin: 16px 0 0; }
-
-    /* ── Headers: consistent padding ── */
-    .diag-header,
-    .scoring-header,
-    .settings-header {
-      padding-left: 28px;
-      padding-right: 28px;
-    }
-    .filter-bar { padding-left: 28px; padding-right: 28px; }
-    .recent-item { margin-left: 28px; margin-right: 28px; }
-
-    /* ── Modals: large centered dialogs on desktop ── */
-    .sort-sheet {
-      border-radius: 16px;
-      margin-bottom: 0;
-      max-width: 640px;
-      width: calc(100vw - 200px - 80px);
-    }
-    .sort-overlay {
-      align-items: center;
-      padding: 40px;
-    }
-    .sort-overlay .sort-sheet {
-      transform: scale(.96);
-      max-height: 85vh;
-    }
-    .sort-overlay.open .sort-sheet { transform: scale(1); }
-    .detail-modal {
-      max-width: min(800px, calc(100vw - 200px - 80px));
-      max-height: 90vh;
-      width: 100%;
-    }
-    .modal {
-      max-width: min(680px, calc(100vw - 200px - 80px));
-      width: 100%;
-      border-radius: 22px;
-    }
-    .overlay { align-items: center; padding: 40px 60px; }
-    .overlay .modal { transform: scale(.97); }
-    .overlay.open .modal { transform: scale(1); }
-    .overlay.centered { padding: 40px 60px; }
-    .overlay.centered .modal { transform: scale(.97); max-height: 90vh; }
-    .overlay.centered.open .modal { transform: scale(1); }
-    /* Stats tile expanded overlay gets more room */
-    #statsTileOverlay .detail-modal {
-      max-width: min(900px, calc(100vw - 200px - 60px));
-      max-height: 92vh;
-    }
-
-    /* ── Page headers: safe-area top not needed on desktop ── */
-    .diag-header { padding-top: 24px; }
-    .scoring-header { padding-top: 20px; }
-    .settings-header { padding-top: 20px; }
-
-    /* ── Wider content areas ── */
-    .filter-bar { padding-top: 12px; }
-
-    /* ── Fix z-index: overlays cover sidebar ── */
-    .overlay, .detail-overlay, .sort-overlay,
-    .round-complete-overlay, .account-popup-overlay { z-index: 400; }
-    nav { z-index: 100; }
-
-    /* ── Score locked: no overflow constraint needed ── */
-    body.score-scroll-locked { overflow: auto; }
-    .page.score-scroll-locked { overflow: visible; }
-  }
-
-  /* Tablet tweaks (768–1024px) */
-  @media (min-width: 768px) and (max-width: 1024px) {
-    nav { width: 72px; }
-    nav::before { display: none; }
-    nav button { flex-direction: column; justify-content: center; padding: 10px 0; font-size: 10px; gap: 4px; }
-    nav button span { display: block; font-size: 9px; }
-    .page { margin-left: 72px; width: calc(100vw - 72px); }
-    .session-cards-grid { max-width: none; }
-    .settings-scroll-area { max-width: none; margin: 0; }
-    .settings-section { margin: 16px 16px 0; }
-    .diag-header, .scoring-header, .settings-header, .filter-bar { padding-left: 20px; padding-right: 20px; }
-    .recent-item { margin-left: 16px; margin-right: 16px; max-width: none; }
-  }
 </style>
 </head>
 <body>
-<div id="app-shell">
 
 <script>
 const ICONS = {
@@ -2514,6 +2219,10 @@ const PRACTICE_TARGET_OPTIONS = [
         <div class="ri-label">SESSION</div>
         <div class="ri-val" id="sessionTotalDisplay">0</div>
       </div>
+      <div>
+        <div class="ri-label">AVG / ROUND</div>
+        <div class="ri-val" id="sessionAvgDisplay">—</div>
+      </div>
     </div>
 
     <div class="photo-round-controls" id="photoRoundControls">
@@ -2610,6 +2319,23 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="round-complete-card">
     <h3 id="roundCompleteTitle">Round Complete</h3>
     <p id="roundCompleteMessage">Choose your next action.</p>
+    <div id="roundCompleteSummary" style="margin:0 0 16px;padding:14px;background:var(--bg3);border-radius:14px;border:1px solid var(--border);display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Round</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1.1;" id="rcRoundScore">—</div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Best</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent3);line-height:1.1;" id="rcBestArrow">—</div>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Avg Arrow</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1.1;" id="rcAvgArrow">—</div>
+        </div>
+      </div>
+      <div id="rcTrend" style="margin-top:10px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center;"></div>
+    </div>
     <button class="end-btn" id="roundCompletePrimaryBtn" onclick="nextRound()">NEXT ROUND →</button>
     <button class="end-btn secondary" id="undoSecondaryBtn" onclick="undoLastArrow()">UNDO LAST ARROW</button>
   </div>
@@ -2723,7 +2449,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Wide rectangle tile 3: Timeline -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
       <div class="sst-label">Score Over Time</div>
-      <div class="sst-preview" id="timelineTilePreview" style="width:100%;align-items:flex-start;">
+      <div class="sst-preview" id="timelineTilePreview" style="width:100%;">
         <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
       </div>
       <div class="sst-tap-hint">Tap to expand</div>
@@ -3033,6 +2759,35 @@ const PRACTICE_TARGET_OPTIONS = [
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
       <span id="sessionOverlayTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
     </div>
+    <button class="sort-btn" style="width:100%;justify-content:center;margin-top:12px;" onclick="openSessionComparePicker()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+      Compare with another session
+    </button>
+  </div>
+</div>
+
+<!-- Session Compare Overlay -->
+<div class="detail-overlay" id="sessionCompareOverlay">
+  <div class="detail-modal" style="max-width:min(900px,calc(100vw - 40px));max-height:92dvh;display:flex;flex-direction:column;">
+    <div class="detail-modal-header" style="flex-shrink:0;">
+      <h3>Compare Sessions</h3>
+      <button class="detail-close" onclick="closeOverlay('sessionCompareOverlay')" aria-label="Close">
+        <svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="sessionCompareContent" style="overflow-y:auto;flex:1;"></div>
+  </div>
+</div>
+
+<!-- Session Compare Picker -->
+<div class="sort-overlay" id="sessionComparePicker" onclick="closeOverlay('sessionComparePicker')">
+  <div class="sort-sheet" onclick="event.stopPropagation()">
+    <h4>Compare with…</h4>
+    <div style="display:flex;gap:0;margin-bottom:14px;">
+      <button id="compareTabMy"   class="view-toggle-btn active" style="max-width:none;flex:1;border-radius:20px 0 0 20px;" onclick="switchCompareTab('my')">My Sessions</button>
+      <button id="compareTabClub" class="view-toggle-btn"        style="max-width:none;flex:1;border-radius:0 20px 20px 0;border-left:none;" onclick="switchCompareTab('club')">Club</button>
+    </div>
+    <div id="sessionComparePickerList"></div>
   </div>
 </div>
 
@@ -3064,6 +2819,10 @@ const PRACTICE_TARGET_OPTIONS = [
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SESSION TOTAL</span>
       <span id="globalSessionTotal" style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent)"></span>
     </div>
+    <button class="sort-btn" style="width:100%;justify-content:center;margin-top:12px;" onclick="openSessionComparePickerFromClub()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+      Compare with another session
+    </button>
   </div>
 </div>
 
@@ -4111,10 +3870,8 @@ function switchHistoryTab(tab) {
   activeHistoryTab = tab;
   document.getElementById('tabMyHistory').classList.toggle('active',   tab === 'my');
   document.getElementById('tabClubHistory').classList.toggle('active', tab === 'club');
-  const isDesktop = window.innerWidth >= 768;
-  const showVal = isDesktop ? 'flex' : 'block';
-  document.getElementById('myHistoryPanel').style.display   = tab === 'my'   ? showVal : 'none';
-  document.getElementById('clubHistoryPanel').style.display = tab === 'club' ? showVal : 'none';
+  document.getElementById('myHistoryPanel').style.display   = tab === 'my'   ? 'block' : 'none';
+  document.getElementById('clubHistoryPanel').style.display = tab === 'club' ? 'block' : 'none';
 
   if (tab === 'my') { renderHome(); return; }
 
@@ -4248,7 +4005,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.2.4';
+const APP_VERSION = '3.2.3';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -4796,6 +4553,41 @@ function confirmDeleteAccount() {
   });
 }
 
+// ── Multi-bow profile helpers ──────────────────────────────────────────────────
+// db.deviceProfile.bowProfiles[archerName] = [ { id, name, type, drawWeight, aimingPoints, notes }, ... ]
+// db.deviceProfile.activeBowId[archerName] = 'bow-id-string'
+
+function getBowProfiles(archerName) {
+  if (!db.deviceProfile.bowProfiles) db.deviceProfile.bowProfiles = {};
+  if (!db.deviceProfile.bowProfiles[archerName]) {
+    // Migrate legacy single bow if it exists
+    const legacy = (db.deviceProfile.bows || {})[archerName];
+    if (legacy && (legacy.name || legacy.type || legacy.drawWeight)) {
+      const migrated = { id: 'bow-' + Date.now(), ...legacy };
+      db.deviceProfile.bowProfiles[archerName] = [migrated];
+      if (!db.deviceProfile.activeBowId) db.deviceProfile.activeBowId = {};
+      db.deviceProfile.activeBowId[archerName] = migrated.id;
+    } else {
+      db.deviceProfile.bowProfiles[archerName] = [];
+    }
+  }
+  return db.deviceProfile.bowProfiles[archerName];
+}
+
+function getActiveBow(archerName) {
+  const profiles = getBowProfiles(archerName);
+  if (!profiles.length) return null;
+  const activeId = (db.deviceProfile.activeBowId || {})[archerName];
+  return profiles.find(b => b.id === activeId) || profiles[0];
+}
+
+function setActiveBow(archerName, bowId) {
+  if (!db.deviceProfile.activeBowId) db.deviceProfile.activeBowId = {};
+  db.deviceProfile.activeBowId[archerName] = bowId;
+  save();
+  renderBowInline();
+}
+
 // ── Bow inline panel ───────────────────────────────────────────────────────────
 function toggleBowInline(headerEl) {
   const body    = document.getElementById('bowInlineBody');
@@ -4806,23 +4598,37 @@ function toggleBowInline(headerEl) {
 }
 
 function renderBowInline() {
-  const name = getDeviceArcherName();
-  const bow  = (db.deviceProfile.bows || {})[name] || {};
-  const body = document.getElementById('bowInlineBody');
-  const sub  = document.getElementById('bowInlineSub');
+  const name     = getDeviceArcherName();
+  const profiles = getBowProfiles(name);
+  const bow      = getActiveBow(name);
+  const body     = document.getElementById('bowInlineBody');
+  const sub      = document.getElementById('bowInlineSub');
 
-  const hasData = bow.name || bow.type || bow.drawWeight || bow.notes ||
-                  Object.keys(bow.aimingPoints || {}).length > 0;
-
-  if (!hasData) {
+  if (!bow) {
     sub.textContent = 'No bow profile saved';
     body.innerHTML = `<p style="color:var(--muted);font-size:13px;text-align:center;padding:8px 0;">
-      Tap the edit icon to add your bow details.
+      Tap + to add your first bow.
     </p>`;
     return;
   }
 
-  sub.textContent = [bow.name, bow.type].filter(Boolean).join(' · ') || 'Tap to view';
+  sub.textContent = [bow.name, bow.type].filter(Boolean).join(' · ') || 'Active bow';
+
+  // Active bow selector (if more than one)
+  let selectorHtml = '';
+  if (profiles.length > 1) {
+    selectorHtml = `<div style="margin-bottom:12px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Active Bow</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">` +
+      profiles.map(b => `
+        <button onclick="setActiveBow(${JSON.stringify(name)}, ${JSON.stringify(b.id)})"
+          style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid ${b.id === bow.id ? 'var(--accent)' : 'var(--border)'};background:${b.id === bow.id ? 'rgba(232,197,71,.08)' : 'none'};cursor:pointer;text-align:left;width:100%;color:var(--text);">
+          <span style="font-size:13px;font-weight:500;flex:1;">${b.name || 'Unnamed Bow'}</span>
+          <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${b.type || ''}</span>
+          ${b.id === bow.id ? '<span style="color:var(--accent);font-size:11px;">● Active</span>' : ''}
+        </button>`).join('') +
+      `</div></div>`;
+  }
 
   const rows = [
     bow.name        && { label: 'Name',         value: bow.name },
@@ -4837,12 +4643,57 @@ function renderBowInline() {
 
   const allRows = [...rows, ...(aimRows.length ? [{ label: '— Aiming Points —', value: '' }, ...aimRows] : [])];
 
-  body.innerHTML = allRows.map(r => `
+  const statsHtml = allRows.map(r => `
     <div class="bow-stat-row">
       <span class="bow-stat-label">${r.label}</span>
       <span class="bow-stat-value">${r.value}</span>
-    </div>
-  `).join('');
+    </div>`).join('');
+
+  // Action buttons row
+  const actionsHtml = `<div style="display:flex;gap:8px;margin-top:14px;">
+    <button class="sort-btn" style="flex:1;justify-content:center;" onclick="openBowProfileOverlay(null)">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+      Edit
+    </button>
+    <button class="sort-btn" style="flex:1;justify-content:center;" onclick="openNewBowOverlay()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Add Bow
+    </button>
+    ${profiles.length > 1 ? `<button class="sort-btn danger" style="flex:1;justify-content:center;color:var(--red);" onclick="deleteActiveBow()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/></svg>
+      Delete
+    </button>` : ''}
+  </div>`;
+
+  body.innerHTML = selectorHtml + statsHtml + actionsHtml;
+}
+
+function openNewBowOverlay() {
+  editingBowId = null; // null = new bow
+  editingBowArcherName = getDeviceArcherName();
+  document.getElementById('bowProfileArcherName').textContent = editingBowArcherName;
+  document.getElementById('bowNameInput').value = '';
+  document.getElementById('bowTypeInput').value = '';
+  document.getElementById('bowDrawWeightInput').value = '';
+  document.getElementById('bowNotesInput').value = '';
+  document.querySelectorAll('.aiming-input').forEach(i => { i.value = ''; });
+  document.getElementById('bowProfileOverlay').classList.add('open');
+}
+
+function deleteActiveBow() {
+  const name = getDeviceArcherName();
+  const bow  = getActiveBow(name);
+  if (!bow) return;
+  appConfirm(`Delete "${bow.name || 'this bow'}"?`, () => {
+    const profiles = getBowProfiles(name);
+    const idx = profiles.findIndex(b => b.id === bow.id);
+    if (idx !== -1) profiles.splice(idx, 1);
+    if (profiles.length) {
+      db.deviceProfile.activeBowId[name] = profiles[0].id;
+    }
+    save();
+    renderBowInline();
+  });
 }
 
 // ── Theme dropdown ─────────────────────────────────────────────────────────────
@@ -4950,9 +4801,10 @@ function initSettingsPage() {
   const sub = document.getElementById('bowInlineSub');
   if (sub) {
     const name = getDeviceArcherName();
-    const bow  = (db.deviceProfile.bows || {})[name] || {};
-    const hasData = bow.name || bow.type || bow.drawWeight;
-    sub.textContent = hasData ? ([bow.name, bow.type].filter(Boolean).join(' · ')) : 'No bow profile saved';
+    const bow  = getActiveBow(name);
+    const profiles = getBowProfiles(name);
+    const countStr = profiles.length > 1 ? ` (${profiles.length} bows)` : '';
+    sub.textContent = bow ? ([bow.name, bow.type].filter(Boolean).join(' · ') || 'Active bow') + countStr : 'No bow profile saved';
   }
   renderBowInline();
 }
@@ -5107,17 +4959,21 @@ function getDeviceArcherName() {
 function updateDeviceNameSummary() { updateAccountUI(); }
 
 let editingBowArcherName = '';
+let editingBowId = null; // null = creating new, string = editing existing
+
 function openBowProfileOverlay(name) {
   editingBowArcherName = name || getDeviceArcherName();
+  editingBowId = null; // default to editing active bow
   document.getElementById('bowProfileArcherName').textContent = editingBowArcherName;
-  const bow = (db.deviceProfile.bows || {})[editingBowArcherName] || { aimingPoints: {} };
+  const bow = getActiveBow(editingBowArcherName) || { aimingPoints: {} };
+  if (bow.id) editingBowId = bow.id;
   document.getElementById('bowNameInput').value = bow.name || '';
   document.getElementById('bowTypeInput').value = bow.type || '';
   document.getElementById('bowDrawWeightInput').value = bow.drawWeight || '';
   document.getElementById('bowNotesInput').value = bow.notes || '';
   document.querySelectorAll('.aiming-input').forEach(input => {
     const target = input.getAttribute('data-target');
-    input.value = bow.aimingPoints[target] || '';
+    input.value = (bow.aimingPoints || {})[target] || '';
   });
   document.getElementById('bowProfileOverlay').classList.add('open');
 }
@@ -5133,11 +4989,34 @@ function saveBowProfile() {
     const val = input.value.trim();
     if (val) aimingPoints[target] = val;
   });
+
+  if (!db.deviceProfile.bowProfiles) db.deviceProfile.bowProfiles = {};
+  if (!db.deviceProfile.activeBowId) db.deviceProfile.activeBowId = {};
+
+  const profiles = getBowProfiles(editingBowArcherName);
+  const bowData  = { name: bowName, type: bowType, drawWeight, aimingPoints, notes };
+
+  if (editingBowId) {
+    // Update existing bow in array
+    const idx = profiles.findIndex(b => b.id === editingBowId);
+    if (idx !== -1) profiles[idx] = { ...profiles[idx], ...bowData };
+    else profiles.push({ id: editingBowId, ...bowData });
+  } else {
+    // New bow
+    const newId = 'bow-' + Date.now();
+    profiles.push({ id: newId, ...bowData });
+    db.deviceProfile.activeBowId[editingBowArcherName] = newId;
+    editingBowId = newId;
+  }
+
+  // Also keep legacy bows field in sync for backward compat
   if (!db.deviceProfile.bows) db.deviceProfile.bows = {};
-  db.deviceProfile.bows[editingBowArcherName] = { name: bowName, type: bowType, drawWeight, aimingPoints, notes };
+  const activeBow = getActiveBow(editingBowArcherName);
+  if (activeBow) db.deviceProfile.bows[editingBowArcherName] = activeBow;
+
   save();
   closeOverlay('bowProfileOverlay');
-  appAlert(`Saved bow profile for ${editingBowArcherName}.`);
+  renderBowInline();
 }
 
 function ensureDeviceNameForScoring(type) {
@@ -5498,6 +5377,14 @@ function updateMagnifier(clientX, clientY) {
   mctx.drawImage(canvas, srcX, srcY, srcW, srcH, 0, 0, mw, mh);
 }
 
+// Haptic feedback helper — short pulse on score, longer on miss
+function haptic(type = 'score') {
+  if (!navigator.vibrate) return;
+  if (type === 'miss') navigator.vibrate([30, 20, 30]);
+  else if (type === 'gold') navigator.vibrate(60);
+  else navigator.vibrate(15);
+}
+
 function handleTargetClick(e) {
   if (!session) return;
   if (isPhotoTournamentSession(session)) return;
@@ -5512,6 +5399,7 @@ function handleTargetClick(e) {
   const ny = (py - CY) / R;
   const score = normalizeRoundScore(cr.mode, getScoreAt(cr.mode, nx, ny));
   cr.arrows.push({nx, ny, score});
+  haptic(score >= 9 ? 'gold' : 'score');
   flashScore(score); renderScorePage();
   if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
     const sessionId = session.id; cr.locked = true; renderScorePage();
@@ -5524,8 +5412,8 @@ function scoreMiss() {
   if (isPhotoTournamentSession(session)) return;
   const cr = session.currentRound;
   if (cr.locked || cr.arrows.length >= 5) return;
-  // Push a miss way outside the target rings (nx: 1.5, ny: 1.5)
   cr.arrows.push({nx: 1.5, ny: 1.5, score: 0});
+  haptic('miss');
   flashScore(0); renderScorePage();
   if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
     const sessionId = session.id; cr.locked = true; renderScorePage();
@@ -5563,9 +5451,7 @@ function updateScoreScrollLock() {
   const scorePage = document.getElementById('page-score');
   const scoreActive = document.getElementById('scoreActive');
   const scorePageActive = scorePage?.classList.contains('active');
-  const isDesktop = window.innerWidth >= 768;
-  // On desktop the scoring UI is not scroll-locked — the layout handles it via grid
-  const scoringLive = !isDesktop && !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
+  const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
   document.body.classList.toggle('score-scroll-locked', scoringLive);
   if (scorePage) scorePage.classList.toggle('score-scroll-locked', scoringLive);
   if (scoreActive) scoreActive.classList.toggle('score-session-live', scoringLive);
@@ -5647,6 +5533,19 @@ function renderScorePage() {
   const total = session.rounds.reduce((s,r)=>s+r.arrows.reduce((ss,a)=>ss+a.score,0),0) + roundScore;
   document.getElementById('sessionTotalDisplay').textContent = total;
 
+  // Running average across all completed rounds + current round (if started)
+  const completedScores = session.rounds.map(r => r.arrows.reduce((s,a)=>s+a.score,0));
+  const allScores = cr.arrows.length ? [...completedScores, roundScore] : completedScores;
+  const avgEl = document.getElementById('sessionAvgDisplay');
+  if (avgEl) {
+    if (allScores.length) {
+      const avg = allScores.reduce((a,b)=>a+b,0) / allScores.length;
+      avgEl.textContent = avg.toFixed(1);
+    } else {
+      avgEl.textContent = '—';
+    }
+  }
+
   const dots = document.getElementById('arrowDots');
   dots.innerHTML = '';
   for(let i=0;i<5;i++){
@@ -5701,6 +5600,33 @@ function renderScorePage() {
     overlayTitle.textContent = 'Round Complete'; overlayMessage.textContent = 'Choose your next action.';
     overlayPrimaryBtn.style.display = '';
     overlayPrimaryBtn.textContent = isTournamentSession(session) && rn === 6 ? 'FINISH TOURNAMENT ✓' : 'NEXT ROUND →';
+
+    // Populate round summary
+    const summaryEl = document.getElementById('roundCompleteSummary');
+    if (summaryEl && cr.arrows.length) {
+      const scores = cr.arrows.map(a => a.score);
+      const roundTotal = scores.reduce((a,b)=>a+b,0);
+      const bestArrow = Math.max(...scores);
+      const avgArrow = (roundTotal / scores.length).toFixed(1);
+      document.getElementById('rcRoundScore').textContent = roundTotal;
+      document.getElementById('rcBestArrow').textContent = bestArrow === 0 ? 'M' : bestArrow;
+      document.getElementById('rcAvgArrow').textContent = avgArrow;
+      // Trend vs previous rounds
+      const prevScores = session.rounds.map(r => r.arrows.reduce((s,a)=>s+a.score,0));
+      const trendEl = document.getElementById('rcTrend');
+      if (prevScores.length) {
+        const prevAvg = prevScores.reduce((a,b)=>a+b,0) / prevScores.length;
+        const diff = roundTotal - prevAvg;
+        const sign = diff > 0 ? '+' : '';
+        trendEl.textContent = `${sign}${diff.toFixed(1)} vs session avg`;
+        trendEl.style.color = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--muted)';
+      } else {
+        trendEl.textContent = 'First round of this session';
+        trendEl.style.color = 'var(--muted)';
+      }
+      summaryEl.style.display = 'block';
+    }
+
     overlay.classList.add('open');
   } else { overlay.classList.remove('open'); }
 
@@ -6599,8 +6525,19 @@ function openStatsTileOverlay(tileKey) {
           const tc = document.getElementById('statsTileTimelineCanvas');
           if (!tc) return;
           const c = tc.getContext('2d');
-          const W3=800, H3=250;
-          tc.style.width='100%';
+
+          // DPR-aware sizing — same fix as the main timeline
+          const dpr = window.devicePixelRatio || 1;
+          const cssW = tc.parentElement ? tc.parentElement.clientWidth || 800 : 800;
+          const cssH = Math.round(cssW * (250 / 800));
+          const W3 = cssW, H3 = cssH;
+
+          tc.width  = W3 * dpr;
+          tc.height = H3 * dpr;
+          tc.style.width  = W3 + 'px';
+          tc.style.height = H3 + 'px';
+          c.scale(dpr, dpr);
+
           c.clearRect(0,0,W3,H3);
           c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
           overlayTimelineDataPoints = [];
@@ -6614,7 +6551,7 @@ function openStatsTileOverlay(tileKey) {
           if (overlayEmpty) overlayEmpty.style.display = 'none';
 
           const transformData = window.overlayTimelinePanZoom ? window.overlayTimelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
-          const scale = transformData.scale;
+          const panScale = transformData.scale;
           const screenTx = transformData.tx;
           const rect = transformData.rect;
           const canvasTx = rect.width ? screenTx * (W3 / rect.width) : 0;
@@ -6622,16 +6559,16 @@ function openStatsTileOverlay(tileKey) {
           const scores = rounds.map(r=>r.arrows.reduce((sum,a)=>sum+a.score,0));
           const maxS=Math.max(...scores,25), minS=Math.max(0,Math.min(...scores)-2);
           const pad=40;
-          const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * scale + canvasTx);
+          const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * panScale + canvasTx);
           const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
 
           c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
-          c.fillStyle='#6b7a99'; c.font='10px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
+          c.fillStyle='#6b7a99'; c.font='11px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
           for(let g=0;g<=4;g++){
             const val = minS + (g/4)*(maxS-minS);
             const y=py(val);
             c.beginPath(); c.moveTo(pad,y); c.lineTo(W3,y); c.stroke();
-            c.fillText(Math.round(val), pad-8, y);
+            c.fillText(Math.round(val), pad-6, y);
           }
           c.save();
           c.beginPath(); c.rect(pad, 0, W3-pad, H3); c.clip();
@@ -6672,12 +6609,16 @@ function openStatsTileOverlay(tileKey) {
           if (ev.changedTouches.length !== 1) return;
           const t = ev.changedTouches[0];
           const rect = overlayContainer.getBoundingClientRect();
-          const W3 = 800;
-          const canvasX = (t.clientX - rect.left) * (W3 / rect.width);
+          // Use live canvas CSS width/height for accurate hit-testing
+          const tc2 = document.getElementById('statsTileTimelineCanvas');
+          const cssW2 = tc2 ? parseFloat(tc2.style.width) || rect.width : rect.width;
+          const cssH2 = tc2 ? parseFloat(tc2.style.height) || rect.height : rect.height;
+          const canvasX = (t.clientX - rect.left) * (cssW2 / rect.width);
+          const canvasY = (t.clientY - rect.top)  * (cssH2 / rect.height);
           let nearest = null, minDist = Infinity;
           overlayTimelineDataPoints.forEach(pt => {
-            const dist = Math.abs(pt.x - canvasX);
-            if (dist < minDist && dist < 40) { minDist = dist; nearest = pt; }
+            const dist = Math.hypot(pt.x - canvasX, pt.y - canvasY);
+            if (dist < minDist && dist < 44) { minDist = dist; nearest = pt; }
           });
           const tooltip = document.getElementById('timelineTooltip');
           if (nearest) {
@@ -6686,8 +6627,8 @@ function openStatsTileOverlay(tileKey) {
             tooltip.style.display = 'block';
             tooltip.style.left = '0px'; tooltip.style.top = '-9999px';
             const tipW = tooltip.offsetWidth, tipH = tooltip.offsetHeight, margin = 8;
-            const displayX = rect.left + (nearest.x * (rect.width / W3));
-            const displayY = rect.top + (nearest.y * (rect.height / 250));
+            const displayX = rect.left + (nearest.x / cssW2) * rect.width;
+            const displayY = rect.top  + (nearest.y / cssH2) * rect.height;
             const clampedX = Math.max(margin, Math.min(window.innerWidth - tipW - margin, displayX - tipW/2));
             const clampedY = Math.max(margin, displayY - tipH - 14);
             tooltip.style.left = clampedX + 'px'; tooltip.style.top = clampedY + 'px';
@@ -7690,12 +7631,6 @@ function deleteHomeSelected() {
 }
 
 function renderHome() {
-  // Ensure myHistoryPanel uses correct display value for current breakpoint
-  const myPanel = document.getElementById('myHistoryPanel');
-  if (myPanel && myPanel.style.display !== 'none') {
-    myPanel.style.display = window.innerWidth >= 768 ? 'flex' : 'block';
-  }
-
   const list = document.getElementById('recentList');
   const newestFirst = [...db.sessions].reverse().filter(sessionObj => 
     sessionMatchesFilter(sessionObj, homeFilters, 'home') && sessionMatchesSearch(sessionObj, homeSearchQuery)
@@ -7810,7 +7745,280 @@ function openSessionOverlay(idx) {
   document.getElementById('sessionOverlay').classList.add('open');
 }
 
-function deleteCurrentSession() {
+// ── Session Comparison ────────────────────────────────────────────────────────
+// ── Compare picker state ──────────────────────────────────────────────────────
+let compareSourceSession = null; // the session being compared FROM
+let comparePickerTab = 'my';     // 'my' or 'club'
+
+function renderComparePickerList() {
+  const list = document.getElementById('sessionComparePickerList');
+  if (!list) return;
+
+  const pool = comparePickerTab === 'club' ? clubSessions : db.sessions;
+  // Exclude the source session itself (match by id if available, else by reference)
+  const sourceId = compareSourceSession?.id;
+  const others = [...pool].reverse().filter(s =>
+    !sourceId || String(s.id) !== String(sourceId)
+  );
+
+  if (!others.length) {
+    const label = comparePickerTab === 'club' ? 'No club sessions available.' : 'No other sessions to compare.';
+    list.innerHTML = `<div style="padding:16px;color:var(--muted);font-size:14px;">${label}</div>`;
+    return;
+  }
+
+  list.innerHTML = others.map(s => {
+    const total   = (s.rounds || []).reduce((x, r) => x + r.arrows.reduce((y, a) => y + a.score, 0), 0);
+    const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+    const archer  = comparePickerTab === 'club' ? (s.archerName || '') : '';
+    // Serialise the session object safely for the onclick
+    const safeId  = JSON.stringify(String(s.id));
+    const src     = comparePickerTab === 'club' ? 'club' : 'my';
+    return `<button class="sort-option" onclick="runSessionCompareById(${safeId}, '${src}')" style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="text-align:left;">
+        <div style="font-size:13px;font-weight:500;">${sessionTypeLabel(s)}${archer ? ` · ${archer}` : ''}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateStr}${s.location?.label ? ' · ' + s.location.label : ''}</div>
+      </div>
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);">${total}</span>
+    </button>`;
+  }).join('');
+}
+
+function switchCompareTab(tab) {
+  comparePickerTab = tab;
+  document.getElementById('compareTabMy').classList.toggle('active', tab === 'my');
+  document.getElementById('compareTabClub').classList.toggle('active', tab === 'club');
+  renderComparePickerList();
+}
+
+function openSessionComparePicker() {
+  if (activeSessionIdx === null) return;
+  compareSourceSession = db.sessions[activeSessionIdx];
+  comparePickerTab = 'my';
+  document.getElementById('compareTabMy').classList.add('active');
+  document.getElementById('compareTabClub').classList.remove('active');
+  renderComparePickerList();
+  document.getElementById('sessionComparePicker').classList.add('open');
+}
+
+function openSessionComparePickerFromClub() {
+  const s = clubSessions.find(s => String(s.id) === String(activeGlobalSessionId));
+  if (!s) return;
+  compareSourceSession = s;
+  // Default to My Sessions tab so the user can compare a club session to their own
+  comparePickerTab = 'my';
+  document.getElementById('compareTabMy').classList.add('active');
+  document.getElementById('compareTabClub').classList.remove('active');
+  renderComparePickerList();
+  document.getElementById('sessionComparePicker').classList.add('open');
+}
+
+function runSessionCompareById(targetId, targetSrc) {
+  const pool = targetSrc === 'club' ? clubSessions : db.sessions;
+  const target = pool.find(s => String(s.id) === String(targetId));
+  if (!target || !compareSourceSession) return;
+  runSessionCompare(compareSourceSession, target);
+}
+
+function openSessionComparePicker_legacy() {} // kept to avoid reference errors
+
+function runSessionCompare(a, b) {
+  closeOverlay('sessionComparePicker');
+  if (!a || !b) return;
+
+  function sessionStats(s) {
+    const rounds  = s.rounds;
+    const arrows  = rounds.flatMap(r => r.arrows);
+    const total   = arrows.reduce((x, a) => x + a.score, 0);
+    const scores  = rounds.map(r => r.arrows.reduce((x, a) => x + a.score, 0));
+    const avg     = scores.length ? (scores.reduce((x, y) => x + y, 0) / scores.length).toFixed(1) : '—';
+    const best    = scores.length ? Math.max(...scores) : '—';
+    const golds   = arrows.filter(a => a.score >= 9).length;
+    const reds    = arrows.filter(a => a.score >= 7 && a.score <= 8).length;
+    const misses  = arrows.filter(a => a.score === 0).length;
+    // Grouping: average distance of tapped arrows from centre (lower = tighter)
+    const tapped  = arrows.filter(a => typeof a.nx === 'number' && typeof a.ny === 'number' && !(a.score === 0 && a.nx === 1.5 && a.ny === 1.5));
+    const avgDist = tapped.length
+      ? (tapped.reduce((s, a) => s + Math.hypot(a.nx, a.ny), 0) / tapped.length).toFixed(3)
+      : null;
+    return { total, avg, best, rounds: rounds.length, arrows, golds, reds, misses, avgDist };
+  }
+
+  const sa = sessionStats(a), sb = sessionStats(b);
+
+  // ── Stat row helper (higher = better by default, pass lowerBetter=true for grouping) ──
+  function statRow(label, va, vb, lowerBetter = false) {
+    const na = Number(va), nb = Number(vb);
+    const valid = !isNaN(na) && !isNaN(nb);
+    const aWins = valid && (lowerBetter ? na < nb : na > nb);
+    const bWins = valid && (lowerBetter ? nb < na : nb > na);
+    const hi = 'color:var(--accent);';
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="text-align:right;padding:10px 14px;font-family:'Bebas Neue',sans-serif;font-size:24px;${aWins ? hi : ''}">${va}</td>
+      <td style="text-align:center;padding:10px 6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;line-height:1.4;">${label}</td>
+      <td style="text-align:left;padding:10px 14px;font-family:'Bebas Neue',sans-serif;font-size:24px;${bWins ? hi : ''}">${vb}</td>
+    </tr>`;
+  }
+
+  // ── Zone distribution bar for one session ──
+  function zoneBar(arrows, zone) {
+    const total = arrows.length || 1;
+    const count = arrows.filter(a => a.score >= zone.min && a.score <= zone.max).length;
+    const pct   = ((count / total) * 100).toFixed(0);
+    return { count, pct };
+  }
+
+  function zoneDistRow(zone) {
+    const ra = zoneBar(sa.arrows, zone);
+    const rb = zoneBar(sb.arrows, zone);
+    const aWider = Number(ra.pct) > Number(rb.pct);
+    const bWider = Number(rb.pct) > Number(ra.pct);
+    return `<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${ra.pct}%</span>
+        <div style="height:10px;width:${Math.max(2, ra.pct)}%;max-width:100%;background:${zone.color};border-radius:3px;opacity:${aWider ? '1' : '0.45'};"></div>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;">${zone.label}</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div style="height:10px;width:${Math.max(2, rb.pct)}%;max-width:100%;background:${zone.color};border-radius:3px;opacity:${bWider ? '1' : '0.45'};"></div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${rb.pct}%</span>
+      </div>
+    </div>`;
+  }
+
+  // ── Mini heatmap drawn onto an off-screen canvas, returned as data URL ──
+  function heatmapDataURL(arrows) {
+    const S = 300, CX = S / 2, R = S / 2 - 3;
+    const cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    const cx = cv.getContext('2d');
+
+    // 1. Clip everything to the circular target boundary
+    cx.save();
+    cx.beginPath(); cx.arc(CX, CX, R, 0, Math.PI * 2); cx.clip();
+
+    // 2. Draw target rings (outermost first)
+    for (let i = BULLSEYE_RINGS.length - 1; i >= 0; i--) {
+      const r = R * BULLSEYE_RINGS[i].end;
+      cx.beginPath(); cx.arc(CX, CX, r, 0, Math.PI * 2);
+      // Lighten very dark rings so heat is visible over them
+      const col = BULLSEYE_RINGS[i].color === '#1a1a1a' ? '#3a3a3a' : BULLSEYE_RINGS[i].color;
+      cx.fillStyle = col; cx.fill();
+    }
+
+    // 3. Draw heat blobs on top of rings
+    const tapped = arrows.filter(a =>
+      typeof a.nx === 'number' && typeof a.ny === 'number' &&
+      !(a.score === 0 && a.nx === 1.5 && a.ny === 1.5) &&
+      a.source !== 'photo'
+    );
+    if (tapped.length) {
+      // Darker semi-transparent overlay so heat stands out against coloured rings
+      cx.globalCompositeOperation = 'source-over';
+      tapped.forEach(a => {
+        const ax = CX + a.nx * R, ay = CX + a.ny * R;
+        const blobR = Math.max(10, R * 0.12);
+        const grad = cx.createRadialGradient(ax, ay, 0, ax, ay, blobR);
+        grad.addColorStop(0, 'rgba(232,197,71,0.80)');
+        grad.addColorStop(0.4, 'rgba(232,197,71,0.35)');
+        grad.addColorStop(1, 'rgba(232,197,71,0)');
+        cx.beginPath(); cx.arc(ax, ay, blobR, 0, Math.PI * 2);
+        cx.fillStyle = grad; cx.fill();
+      });
+
+      // Draw a crisp dot at each arrow position
+      tapped.forEach(a => {
+        const ax = CX + a.nx * R, ay = CX + a.ny * R;
+        cx.beginPath(); cx.arc(ax, ay, 2.5, 0, Math.PI * 2);
+        cx.fillStyle = 'rgba(255,255,255,0.9)'; cx.fill();
+      });
+    }
+
+    cx.restore(); // remove clip
+
+    // 4. Redraw ring outlines on top so the target structure stays crisp
+    for (let i = BULLSEYE_RINGS.length - 1; i >= 0; i--) {
+      const r = R * BULLSEYE_RINGS[i].end;
+      cx.beginPath(); cx.arc(CX, CX, r, 0, Math.PI * 2);
+      cx.strokeStyle = 'rgba(0,0,0,0.25)'; cx.lineWidth = 0.75; cx.stroke();
+    }
+    // Outer border
+    cx.beginPath(); cx.arc(CX, CX, R, 0, Math.PI * 2);
+    cx.strokeStyle = 'rgba(0,0,0,0.5)'; cx.lineWidth = 1.5; cx.stroke();
+
+    return cv.toDataURL();
+  }
+
+  const dateA = a.date ? new Date(a.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+  const dateB = b.date ? new Date(b.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+  const locA  = formatLocation(a.location);
+  const locB  = formatLocation(b.location);
+
+  const groupA = sa.avgDist !== null ? sa.avgDist : '—';
+  const groupB = sb.avgDist !== null ? sb.avgDist : '—';
+  // Convert avgDist to a readable "tightness" percentage (lower dist = higher %)
+  const groupLabelA = sa.avgDist !== null ? Math.round((1 - Math.min(Number(sa.avgDist), 1)) * 100) + '%' : '—';
+  const groupLabelB = sb.avgDist !== null ? Math.round((1 - Math.min(Number(sb.avgDist), 1)) * 100) + '%' : '—';
+
+  const imgA = heatmapDataURL(sa.arrows);
+  const imgB = heatmapDataURL(sb.arrows);
+
+  const sectionHead = (label) =>
+    `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:14px 14px 6px;border-top:1px solid var(--border);">${label}</div>`;
+
+  document.getElementById('sessionCompareContent').innerHTML = `
+    <!-- Header -->
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:4px;margin-bottom:4px;text-align:center;padding:4px 0 12px;">
+      <div>
+        <div style="font-size:13px;font-weight:500;">${sessionTypeLabel(a)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateA}</div>
+        ${locA ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${locA}</div>` : ''}
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);display:flex;align-items:center;padding:0 6px;">VS</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;">${sessionTypeLabel(b)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateB}</div>
+        ${locB ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${locB}</div>` : ''}
+      </div>
+    </div>
+
+    <!-- Score stats table -->
+    <table style="width:100%;border-collapse:collapse;background:var(--bg3);border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+      ${statRow('Total Score',   sa.total,   sb.total)}
+      ${statRow('Avg / Round',   sa.avg,     sb.avg)}
+      ${statRow('Best Round',    sa.best,    sb.best)}
+      ${statRow('Rounds',        sa.rounds,  sb.rounds)}
+      ${statRow('Total Arrows',  sa.arrows.length, sb.arrows.length)}
+      ${statRow('Golds (9–10)',  sa.golds,   sb.golds)}
+      ${statRow('Reds  (7–8)',   sa.reds,    sb.reds)}
+      ${statRow('Misses',        sa.misses,  sb.misses, true)}
+    </table>
+
+    <!-- Arrow grouping -->
+    ${sectionHead('Arrow Grouping')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px 4px;">
+      <div style="text-align:center;">
+        <img src="${imgA}" style="width:100%;max-width:160px;border-radius:50%;display:block;margin:0 auto;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);margin-top:6px;">${groupLabelA}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">TIGHTNESS</div>
+      </div>
+      <div style="text-align:center;">
+        <img src="${imgB}" style="width:100%;max-width:160px;border-radius:50%;display:block;margin:0 auto;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);margin-top:6px;">${groupLabelB}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">TIGHTNESS</div>
+      </div>
+    </div>
+
+    <!-- Score distribution -->
+    ${sectionHead('Score Distribution')}
+    <div style="padding:4px 14px 16px;">
+      ${ZONES.map(z => zoneDistRow(z)).join('')}
+    </div>`;
+
+  document.getElementById('sessionCompareOverlay').classList.add('open');
+}
+
+function deleteSession() {
   appConfirm('Delete this entire session?', async () => {
     const sessionToDelete = db.sessions[activeSessionIdx];
     if (!sessionToDelete) return;
@@ -7957,9 +8165,7 @@ function goPage(name, btn) {
   if(name==='home') renderHome();
   if(name==='settings') { updateDeviceNameSummary(); initSettingsPage(); }
   updateScoreScrollLock();
-  // On desktop, scroll the main window; on mobile the individual page containers handle scroll
-  const isDesktop = window.innerWidth >= 768;
-  if (isDesktop) { window.scrollTo(0,0); } else { window.scrollTo(0,0); }
+  window.scrollTo(0,0);
   if (window.heatmapPanZoom) window.heatmapPanZoom.reset();
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
@@ -8175,18 +8381,16 @@ function renderStatsTilePreviews(allArrows, rounds) {
   }
 
   // ── Timeline preview ─────────────────────────────
-  // Copy the source canvas at its natural 800×250 aspect ratio.
-  // The canvas element keeps its intrinsic ratio; CSS width:100% + height:auto
-  // then scales it down proportionally without distortion.
   const timeSrc = document.getElementById('timelineCanvas');
   const timeDst = document.getElementById('timelinePreviewCanvas');
   if (timeSrc && timeDst) {
-    // Always keep the destination at the same aspect ratio as the source
-    timeDst.width  = timeSrc.width;
-    timeDst.height = timeSrc.height;
-    const tctx = timeDst.getContext('2d');
-    tctx.clearRect(0, 0, timeDst.width, timeDst.height);
-    tctx.drawImage(timeSrc, 0, 0);
+    // Draw at a fixed logical resolution — don't copy the DPR-inflated
+    // pixel dimensions from the source or the preview canvas will be
+    // internally huge and get CSS-squished, causing warped text.
+    const PW = 800, PH = 250;
+    timeDst.width  = PW;
+    timeDst.height = PH;
+    timeDst.getContext('2d').drawImage(timeSrc, 0, 0, PW, PH);
   }
 
   // ── Zone bars mini preview (horizontal bar chart) ──
@@ -8376,9 +8580,24 @@ function drawHeatmap(arrows) {
 let timelineDataPoints = []; // Track mapped coordinates for tooltips
 
 function drawTimeline(rounds) {
-  const tc = document.getElementById('timelineCanvas'); const c = tc.getContext('2d');
-  const W3=800, H3=250; tc.style.width='100%'; c.clearRect(0,0,W3,H3);
-  c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
+  const tc = document.getElementById('timelineCanvas');
+  const c = tc.getContext('2d');
+
+  // Size the canvas to its actual CSS display size × device pixel ratio
+  // This prevents stretched/warped text on desktop and retina screens
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = tc.parentElement ? tc.parentElement.clientWidth || 800 : 800;
+  const cssH = Math.round(cssW * (250 / 800)); // maintain aspect ratio
+  const W3 = cssW, H3 = cssH;
+
+  tc.width  = W3 * dpr;
+  tc.height = H3 * dpr;
+  tc.style.width  = W3 + 'px';
+  tc.style.height = H3 + 'px';
+  c.scale(dpr, dpr);
+
+  c.clearRect(0, 0, W3, H3);
+  c.fillStyle = '#111827'; c.fillRect(0, 0, W3, H3);
   timelineDataPoints = []; // reset
 
   // Show/hide HTML empty-state message (crisp DOM text instead of pixelated canvas text)
@@ -8390,7 +8609,7 @@ function drawTimeline(rounds) {
   if (emptyMsg) emptyMsg.style.display = 'none';
 
   const transformData = window.timelinePanZoom ? window.timelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
-  const scale = transformData.scale;
+  const panScale = transformData.scale;
   const screenTx = transformData.tx;
   const rect = transformData.rect;
   const canvasTx = rect.width ? screenTx * (W3 / rect.width) : 0;
@@ -8400,17 +8619,17 @@ function drawTimeline(rounds) {
   const pad=40; // extra padding for text
 
   // Calculate position iteratively taking true panning/scaling into account
-  const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * scale + canvasTx);
+  const px=i=>(pad + ((i/(scores.length-1))*(W3-pad*2)) * panScale + canvasTx);
   const py=s=>(H3-pad - (s-minS)/(maxS-minS)*(H3-pad*2));
 
   // Horizontal Grid Lines (Scores) - Static
   c.strokeStyle='rgba(255,255,255,0.08)'; c.lineWidth=1;
-  c.fillStyle='#6b7a99'; c.font='10px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
+  c.fillStyle='#6b7a99'; c.font='11px "DM Mono", monospace'; c.textAlign='right'; c.textBaseline='middle';
   for(let g=0;g<=4;g++){
     const val = minS + (g/4)*(maxS-minS);
     const y=py(val);
     c.beginPath(); c.moveTo(pad,y); c.lineTo(W3,y); c.stroke();
-    c.fillText(Math.round(val), pad - 8, y);
+    c.fillText(Math.round(val), pad - 6, y);
   }
 
   // Clip region for timeline data to prevent bleeding into Y-axis labels
@@ -8440,11 +8659,23 @@ function drawTimeline(rounds) {
   scores.forEach((s,i)=>{if(i>0)c.lineTo(px(i),py(s));});
   c.strokeStyle='#e8c547'; c.lineWidth=2.5; c.lineJoin='round'; c.stroke();
 
-  // Circular Dots & save data points
+  // Circular Dots & save data points — PB gets a distinct green dot
+  const maxScore = Math.max(...scores);
   scores.forEach((s,i)=>{
     const x = px(i), y = py(s);
-    c.beginPath(); c.arc(x,y,4,0,Math.PI*2); c.fillStyle='#e8c547'; c.fill();
-    timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i, round: rounds[i] });
+    const isPB = s === maxScore;
+    if (isPB) {
+      // Draw a slightly larger green dot with a white ring for the personal best
+      c.beginPath(); c.arc(x, y, 7, 0, Math.PI*2);
+      c.fillStyle = '#52c278'; c.fill();
+      c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 1.5; c.stroke();
+      // Small "PB" star diamond shape
+      c.beginPath(); c.arc(x, y, 3, 0, Math.PI*2);
+      c.fillStyle = '#fff'; c.fill();
+    } else {
+      c.beginPath(); c.arc(x, y, 4, 0, Math.PI*2); c.fillStyle='#e8c547'; c.fill();
+    }
+    timelineDataPoints.push({ x, y, score: s, date: rounds[i].sessionDate, idx: i, round: rounds[i], isPB });
   });
 
   c.restore(); // remove clip so we don't interfere with next draw cycle
@@ -8481,6 +8712,8 @@ tcContainer.addEventListener('touchend', e => {
     activeTimelinePoint = nearest;
     document.getElementById('ttScore').textContent = nearest.score;
     document.getElementById('ttDate').textContent = new Date(nearest.date).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+    const hintEl = document.querySelector('.tt-hint');
+    if (hintEl) hintEl.textContent = nearest.isPB ? '⭐ Personal Best · Tap for details →' : 'Tap for details →';
     
     // Position tooltip translating canvas coordinates precisely to fixed screen position
     const displayX = rect.left + (nearest.x * (rect.width / W3));
@@ -8542,12 +8775,12 @@ function openTimelineRoundDetail() {
   }
 }
 const ZONES = [
-  {label:'10', min:9,  max:10, color:'#f7e900'},
-  {label:'7–8',    min:7,  max:8,  color:'#e84040'},
-  {label:'5–6',    min:5,  max:6,  color:'#3b82f6'},
-  {label:'3–4',    min:3,  max:4,  color:'#555'},
-  {label:'1–2',    min:1,  max:2,  color:'#aaa'},
-  {label:'Miss',   min:0,  max:0,  color:'#333'},
+  {label:'9–10', min:9,  max:10, color:'#f7e900'},
+  {label:'7–8',  min:7,  max:8,  color:'#e84040'},
+  {label:'5–6',  min:5,  max:6,  color:'#3b82f6'},
+  {label:'3–4',  min:3,  max:4,  color:'#555'},
+  {label:'1–2',  min:1,  max:2,  color:'#aaa'},
+  {label:'Miss', min:0,  max:0,  color:'#333'},
 ];
 
 function drawZoneBars(arrows) {
@@ -8588,7 +8821,6 @@ setTimeout(async () => {
 // Update sync status when network state changes
 window.addEventListener('online',  () => { updateSyncStatus(); setTimeout(() => autoSyncUnsyncedSessions(), 1000); });
 window.addEventListener('offline', () => { updateSyncStatus(); });
-window.addEventListener('resize', () => { updateScoreScrollLock(); });
 
 function wipeEphemeralOnExit() {
   if (session?.ephemeral) { session = null; localStorage.setItem(DB_KEY, JSON.stringify(db)); }
@@ -8674,6 +8906,5 @@ if (window.visualViewport) {
   };
 })();
 </script>
-</div><!-- #app-shell -->
 </body>
 </html>
