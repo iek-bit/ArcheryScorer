@@ -758,10 +758,22 @@
   .stats-section-grid .stats-section-tile:nth-child(2) .sst-preview {
     padding: 4px;
   }
-  /* Wide tiles: override flex to stretch full width */
-  .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview,
+  /* Zone tile: stretch to fill */
   .stats-section-grid .stats-section-tile:nth-child(4) .sst-preview {
     align-items: stretch;
+  }
+  /* Timeline tile: center vertically so canvas keeps its aspect ratio */
+  .stats-section-grid .stats-section-tile:nth-child(3) .sst-preview {
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+  }
+  #timelinePreviewCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+    flex-shrink: 0;
   }
   .sst-tap-hint {
     font-size: 10px;
@@ -2326,19 +2338,43 @@
     .filter-bar { padding-left: 28px; padding-right: 28px; }
     .recent-item { margin-left: 28px; margin-right: 28px; }
 
-    /* ── Modals: centered with max-width ── */
+    /* ── Modals: large centered dialogs on desktop ── */
     .sort-sheet {
-      border-radius: 20px;
-      margin-bottom: 40px;
-      max-width: 520px;
+      border-radius: 16px;
+      margin-bottom: 0;
+      max-width: 640px;
+      width: calc(100vw - 200px - 80px);
     }
-    .detail-modal { max-width: 560px; }
-    .modal { max-width: 480px; border-radius: 22px; }
-    .overlay { align-items: center; padding: 40px; }
-    .overlay .modal { transform: scale(.96); border-radius: 22px; }
+    .sort-overlay {
+      align-items: center;
+      padding: 40px;
+    }
+    .sort-overlay .sort-sheet {
+      transform: scale(.96);
+      max-height: 85vh;
+    }
+    .sort-overlay.open .sort-sheet { transform: scale(1); }
+    .detail-modal {
+      max-width: min(800px, calc(100vw - 200px - 80px));
+      max-height: 90vh;
+      width: 100%;
+    }
+    .modal {
+      max-width: min(680px, calc(100vw - 200px - 80px));
+      width: 100%;
+      border-radius: 22px;
+    }
+    .overlay { align-items: center; padding: 40px 60px; }
+    .overlay .modal { transform: scale(.97); }
     .overlay.open .modal { transform: scale(1); }
-    .overlay.centered .modal { transform: scale(.96); }
+    .overlay.centered { padding: 40px 60px; }
+    .overlay.centered .modal { transform: scale(.97); max-height: 90vh; }
     .overlay.centered.open .modal { transform: scale(1); }
+    /* Stats tile expanded overlay gets more room */
+    #statsTileOverlay .detail-modal {
+      max-width: min(900px, calc(100vw - 200px - 60px));
+      max-height: 92vh;
+    }
 
     /* ── Page headers: safe-area top not needed on desktop ── */
     .diag-header { padding-top: 24px; }
@@ -2687,7 +2723,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Wide rectangle tile 3: Timeline -->
     <div class="stats-section-tile" onclick="openStatsTileOverlay('timeline')">
       <div class="sst-label">Score Over Time</div>
-      <div class="sst-preview" id="timelineTilePreview" style="width:100%;">
+      <div class="sst-preview" id="timelineTilePreview" style="width:100%;align-items:flex-start;">
         <canvas id="timelinePreviewCanvas" width="800" height="250" style="width:100%;height:auto;pointer-events:none;display:block;border-radius:6px;"></canvas>
       </div>
       <div class="sst-tap-hint">Tap to expand</div>
@@ -8139,12 +8175,18 @@ function renderStatsTilePreviews(allArrows, rounds) {
   }
 
   // ── Timeline preview ─────────────────────────────
+  // Copy the source canvas at its natural 800×250 aspect ratio.
+  // The canvas element keeps its intrinsic ratio; CSS width:100% + height:auto
+  // then scales it down proportionally without distortion.
   const timeSrc = document.getElementById('timelineCanvas');
   const timeDst = document.getElementById('timelinePreviewCanvas');
   if (timeSrc && timeDst) {
-    timeDst.width = timeSrc.width;
+    // Always keep the destination at the same aspect ratio as the source
+    timeDst.width  = timeSrc.width;
     timeDst.height = timeSrc.height;
-    timeDst.getContext('2d').drawImage(timeSrc, 0, 0);
+    const tctx = timeDst.getContext('2d');
+    tctx.clearRect(0, 0, timeDst.width, timeDst.height);
+    tctx.drawImage(timeSrc, 0, 0);
   }
 
   // ── Zone bars mini preview (horizontal bar chart) ──
