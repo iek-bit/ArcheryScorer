@@ -1114,6 +1114,8 @@
     padding: 20px;
   }
   .detail-overlay.open { opacity: 1; pointer-events: all; }
+  /* Round detail must always appear above session/global overlays */
+  #detailOverlay { z-index: 270; }
   .detail-modal {
     background: var(--bg2); border-radius: 20px;
     width: 100%; max-width: 440px; max-height: 90vh; max-height: 90dvh; overflow-y: auto;
@@ -2451,9 +2453,12 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
       <div style="height: 8px; border-radius: 4px; background: linear-gradient(to right, blue, cyan, lime, yellow, red);"></div>
     </div>
-    <div class="score-timeline" id="timelineContainer">
+    <div class="score-timeline" id="timelineContainer" style="position:relative;">
       <div class="interactive-transform-wrap" id="timelineTransformWrap">
         <canvas id="timelineCanvas" width="800" height="250"></canvas>
+      </div>
+      <div id="timelineEmptyMsg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;">
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">Need 2+ rounds for timeline</span>
       </div>
     </div>
     <div class="zone-bars" id="zoneBars"></div>
@@ -5276,48 +5281,44 @@ function openCompletedRoundsOverlay() {
 function renderScorePickerSummaries() {
   const sessions = db.sessions;
 
-  // Helper: get last session of a type + best score
-  function summaryForType(type) {
-    const matching = [...sessions].reverse().filter(s => s.type === type);
-    if (!matching.length) return null;
-    const last = matching[0];
-    const lastScore = getSessionTotal(last);
-    const best = Math.max(...matching.map(s => getSessionTotal(s)));
-    return { lastScore, best, count: matching.length };
+  // Format a session date as "Mon, Jan 1"
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  const bullseye = summaryForType('bullseye_tournament');
-  const threeD   = summaryForType('3d_tournament');
-  const practice = [...sessions].reverse().filter(s => s.type === 'practice');
+  // Build the two-line summary HTML for a session
+  function summaryHTML(last, best, fallback) {
+    if (!last) return `<span>${fallback}</span>`;
+    const loc  = formatLocation(last.location);
+    const date = fmtDate(last.date);
+    const meta = [date, loc].filter(Boolean).join(' · ');
+    return `<span>Last: ${getSessionTotal(last)} · Best: ${best}</span>${meta ? `<br><span>${meta}</span>` : ''}`;
+  }
+
+  // Helper: most-recent + best for a session type
+  function infoForType(type) {
+    const matching = [...sessions].filter(s => s.type === type).reverse();
+    if (!matching.length) return { last: null, best: null };
+    return {
+      last: matching[0],
+      best: Math.max(...matching.map(s => getSessionTotal(s)))
+    };
+  }
+
+  const bullseye = infoForType('bullseye_tournament');
+  const threeD   = infoForType('3d_tournament');
+  const practiceList = [...sessions].filter(s => s.type === 'practice').reverse();
+  const lastPractice = practiceList[0] || null;
+  const practiceBest = lastPractice ? Math.max(...practiceList.map(s => getSessionTotal(s))) : null;
 
   const bEl = document.getElementById('summaryBullseye');
   const tEl = document.getElementById('summary3d');
   const pEl = document.getElementById('summaryPractice');
 
-  if (bEl) {
-    if (bullseye) {
-      bEl.textContent = `Last: ${bullseye.lastScore} · Best: ${bullseye.best}`;
-    } else {
-      bEl.textContent = '6 rounds · 30 arrows';
-    }
-  }
-  if (tEl) {
-    if (threeD) {
-      tEl.textContent = `Last: ${threeD.lastScore} · Best: ${threeD.best}`;
-    } else {
-      tEl.textContent = '6 animals · 30 arrows';
-    }
-  }
-  if (pEl) {
-    if (practice.length) {
-      const lastPractice = practice[0];
-      const lastScore = getSessionTotal(lastPractice);
-      const roundCount = lastPractice.rounds.length;
-      pEl.textContent = `Last: ${lastScore} · ${roundCount} round${roundCount !== 1 ? 's' : ''}`;
-    } else {
-      pEl.textContent = 'Any distance, any target';
-    }
-  }
+  if (bEl) bEl.innerHTML = summaryHTML(bullseye.last, bullseye.best, '6 rounds · 30 arrows');
+  if (tEl) tEl.innerHTML = summaryHTML(threeD.last,   threeD.best,   '6 animals · 30 arrows');
+  if (pEl) pEl.innerHTML = summaryHTML(lastPractice,  practiceBest,  'Any distance, any target');
 }
 
 
@@ -6283,6 +6284,9 @@ function openStatsTileOverlay(tileKey) {
           <div class="interactive-transform-wrap" id="statsTileTimelineWrap">
             <canvas id="statsTileTimelineCanvas" width="800" height="250" style="display:block;width:100%;"></canvas>
           </div>
+          <div id="overlayTimelineEmptyMsg" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;pointer-events:none;">
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);">Need 2+ rounds for timeline</span>
+          </div>
         </div>
         <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Pinch/drag to explore · Tap a point for details</div>`;
       overlay.classList.add('open');
@@ -6301,9 +6305,12 @@ function openStatsTileOverlay(tileKey) {
           overlayTimelineDataPoints = [];
 
           if (rounds.length < 2) {
-            c.fillStyle='#6b7a99'; c.font='20px DM Mono, monospace'; c.textAlign='center'; c.textBaseline='middle';
-            c.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
+            const overlayEmpty = document.getElementById('overlayTimelineEmptyMsg');
+            if (overlayEmpty) overlayEmpty.style.display = 'flex';
+            return;
           }
+          const overlayEmpty = document.getElementById('overlayTimelineEmptyMsg');
+          if (overlayEmpty) overlayEmpty.style.display = 'none';
 
           const transformData = window.overlayTimelinePanZoom ? window.overlayTimelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
           const scale = transformData.scale;
@@ -8059,10 +8066,13 @@ function drawTimeline(rounds) {
   c.fillStyle='#111827'; c.fillRect(0,0,W3,H3);
   timelineDataPoints = []; // reset
 
+  // Show/hide HTML empty-state message (crisp DOM text instead of pixelated canvas text)
+  const emptyMsg = document.getElementById('timelineEmptyMsg');
   if(rounds.length < 2) {
-    c.fillStyle='#6b7a99'; c.font='20px DM Mono, monospace'; c.textAlign='center'; c.textBaseline='middle';
-    c.fillText('Need 2+ rounds for timeline', W3/2, H3/2); return;
+    if (emptyMsg) emptyMsg.style.display = 'flex';
+    return;
   }
+  if (emptyMsg) emptyMsg.style.display = 'none';
 
   const transformData = window.timelinePanZoom ? window.timelinePanZoom.getTransform() : {scale:1, tx:0, rect: tc.getBoundingClientRect()};
   const scale = transformData.scale;
