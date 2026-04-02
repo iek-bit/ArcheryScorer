@@ -1287,6 +1287,8 @@
     border: 1px solid var(--border); background: var(--bg); border-radius: 14px;
   }
   .interactive-transform-wrap { transform-origin: top left; width: 100%; display: flex; justify-content: center; }
+  /* When in fullscreen card body, transform wrap should fill height too */
+  .card-fullscreen-body .interactive-transform-wrap { height: 100%; }
 
   #heatmapCanvas {
     border-radius: 50%; display: block;
@@ -4404,7 +4406,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.3.9';
+const APP_VERSION = '3.5.11';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -9145,7 +9147,8 @@ function drawTimeline(rounds) {
   const dpr = window.devicePixelRatio || 1;
   const container = tc.parentElement;
   const cssW = container ? (container.clientWidth  || 800) : 800;
-  const cssH = container ? (container.clientHeight || Math.round(cssW * (250 / 800))) : Math.round(cssW * (250 / 800));
+  // Use actual container height if available, otherwise fall back to aspect ratio
+  const cssH = container && container.clientHeight ? container.clientHeight : Math.round(cssW * (250 / 800));
   const W3 = cssW, H3 = Math.max(cssH, 60); // at least 60px tall
 
   tc.width  = W3 * dpr;
