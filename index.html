@@ -123,7 +123,34 @@
   .page { display: none; padding: 0 0 calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; min-height: 100dvh; }
   .page.active { display: block; }
   body.score-scroll-locked { overflow: hidden; }
-  .page.score-scroll-locked { overflow: hidden; }
+  .page.score-scroll-locked {
+    overflow: hidden;
+    height: 100vh; height: 100dvh;
+    min-height: unset;
+    max-height: 100vh; max-height: 100dvh;
+    padding-bottom: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── SCORE PAGE: always viewport-locked, never scrollable ── */
+  #page-score {
+    height: 100vh; height: 100dvh;
+    min-height: unset;
+    max-height: 100vh; max-height: 100dvh;
+    overflow: hidden;
+    padding-bottom: 0;
+    display: flex !important;
+    flex-direction: column;
+  }
+  /* Score picker fills the viewport minus the nav bar */
+  #scorePicker {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
 
   /* ── HOME ── */
   .home-hero {
@@ -159,8 +186,9 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 16px;
-    height: calc(100dvh - env(safe-area-inset-bottom) - 64px - max(60px, calc(env(safe-area-inset-top) + 20px)));
+    padding: 0 16px calc(16px + 64px + env(safe-area-inset-bottom));
+    flex: 1;
+    min-height: 0;
     box-sizing: border-box;
   }
   .session-cards-grid .session-card {
@@ -179,6 +207,78 @@
     line-height: 1.2;
     letter-spacing: 1.5px;
   }
+  .session-card-summary {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    opacity: 0.75;
+    line-height: 1.4;
+  }
+
+  /* Weekly summary card */
+  .weekly-summary-card {
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin: max(60px, calc(env(safe-area-inset-top) + 20px)) 16px 12px;
+    cursor: pointer;
+    transition: border-color .2s, transform .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .weekly-summary-card:active { transform: scale(.98); border-color: var(--accent); }
+  .weekly-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .weekly-summary-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .weekly-summary-expand {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(255,255,255,.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: background .15s, color .15s;
+  }
+  .weekly-summary-card:active .weekly-summary-expand {
+    background: rgba(232,197,71,.1);
+    color: var(--accent);
+  }
+  .weekly-summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .weekly-stat {
+    text-align: center;
+  }
+  .weekly-stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .weekly-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
   .session-card-summary {
     font-family: 'DM Mono', monospace;
     font-size: 11px;
@@ -471,10 +571,9 @@
   #scoreActive.score-session-live {
     display: flex !important;
     flex-direction: column;
-    min-height: calc(100vh - 84px - env(safe-area-inset-bottom));
-    min-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
-    max-height: calc(100vh - 84px - env(safe-area-inset-bottom));
-    max-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
+    flex: 1;
+    min-height: 0;
+    max-height: calc(100dvh - calc(64px + env(safe-area-inset-bottom)));
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -860,9 +959,9 @@
 
   /* ── CARD EXPAND BUTTON ── */
   .sst-expand-btn {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
     border: 1px solid var(--border);
     background: rgba(255,255,255,.04);
     color: var(--muted);
@@ -880,7 +979,7 @@
     background: rgba(232,197,71,.1);
     transform: scale(.91);
   }
-  .sst-expand-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sst-expand-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ── FULLSCREEN CARD OVERLAY ── */
   .card-fullscreen-overlay {
@@ -2534,7 +2633,31 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <!-- idle: session picker -->
   <div id="scorePicker">
-    <div class="session-cards-grid" style="padding-top: max(60px, calc(env(safe-area-inset-top) + 20px));">
+    <!-- Weekly Summary Card -->
+    <div class="weekly-summary-card" onclick="expandWeeklySummary()" role="button" tabindex="0" aria-label="View weekly summary details">
+      <div class="weekly-summary-header">
+        <div class="weekly-summary-title">Past 7 Days</div>
+        <div class="weekly-summary-expand">
+          <svg class="ui-icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+      <div class="weekly-summary-stats">
+        <div class="weekly-stat">
+          <div class="weekly-stat-value" id="weeklySessions">—</div>
+          <div class="weekly-stat-label">Sessions</div>
+        </div>
+        <div class="weekly-stat">
+          <div class="weekly-stat-value" id="weeklyArrows">—</div>
+          <div class="weekly-stat-label">Arrows</div>
+        </div>
+        <div class="weekly-stat">
+          <div class="weekly-stat-value" id="weeklyAvg">—</div>
+          <div class="weekly-stat-label">Avg Score</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-cards-grid" style="padding-top: 0;">
       <div class="session-card tournament" onclick="launchSession('bullseye_tournament')" role="button" tabindex="0" aria-label="Start Bullseye Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('bullseye_tournament')">
         <h2>Bullseye Tournament</h2>
         <div class="session-card-summary" id="summaryBullseye"></div>
@@ -2653,6 +2776,48 @@ const PRACTICE_TARGET_OPTIONS = [
     <textarea id="notesPopupTextarea" class="modal-input" placeholder="Add notes for this round..." autocorrect="on" autocapitalize="sentences" spellcheck="true" style="height:120px;resize:none;padding:14px 16px;line-height:1.5;"></textarea>
     <button class="modal-btn primary" onclick="saveNotesPopup()">Save Note</button>
     <button class="modal-btn" onclick="closeOverlay('notesPopupOverlay')">Cancel</button>
+  </div>
+</div>
+
+<!-- Weekly Summary Detail Overlay -->
+<div class="overlay centered" id="weeklySummaryOverlay">
+  <div class="modal" style="max-width:500px;border-radius:22px;padding:24px;max-height:80vh;max-height:80dvh;overflow-y:auto;">
+    <h3 style="margin-bottom:6px;">Weekly Summary</h3>
+    <p style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:20px;" id="weeklySummaryDateRange">Past 7 days</p>
+    
+    <!-- Summary Stats Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Total Sessions</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;" id="weeklyDetailSessions">0</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Total Arrows</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;" id="weeklyDetailArrows">0</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Avg Score</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;" id="weeklyDetailAvg">—</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Best Round</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green);line-height:1;" id="weeklyDetailBest">—</div>
+      </div>
+    </div>
+
+    <!-- Daily Breakdown -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Daily Breakdown</div>
+      <div id="weeklyDailyBreakdown" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- Session Type Breakdown -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">By Session Type</div>
+      <div id="weeklyTypeBreakdown" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <button class="modal-btn" onclick="closeOverlay('weeklySummaryOverlay')">Close</button>
   </div>
 </div>
 
@@ -4406,7 +4571,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.5.11';
+const APP_VERSION = '3.3.9';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -5907,6 +6072,154 @@ function renderScorePickerSummaries() {
   if (bEl) bEl.innerHTML = summaryHTML(bullseye.last, bullseye.best, '6 rounds · 30 arrows');
   if (tEl) tEl.innerHTML = summaryHTML(threeD.last,   threeD.best,   '6 animals · 30 arrows');
   if (pEl) pEl.innerHTML = summaryHTML(lastPractice,  practiceBest,  'Any distance, any target');
+  
+  // Update weekly summary
+  updateWeeklySummary();
+}
+
+function updateWeeklySummary() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const weeklySessions = db.sessions.filter(s => {
+    const sessionDate = new Date(s.date);
+    return sessionDate >= sevenDaysAgo && sessionDate <= now;
+  });
+  
+  const sessionCount = weeklySessions.length;
+  const totalArrows = weeklySessions.reduce((sum, s) => {
+    return sum + s.rounds.reduce((rSum, r) => rSum + r.arrows.length, 0);
+  }, 0);
+  
+  const roundScores = [];
+  weeklySessions.forEach(s => {
+    s.rounds.forEach(r => {
+      const score = r.arrows.reduce((sum, a) => sum + a.score, 0);
+      roundScores.push(score);
+    });
+  });
+  
+  const avgScore = roundScores.length > 0 
+    ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)
+    : 0;
+  
+  // Update the compact card
+  const sessionsEl = document.getElementById('weeklySessions');
+  const arrowsEl = document.getElementById('weeklyArrows');
+  const avgEl = document.getElementById('weeklyAvg');
+  
+  if (sessionsEl) sessionsEl.textContent = sessionCount || '0';
+  if (arrowsEl) arrowsEl.textContent = totalArrows || '0';
+  if (avgEl) avgEl.textContent = avgScore > 0 ? avgScore : '—';
+}
+
+function expandWeeklySummary() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const weeklySessions = db.sessions.filter(s => {
+    const sessionDate = new Date(s.date);
+    return sessionDate >= sevenDaysAgo && sessionDate <= now;
+  });
+  
+  // Calculate stats
+  const sessionCount = weeklySessions.length;
+  const totalArrows = weeklySessions.reduce((sum, s) => {
+    return sum + s.rounds.reduce((rSum, r) => rSum + r.arrows.length, 0);
+  }, 0);
+  
+  const roundScores = [];
+  weeklySessions.forEach(s => {
+    s.rounds.forEach(r => {
+      const score = r.arrows.reduce((sum, a) => sum + a.score, 0);
+      roundScores.push(score);
+    });
+  });
+  
+  const avgScore = roundScores.length > 0 
+    ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)
+    : 0;
+  
+  const bestRound = roundScores.length > 0 ? Math.max(...roundScores) : 0;
+  
+  // Update detail overlay stats
+  document.getElementById('weeklyDetailSessions').textContent = sessionCount;
+  document.getElementById('weeklyDetailArrows').textContent = totalArrows;
+  document.getElementById('weeklyDetailAvg').textContent = avgScore > 0 ? avgScore : '—';
+  document.getElementById('weeklyDetailBest').textContent = bestRound > 0 ? bestRound : '—';
+  
+  // Date range
+  const startDate = sevenDaysAgo.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const endDate = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  document.getElementById('weeklySummaryDateRange').textContent = `${startDate} – ${endDate}`;
+  
+  // Daily breakdown
+  const dailyData = {};
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateKey = date.toISOString().split('T')[0];
+    dailyData[dateKey] = { sessions: 0, arrows: 0, date: date };
+  }
+  
+  weeklySessions.forEach(s => {
+    const dateKey = new Date(s.date).toISOString().split('T')[0];
+    if (dailyData[dateKey]) {
+      dailyData[dateKey].sessions++;
+      dailyData[dateKey].arrows += s.rounds.reduce((sum, r) => sum + r.arrows.length, 0);
+    }
+  });
+  
+  const dailyBreakdownEl = document.getElementById('weeklyDailyBreakdown');
+  const sortedDays = Object.values(dailyData).sort((a, b) => b.date - a.date);
+  
+  dailyBreakdownEl.innerHTML = sortedDays.map(day => {
+    const dayName = day.date.toLocaleDateString(undefined, { weekday: 'short' });
+    const dayDate = day.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const hasData = day.sessions > 0;
+    
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:${hasData ? 'var(--bg3)' : 'transparent'};border:1px solid var(--border);border-radius:10px;opacity:${hasData ? '1' : '0.5'};">
+      <div style="flex:1;">
+        <div style="font-size:13px;color:var(--text);">${dayName}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${dayDate}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${day.sessions} session${day.sessions !== 1 ? 's' : ''}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${day.arrows} arrows</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  // Session type breakdown
+  const typeData = {
+    'bullseye_tournament': { count: 0, arrows: 0, label: 'Bullseye Tournament' },
+    '3d_tournament': { count: 0, arrows: 0, label: '3D Tournament' },
+    'practice': { count: 0, arrows: 0, label: 'Practice' }
+  };
+  
+  weeklySessions.forEach(s => {
+    if (typeData[s.type]) {
+      typeData[s.type].count++;
+      typeData[s.type].arrows += s.rounds.reduce((sum, r) => sum + r.arrows.length, 0);
+    }
+  });
+  
+  const typeBreakdownEl = document.getElementById('weeklyTypeBreakdown');
+  typeBreakdownEl.innerHTML = Object.values(typeData)
+    .filter(t => t.count > 0)
+    .map(type => {
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;color:var(--text);">${type.label}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);">${type.count} session${type.count !== 1 ? 's' : ''}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">${type.arrows} arrows</div>
+        </div>
+      </div>`;
+    }).join('') || '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px;">No sessions this week</div>';
+  
+  // Open the overlay
+  document.getElementById('weeklySummaryOverlay').classList.add('open');
 }
 
 
@@ -9139,6 +9452,28 @@ function drawHeatmap(arrows) {
 // Timeline
 let timelineDataPoints = []; // Track mapped coordinates for tooltips
 
+// Calculate linear regression for trend line
+function calculateLinearRegression(points) {
+  const n = points.length;
+  if (n < 2) return null;
+  
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  
+  points.forEach((point, i) => {
+    const x = i;
+    const y = point;
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  });
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  
+  return { slope, intercept };
+}
+
 function drawTimeline(rounds) {
   const tc = document.getElementById('timelineCanvas');
   const c = tc.getContext('2d');
@@ -9220,6 +9555,21 @@ function drawTimeline(rounds) {
   c.beginPath(); c.moveTo(px(0),py(scores[0]));
   scores.forEach((s,i)=>{if(i>0)c.lineTo(px(i),py(s));});
   c.strokeStyle='#e8c547'; c.lineWidth=2.5; c.lineJoin='round'; c.stroke();
+
+  // Regression line (trend line)
+  const regression = calculateLinearRegression(scores);
+  if (regression && scores.length >= 3) {
+    c.beginPath();
+    const startY = regression.intercept;
+    const endY = regression.intercept + regression.slope * (scores.length - 1);
+    c.moveTo(px(0), py(startY));
+    c.lineTo(px(scores.length - 1), py(endY));
+    c.strokeStyle = 'rgba(82, 194, 120, 0.6)'; // Green with transparency
+    c.lineWidth = 2;
+    c.setLineDash([5, 5]); // Dashed line
+    c.stroke();
+    c.setLineDash([]); // Reset to solid lines
+  }
 
   // Circular Dots & save data points — PB gets a distinct green dot
   const maxScore = Math.max(...scores);
