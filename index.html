@@ -921,10 +921,11 @@
   }
   /* landscape mode for wide rectangle cards */
   .card-fullscreen-inner.landscape {
-    width: 96vw;
-    height: min(54vw, 85vh);
-    max-width: 860px;
-    max-height: 500px;
+    width: 92vw;
+    height: 55vw;
+    max-width: 920px;
+    max-height: calc(100dvh - 48px);
+    min-height: 260px;
   }
   .card-fullscreen-header {
     display: flex;
@@ -1130,7 +1131,7 @@
     display: flex;
     flex-direction: column;
     padding: 10px 14px 14px;
-    overflow: auto;
+    overflow: hidden;
   }
   /* Overall stats fullscreen grid */
   .card-fullscreen-body .fs-overall-grid {
@@ -8893,19 +8894,29 @@ function expandStatsCard(type) {
     title.textContent = 'Score Over Time';
     inner.classList.add('landscape');
     const timelineContainer = document.getElementById('timelineContainer');
+    // Ensure the container fills its parent fully
+    timelineContainer.style.width  = '100%';
+    timelineContainer.style.height = '100%';
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;position:relative;';
+    wrap.style.cssText = 'flex:1;min-height:0;width:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;';
     wrap.appendChild(timelineContainer);
-    body.style.padding = '8px';
+    body.style.padding = '6px 8px 8px';
+    body.style.overflow = 'hidden';
     body.appendChild(wrap);
     body._timelineMoved = true;
+    // Two-step redraw: first after the overlay opens, second after full layout settles
     setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
+    setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 240);
+    // Lock landscape on mobile
+    try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
   }
 
   else if (type === 'zones') {
     title.textContent = 'Score Distribution';
     inner.classList.add('landscape');
     body.style.padding = '10px 16px 14px';
+    // Lock landscape on mobile
+    try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
 
     // Score colours matching the target face
     const SCORE_COLORS = {
@@ -8960,6 +8971,8 @@ function closeStatsCardExpand(e) {
 
   // Move canvases back to their original tiles after transition
   setTimeout(() => {
+    // Always re-lock portrait when returning to stats page
+    try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     if (body._heatmapMoved) {
       const heatmapContainer = document.getElementById('heatmapContainer');
       const tilePrev = document.querySelector('.stats-section-tile:nth-child(2) .sst-preview');
@@ -8969,13 +8982,22 @@ function closeStatsCardExpand(e) {
     if (body._timelineMoved) {
       const timelineContainer = document.getElementById('timelineContainer');
       const tilePrev = document.querySelector('.stats-section-tile:nth-child(3) .sst-preview');
-      if (tilePrev && timelineContainer) tilePrev.appendChild(timelineContainer);
+      if (tilePrev && timelineContainer) {
+        // Reset inline sizing applied during fullscreen
+        timelineContainer.style.width  = '';
+        timelineContainer.style.height = '';
+        tilePrev.appendChild(timelineContainer);
+      }
       body._timelineMoved = false;
       const { rounds } = window._lastStatsData || { rounds: [] };
       setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
+      // Restore portrait lock for stats page
+      try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     }
     if (body._zonesMoved) {
       body._zonesMoved = false;
+      // Restore portrait lock for stats page
+      try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     }
     body.innerHTML = '';
     body.style.padding = '';
