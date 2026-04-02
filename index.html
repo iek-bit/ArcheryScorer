@@ -849,6 +849,312 @@
     overflow: hidden;
   }
   .sst-zone-fill { height: 100%; border-radius: 3px; }
+  /* ── CARD TILE HEADER ROW ── */
+  .sst-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    min-height: 20px;
+  }
+
+  /* ── CARD EXPAND BUTTON ── */
+  .sst-expand-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color .15s, color .15s, background .15s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sst-expand-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,197,71,.1);
+    transform: scale(.91);
+  }
+  .sst-expand-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── FULLSCREEN CARD OVERLAY ── */
+  .card-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0,0,0,.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .card-fullscreen-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .card-fullscreen-inner {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(.93);
+    transition: transform .28s cubic-bezier(.22,.68,0,1.2);
+    /* default: portrait square cards */
+    width: min(92vw, 92vh);
+    height: min(92vw, 92vh);
+    max-width: 560px;
+    max-height: 560px;
+    position: relative;
+  }
+  .card-fullscreen-overlay.open .card-fullscreen-inner {
+    transform: scale(1);
+  }
+  /* landscape mode for wide rectangle cards */
+  .card-fullscreen-inner.landscape {
+    width: 96vw;
+    height: min(54vw, 85vh);
+    max-width: 860px;
+    max-height: 500px;
+  }
+  .card-fullscreen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-fullscreen-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .card-fullscreen-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-fullscreen-close:active { border-color: var(--accent); color: var(--accent); }
+  .card-fullscreen-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── FULLSCREEN INFO BUTTON ── */
+  .card-fs-info-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color .15s, color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .card-fs-info-btn:active { border-color: var(--accent); color: var(--accent); }
+  .card-fs-info-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── PER-CELL INFO BUTTON (overall stats) ── */
+  .cell-info-btn {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.55;
+    transition: opacity .15s, border-color .15s, color .15s;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 2;
+  }
+  .cell-info-btn:active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+  .cell-info-btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── STAT INFO POPUP ── */
+  .stat-info-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0,0,0,.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s;
+  }
+  .stat-info-popup-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .stat-info-popup {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 22px 20px;
+    max-width: 320px;
+    width: 100%;
+    transform: scale(.93) translateY(6px);
+    transition: transform .2s cubic-bezier(.22,.68,0,1.15);
+    position: relative;
+  }
+  .stat-info-popup-backdrop.open .stat-info-popup {
+    transform: scale(1) translateY(0);
+  }
+  .stat-info-popup-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(232,197,71,.12);
+    border: 1px solid rgba(232,197,71,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    color: var(--accent);
+  }
+  .stat-info-popup-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .stat-info-popup-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .stat-info-popup-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  /* ── RANGE BAR ── */
+  .stat-info-range {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .stat-info-range-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+  .stat-info-range-track {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg3);
+    margin-bottom: 8px;
+  }
+  .stat-info-range-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-radius: 3px;
+  }
+  .stat-info-range-ticks {
+    display: flex;
+    justify-content: space-between;
+  }
+  .stat-info-range-tick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stat-info-range-tick-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-info-range-tick-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .stat-info-popup-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stat-info-popup-close:active { border-color: var(--accent); color: var(--accent); }
+  .stat-info-popup-close svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .card-fullscreen-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px 14px;
+    overflow: auto;
+  }
+  /* Overall stats fullscreen grid */
+  .card-fullscreen-body .fs-overall-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    height: 100%;
+  }
+  /* Heatmap fullscreen */
+  .card-fullscreen-body .fs-heatmap-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+  /* Timeline / zone bar fullscreen: fill the body */
+  .card-fullscreen-body .fs-stretch {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   /* Mini stat rows in overall tile */
   .sst-stat-row {
     display: flex;
@@ -2491,12 +2797,22 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="stats-section-grid" id="statsSectionGrid">
     <!-- Square tile 1: Overall Statistics -->
     <div class="stats-section-tile">
-      <div class="sst-label">Overall Stats</div>
-      <div class="sst-preview" id="overallTilePreview" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;align-items:stretch;padding:2px 0;"></div>
+      <div class="sst-header">
+        <div class="sst-label">Overall Stats</div>
+        <button class="sst-expand-btn" onclick="expandStatsCard('overall')" aria-label="Expand Overall Stats">
+          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
+      <div class="sst-preview" id="overallTilePreview" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;align-items:stretch;padding:2px 0;overflow:hidden;"></div>
     </div>
     <!-- Square tile 2: Heatmap (live, pan/zoom) -->
     <div class="stats-section-tile">
-      <div class="sst-label">Arrow Grouping</div>
+      <div class="sst-header">
+        <div class="sst-label">Arrow Grouping</div>
+        <button class="sst-expand-btn" onclick="expandStatsCard('heatmap')" aria-label="Expand Arrow Grouping">
+          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
       <div class="sst-preview" style="align-items:stretch;padding:0;">
         <div class="interactive-canvas-container" id="heatmapContainer" style="touch-action:none;">
           <div class="interactive-transform-wrap" id="heatmapTransformWrap">
@@ -2507,7 +2823,12 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
     <!-- Wide rectangle tile 3: Timeline (live, pan/zoom + tap points) -->
     <div class="stats-section-tile">
-      <div class="sst-label">Score Over Time</div>
+      <div class="sst-header">
+        <div class="sst-label">Score Over Time</div>
+        <button class="sst-expand-btn" onclick="expandStatsCard('timeline')" aria-label="Expand Score Over Time">
+          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
       <div class="sst-preview" style="align-items:stretch;padding:0;">
         <div class="score-timeline" id="timelineContainer" style="position:relative;touch-action:none;flex:1;min-height:0;">
           <div class="interactive-transform-wrap" id="timelineTransformWrap">
@@ -2521,10 +2842,46 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
     <!-- Wide rectangle tile 4: Zone distribution (live) -->
     <div class="stats-section-tile">
-      <div class="sst-label">Score Distribution</div>
+      <div class="sst-header">
+        <div class="sst-label">Score Distribution</div>
+        <button class="sst-expand-btn" onclick="expandStatsCard('zones')" aria-label="Expand Score Distribution">
+          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        </button>
+      </div>
       <div class="sst-preview" style="align-items:stretch;padding:2px 0;">
         <div class="zone-bars" id="zoneBars" style="flex:1;justify-content:space-around;"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen card overlay -->
+  <div id="cardFullscreenOverlay" class="card-fullscreen-overlay" onclick="closeStatsCardExpand(event)">
+    <div class="card-fullscreen-inner" id="cardFullscreenInner">
+      <div class="card-fullscreen-header">
+        <button class="card-fs-info-btn" id="cardFsInfoBtn" onclick="showStatInfoPopup(window._currentExpandType)" aria-label="What does this mean?" style="display:none;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </button>
+        <div class="card-fullscreen-title" id="cardFullscreenTitle" style="flex:1;text-align:center;"></div>
+        <button class="card-fullscreen-close" onclick="closeStatsCardExpand()" aria-label="Close">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="card-fullscreen-body" id="cardFullscreenBody"></div>
+    </div>
+  </div>
+
+  <!-- Stat info explanation popup -->
+  <div id="statInfoPopupBackdrop" class="stat-info-popup-backdrop" onclick="closeStatInfoPopup(event)">
+    <div class="stat-info-popup">
+      <div class="stat-info-popup-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <div class="stat-info-popup-title" id="statInfoTitle"></div>
+      <div class="stat-info-popup-desc" id="statInfoDesc"></div>
+      <div id="statInfoRange"></div>
+      <button class="stat-info-popup-close" onclick="closeStatInfoPopup()" aria-label="Close">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
   </div>
 
@@ -8045,7 +8402,8 @@ function goPage(name, btn) {
     if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block'; renderScorePage(); }
     else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); renderScorePickerSummaries(); }
   }
-  if(name==='diag') renderDiag();
+  if(name==='diag') { renderDiag(); lockPortrait(); }
+  else { unlockOrientation(); }
   if(name==='home') renderHome();
   if(name==='settings') { updateDeviceNameSummary(); initSettingsPage(); }
   updateScoreScrollLock();
@@ -8269,37 +8627,359 @@ function renderDiag() {
   renderStatsTilePreviews(allArrows, rounds);
 }
 
+function buildOverallStats(allArrows, rounds) {
+  const avg  = document.getElementById('dAvg')?.textContent  || '—';
+  const best = document.getElementById('dBest')?.textContent || '—';
+  const arr  = document.getElementById('dArrows')?.textContent || '—';
+  const sess = document.getElementById('dSessions')?.textContent || '—';
+
+  // Derived stats
+  let worst = '—', tenXCount = '—', avgArrowScore = '—', consistency = '—';
+  if (rounds.length) {
+    const scores = rounds.map(r => r.arrows.reduce((s, a) => s + a.score, 0));
+    worst = Math.min(...scores);
+    tenXCount = allArrows.filter(a => a.score === 10).length;
+    if (allArrows.length) avgArrowScore = (allArrows.reduce((s, a) => s + a.score, 0) / allArrows.length).toFixed(2);
+    if (scores.length > 1) {
+      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const sd = Math.sqrt(scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length);
+      consistency = sd.toFixed(1);
+    }
+  }
+
+  return [
+    { label: 'Avg / Round',   val: avg },
+    { label: 'Best Round',    val: best },
+    { label: 'Worst Round',   val: worst },
+    { label: 'Arrows Shot',   val: arr },
+    { label: 'Sessions',      val: sess },
+    { label: 'Tens (X)',      val: tenXCount },
+    { label: 'Avg / Arrow',   val: avgArrowScore },
+    { label: 'Std Dev',       val: consistency },
+  ];
+}
+
 function renderStatsTilePreviews(allArrows, rounds) {
   // ── Overall stats mini preview ───────────────────
   const overallEl = document.getElementById('overallTilePreview');
   if (overallEl) {
-    const avg  = document.getElementById('dAvg')?.textContent  || '—';
-    const best = document.getElementById('dBest')?.textContent || '—';
-    const arr  = document.getElementById('dArrows')?.textContent || '—';
-    const sess = document.getElementById('dSessions')?.textContent || '—';
-    overallEl.innerHTML = [
-      { label: 'Avg / Round', val: avg },
-      { label: 'Best Round',  val: best },
-      { label: 'Arrows',      val: arr },
-      { label: 'Sessions',    val: sess },
-    ].map(r => `<div style="
+    const items = buildOverallStats(allArrows, rounds);
+    overallEl.innerHTML = items.map(r => `<div style="
         background:var(--bg3);
         border:1px solid var(--border);
         border-radius:10px;
-        padding:8px 10px;
+        padding:6px 8px;
         display:flex;
         flex-direction:column;
         align-items:center;
         justify-content:center;
         text-align:center;
-        gap:4px;
+        gap:2px;
         min-height:0;
         overflow:hidden;
       ">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${r.label}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${r.val}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${r.label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);line-height:1;">${r.val}</div>
       </div>`).join('');
   }
+  // Cache for fullscreen use
+  window._lastStatsData = { allArrows, rounds };
+}
+
+// ── STATS CARD EXPAND / FULLSCREEN ──────────────────────────────────
+let _orientLock = null;
+
+function lockPortrait() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(() => {});
+      _orientLock = 'portrait';
+    }
+  } catch(e) {}
+}
+function unlockOrientation() {
+  try {
+    if (_orientLock && screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+      _orientLock = null;
+    }
+  } catch(e) {}
+}
+
+// ── STAT DESCRIPTIONS ────────────────────────────────────────────────
+const STAT_INFO = {
+  overall: {
+    title: 'Overall Stats',
+    desc: 'A summary of your performance across all filtered sessions and rounds.'
+  },
+  heatmap: {
+    title: 'Arrow Grouping',
+    desc: 'A density heatmap showing where your arrows land on the target face. Warmer colours (yellow → red) indicate zones where more arrows have landed. Pinch to zoom and drag to pan.'
+  },
+  timeline: {
+    title: 'Score Over Time',
+    desc: 'A line chart of your round scores in chronological order. Stars mark personal bests. Tap a point to see its date and score, then tap again to open the full round detail. Pinch to zoom and drag to pan.'
+  },
+  zones: {
+    title: 'Score Distribution',
+    desc: 'A breakdown of how many arrows landed in each scoring zone (1–2, 3–4, 5–6, 7–8, 9–10, Miss). Bar length is proportional to the number of arrows in that zone.'
+  },
+  'Avg / Round': {
+    title: 'Average Round Score',
+    desc: 'The mean total score across all filtered rounds — the sum of all round scores divided by the number of rounds.'
+  },
+  'Best Round': {
+    title: 'Best Round Score',
+    desc: 'The highest total score recorded in a single round within the current filter.'
+  },
+  'Worst Round': {
+    title: 'Worst Round Score',
+    desc: 'The lowest total score recorded in a single round within the current filter.'
+  },
+  'Arrows Shot': {
+    title: 'Total Arrows Shot',
+    desc: 'The total count of individual arrows recorded across all filtered rounds.'
+  },
+  'Sessions': {
+    title: 'Sessions',
+    desc: 'The number of sessions included in the current filter. Each session can contain one or more rounds.'
+  },
+  'Tens (X)': {
+    title: 'Tens & X-Rings Hit',
+    desc: 'The number of arrows that scored 10 (the inner gold / X-ring) across all filtered rounds.',
+    range: {
+      segments: [
+        { color: '#e05252', width: 34 },
+        { color: '#f0a04b', width: 33 },
+        { color: '#e8c547', width: 33 },
+      ],
+      ticks: [
+        { val: '0',        lbl: 'None' },
+        { val: '–',        lbl: '' },
+        { val: '= arrows', lbl: 'All' },
+      ],
+    }
+  },
+  'Avg / Arrow': {
+    title: 'Average Score Per Arrow',
+    desc: 'Total points scored divided by total arrows shot. Unlike average round score, this is independent of round length.',
+    range: {
+      segments: [
+        { color: '#e05252', width: 20 },
+        { color: '#f0a04b', width: 30 },
+        { color: '#52c278', width: 30 },
+        { color: '#e8c547', width: 20 },
+      ],
+      ticks: [
+        { val: '0',  lbl: 'Miss' },
+        { val: '5',  lbl: '' },
+        { val: '8',  lbl: '' },
+        { val: '10', lbl: 'Max' },
+      ],
+    }
+  },
+  'Std Dev': {
+    title: 'Standard Deviation',
+    desc: 'The standard deviation of your round scores. A lower value means scores are clustered closely around the average; a higher value means greater variation between rounds.',
+    range: {
+      segments: [
+        { color: '#52c278', width: 20 },
+        { color: '#e8c547', width: 25 },
+        { color: '#f0a04b', width: 30 },
+        { color: '#e05252', width: 25 },
+      ],
+      ticks: [
+        { val: '0',   lbl: '' },
+        { val: '5',   lbl: '' },
+        { val: '15',  lbl: '' },
+        { val: '30+', lbl: '' },
+      ],
+    }
+  },
+};
+
+const INFO_SVG = `<svg viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+
+function showStatInfoPopup(key) {
+  const info = STAT_INFO[key];
+  if (!info) return;
+  document.getElementById('statInfoTitle').textContent = info.title;
+  document.getElementById('statInfoDesc').textContent  = info.desc;
+
+  const rangeEl = document.getElementById('statInfoRange');
+  if (info.range) {
+    let html = `<div class="stat-info-range"><div class="stat-info-range-label">Range</div>`;
+
+    if (info.range.segments) {
+      html += `<div class="stat-info-range-track">`;
+      let offset = 0;
+      info.range.segments.forEach(seg => {
+        html += `<div class="stat-info-range-fill" style="left:${offset}%;width:${seg.width}%;background:${seg.color};"></div>`;
+        offset += seg.width;
+      });
+      html += `</div>`;
+      if (info.range.ticks) {
+        html += `<div class="stat-info-range-ticks">`;
+        info.range.ticks.forEach(t => {
+          html += `<div class="stat-info-range-tick"><div class="stat-info-range-tick-val">${t.val}</div><div class="stat-info-range-tick-lbl">${t.lbl}</div></div>`;
+        });
+        html += `</div>`;
+      }
+    }
+
+    html += `</div>`;
+    rangeEl.innerHTML = html;
+  } else {
+    rangeEl.innerHTML = '';
+  }
+
+  document.getElementById('statInfoPopupBackdrop').classList.add('open');
+}
+
+function closeStatInfoPopup(e) {
+  if (e && e.target !== document.getElementById('statInfoPopupBackdrop')) return;
+  document.getElementById('statInfoPopupBackdrop').classList.remove('open');
+}
+
+function expandStatsCard(type) {
+  const overlay  = document.getElementById('cardFullscreenOverlay');
+  const inner    = document.getElementById('cardFullscreenInner');
+  const title    = document.getElementById('cardFullscreenTitle');
+  const body     = document.getElementById('cardFullscreenBody');
+  const infoBtn  = document.getElementById('cardFsInfoBtn');
+
+  const data = window._lastStatsData || { allArrows: [], rounds: [] };
+  const { allArrows, rounds } = data;
+
+  window._currentExpandType = type;
+  body.innerHTML = '';
+  inner.classList.remove('landscape');
+
+  // Show the header info button for non-overall cards; hide for overall (per-cell buttons used instead)
+  infoBtn.style.display = (type === 'overall') ? 'none' : 'flex';
+
+  const CELL = (label, val) => {
+    const hasInfo = !!STAT_INFO[label];
+    return `<div style="
+        background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+        padding:12px 10px 12px;display:flex;flex-direction:column;align-items:center;
+        justify-content:center;text-align:center;gap:4px;position:relative;">
+      ${hasInfo ? `<button class="cell-info-btn" onclick="showStatInfoPopup('${label}')" aria-label="About ${label}">${INFO_SVG}</button>` : ''}
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">${label}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1;">${val}</div>
+    </div>`;
+  };
+
+  if (type === 'overall') {
+    title.textContent = 'Overall Stats';
+    const items = buildOverallStats(allArrows, rounds);
+    body.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:100%;height:100%;">
+      ${items.map(r => CELL(r.label, r.val)).join('')}
+    </div>`;
+  }
+
+  else if (type === 'heatmap') {
+    title.textContent = 'Arrow Grouping';
+    const heatmapContainer = document.getElementById('heatmapContainer');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'flex:1;min-height:0;display:flex;align-items:center;justify-content:center;';
+    wrap.appendChild(heatmapContainer);
+    body.style.padding = '8px';
+    body.appendChild(wrap);
+    body._heatmapMoved = true;
+  }
+
+  else if (type === 'timeline') {
+    title.textContent = 'Score Over Time';
+    inner.classList.add('landscape');
+    const timelineContainer = document.getElementById('timelineContainer');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;position:relative;';
+    wrap.appendChild(timelineContainer);
+    body.style.padding = '8px';
+    body.appendChild(wrap);
+    body._timelineMoved = true;
+    setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
+  }
+
+  else if (type === 'zones') {
+    title.textContent = 'Score Distribution';
+    inner.classList.add('landscape');
+    body.style.padding = '10px 16px 14px';
+
+    // Score colours matching the target face
+    const SCORE_COLORS = {
+      10: '#f7e900', 9: '#f7e900',
+      8:  '#e84040', 7: '#e84040',
+      6:  '#3b82f6', 5: '#3b82f6',
+      4:  '#666',    3: '#666',
+      2:  '#bbb',    1: '#bbb',
+      0:  '#333',
+    };
+    const SCORE_LABELS = { 0: 'Miss' };
+
+    const total = allArrows.length || 1;
+    // Build rows 10 → 0
+    const scores = [10,9,8,7,6,5,4,3,2,1,0];
+    const counts = scores.map(s => ({
+      score: s,
+      label: SCORE_LABELS[s] || String(s),
+      color: SCORE_COLORS[s],
+      count: allArrows.filter(a => a.score === s).length,
+    }));
+    const maxCount = Math.max(...counts.map(r => r.count), 1);
+
+    const container = document.createElement('div');
+    container.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column;gap:5px;justify-content:space-between;';
+    container.innerHTML = counts.map(r => {
+      const pct = ((r.count / total) * 100).toFixed(1);
+      const barW = ((r.count / maxCount) * 100).toFixed(1);
+      return `<div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:32px;text-align:right;flex-shrink:0;">${r.label}</div>
+        <div style="flex:1;height:9px;background:var(--bg3);border-radius:5px;overflow:hidden;">
+          <div style="width:${barW}%;height:100%;border-radius:5px;background:${r.color};transition:width .4s ease;"></div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:80px;flex-shrink:0;">
+          ${r.count} <span style="font-size:9px;opacity:.7;">(${pct}%)</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    body.appendChild(container);
+    // No _zonesMoved flag — zoneBars tile element is untouched
+  }
+
+  overlay.classList.add('open');
+}
+
+function closeStatsCardExpand(e) {
+  if (e && e.target !== document.getElementById('cardFullscreenOverlay')) return;
+  const overlay = document.getElementById('cardFullscreenOverlay');
+  const body    = document.getElementById('cardFullscreenBody');
+  overlay.classList.remove('open');
+
+  // Move canvases back to their original tiles after transition
+  setTimeout(() => {
+    if (body._heatmapMoved) {
+      const heatmapContainer = document.getElementById('heatmapContainer');
+      const tilePrev = document.querySelector('.stats-section-tile:nth-child(2) .sst-preview');
+      if (tilePrev && heatmapContainer) tilePrev.appendChild(heatmapContainer);
+      body._heatmapMoved = false;
+    }
+    if (body._timelineMoved) {
+      const timelineContainer = document.getElementById('timelineContainer');
+      const tilePrev = document.querySelector('.stats-section-tile:nth-child(3) .sst-preview');
+      if (tilePrev && timelineContainer) tilePrev.appendChild(timelineContainer);
+      body._timelineMoved = false;
+      const { rounds } = window._lastStatsData || { rounds: [] };
+      setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
+    }
+    if (body._zonesMoved) {
+      body._zonesMoved = false;
+    }
+    body.innerHTML = '';
+    body.style.padding = '';
+  }, 280);
 }
 
 // True Heatmap Helper
