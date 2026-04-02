@@ -125,7 +125,7 @@
   body.score-scroll-locked { overflow: hidden; }
   .page.score-scroll-locked { overflow: hidden; }
 
-  /* ── SCORE PAGE: viewport-locked flex when visible, hidden otherwise ── */
+  /* ── SCORE PAGE: viewport-locked flex when active, hidden otherwise ── */
   #page-score { display: none; }
   #page-score.active {
     display: flex;
@@ -136,7 +136,6 @@
     padding-bottom: 0;
     overflow: hidden;
   }
-  /* Score picker fills the space above the fixed nav bar */
   #scorePicker {
     display: flex;
     flex-direction: column;
@@ -147,7 +146,7 @@
     box-sizing: border-box;
   }
 
-  /* ── HOME ──*/
+  /* ── HOME ── */
   .home-hero {
     background: linear-gradient(160deg, #0d1826 0%, #1a2540 100%);
     padding: max(60px, calc(44px + env(safe-area-inset-top))) 24px 40px;
@@ -4566,7 +4565,7 @@ function setSortOnly_club(key) {
 //  DATA LAYER & INITIALIZATION
 // ═══════════════════════════════════════════════
 const DB_KEY = 'arrowmark_v2';
-const APP_VERSION = '3.4.13';
+const APP_VERSION = '3.4.20';
 const systemThemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocations":[],"deviceProfile":{"name":""}}');
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
@@ -5496,7 +5495,7 @@ function buildFinishedSession() {
 }
 
 function resetActiveSessionUI() {
-  document.getElementById('scorePicker').style.display = 'block';
+  document.getElementById('scorePicker').style.display = 'flex';
   document.getElementById('scoreActive').style.display = 'none';
   closeOverlay('completedRoundsOverlay');
   updateScoreScrollLock();
@@ -5698,7 +5697,7 @@ function startSession(type, options = {}) {
   
   practiceTargetExpanded = null;
   document.getElementById('scorePicker').style.display = 'none';
-  document.getElementById('scoreActive').style.display = 'block';
+  document.getElementById('scoreActive').style.display = 'flex';
   goPage('score', document.getElementById('nav-score'));
   renderScorePage();
   requestSessionLocation(session.id);
@@ -8710,8 +8709,8 @@ function goPage(name, btn) {
   }
 
   if(name==='score') {
-    if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'block'; renderScorePage(); }
-    else { document.getElementById('scorePicker').style.display = 'block'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); renderScorePickerSummaries(); }
+    if(session) { document.getElementById('scorePicker').style.display = 'none'; document.getElementById('scoreActive').style.display = 'flex'; renderScorePage(); }
+    else { document.getElementById('scorePicker').style.display = 'flex'; document.getElementById('scoreActive').style.display = 'none'; drawTarget([]); renderScorePickerSummaries(); }
   }
   if(name==='diag') { renderDiag(); lockPortrait(); }
   else { unlockOrientation(); }
