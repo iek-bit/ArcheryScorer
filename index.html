@@ -123,34 +123,7 @@
   .page { display: none; padding: 0 0 calc(84px + env(safe-area-inset-bottom)); min-height: 100vh; min-height: 100dvh; }
   .page.active { display: block; }
   body.score-scroll-locked { overflow: hidden; }
-  .page.score-scroll-locked {
-    overflow: hidden;
-    height: 100vh; height: 100dvh;
-    min-height: unset;
-    max-height: 100vh; max-height: 100dvh;
-    padding-bottom: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ── SCORE PAGE: always viewport-locked, never scrollable ── */
-  #page-score {
-    height: 100vh; height: 100dvh;
-    min-height: unset;
-    max-height: 100vh; max-height: 100dvh;
-    overflow: hidden;
-    padding-bottom: 0;
-    display: flex !important;
-    flex-direction: column;
-  }
-  /* Score picker fills the viewport minus the nav bar */
-  #scorePicker {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
+  .page.score-scroll-locked { overflow: hidden; }
 
   /* ── HOME ── */
   .home-hero {
@@ -186,9 +159,8 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 0 16px calc(16px + 64px + env(safe-area-inset-bottom));
-    flex: 1;
-    min-height: 0;
+    padding: 16px;
+    height: calc(100dvh - env(safe-area-inset-bottom) - 64px - max(60px, calc(env(safe-area-inset-top) + 20px)));
     box-sizing: border-box;
   }
   .session-cards-grid .session-card {
@@ -571,9 +543,10 @@
   #scoreActive.score-session-live {
     display: flex !important;
     flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    max-height: calc(100dvh - calc(64px + env(safe-area-inset-bottom)));
+    min-height: calc(100vh - 84px - env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
+    max-height: calc(100vh - 84px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 84px - env(safe-area-inset-bottom));
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -2782,7 +2755,12 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Weekly Summary Detail Overlay -->
 <div class="overlay centered" id="weeklySummaryOverlay">
   <div class="modal" style="max-width:500px;border-radius:22px;padding:24px;max-height:80vh;max-height:80dvh;overflow-y:auto;">
-    <h3 style="margin-bottom:6px;">Weekly Summary</h3>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
+      <h3 style="margin-bottom:0;">Weekly Summary</h3>
+      <button onclick="closeOverlay('weeklySummaryOverlay')" aria-label="Close" class="icon-btn" style="margin:-4px -4px 0 12px;flex-shrink:0;">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
     <p style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:20px;" id="weeklySummaryDateRange">Past 7 days</p>
     
     <!-- Summary Stats Grid -->
