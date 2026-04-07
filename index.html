@@ -2860,6 +2860,12 @@
     flex-direction: column;
     gap: 8px;
   }
+  .photo-score-debug-list {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
   .photo-score-validation-item {
     border: 1px solid rgba(240,160,75,.25);
     border-radius: 12px;
@@ -2872,6 +2878,46 @@
   .photo-score-validation-item.error {
     border-color: rgba(224,82,82,.34);
     background: rgba(224,82,82,.08);
+  }
+  .photo-score-debug-item {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255,255,255,.03);
+    padding: 10px 12px;
+    display: grid;
+    gap: 4px;
+  }
+  .photo-score-debug-item.good {
+    border-color: rgba(82,194,120,.34);
+  }
+  .photo-score-debug-item.uncertain {
+    border-color: rgba(240,160,75,.34);
+  }
+  .photo-score-debug-item.invalid {
+    border-color: rgba(224,82,82,.34);
+    background: rgba(224,82,82,.06);
+  }
+  .photo-score-debug-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: baseline;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .9px;
+  }
+  .photo-score-debug-value {
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .photo-score-debug-metrics {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.45;
   }
 
   @media (max-width: 960px) {
@@ -4204,6 +4250,12 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="photo-score-downloads">
         <button class="modal-btn" onclick="downloadPhotoScoreCanvas('photoScoreNormalizedCanvas', 'normalized-scorecard.png')">Download Normalized Card</button>
         <button class="modal-btn" onclick="downloadPhotoScoreCanvas('photoScoreGridCanvas', 'score-grid-focus.png')">Download Grid Focus</button>
+      </div>
+
+      <div class="photo-score-panel">
+        <div class="photo-score-metric-label">Detection Debug</div>
+        <div class="photo-score-review-note">Each arrow shows the chosen score, the strongest competing option, and the alignment offsets used for that row.</div>
+        <div class="photo-score-debug-list" id="photoScoreDebugList"></div>
       </div>
 
       <div class="photo-score-panel" id="photoScoreRoundReview" style="display:none">
@@ -7924,6 +7976,8 @@ function resetPhotoScoreState() {
     validationList.innerHTML = '';
     validationList.style.display = 'none';
   }
+  const debugList = document.getElementById('photoScoreDebugList');
+  if (debugList) debugList.innerHTML = '';
   const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
   if (inlineGrid) inlineGrid.innerHTML = '';
   hideInlinePhotoReview();
@@ -8036,10 +8090,19 @@ async function runPhotoScoreDetection() {
 
     const cellResults = await recognizePhotoScoreCells(processedCanvas, warpedCanvas, PHOTO_SCORE_TEMPLATE, session);
     photoScoreState.cellResults = cellResults;
+    const detailedOverlayCanvas = drawPhotoScoreTemplateOverlay(
+      warpedCanvas,
+      PHOTO_SCORE_TEMPLATE,
+      cellResults,
+      session?.type === '3d_tournament' ? '3d' : 'bullseye'
+    );
+    photoScoreState.overlayImageDataUrl = detailedOverlayCanvas.toDataURL('image/png');
+    renderPhotoScorePreviewCanvases(warpedCanvas, processedCanvas, detailedOverlayCanvas);
     photoScoreState.reviewTournamentScores = buildPhotoScoreReviewValuesFromCells(cellResults, PHOTO_SCORE_TEMPLATE.rows, PHOTO_SCORE_TEMPLATE.cols);
     photoScoreState.validationIssues = buildPhotoScoreValidationIssues(cellResults, photoScoreState.reviewTournamentScores, session);
     renderPhotoScoreResult();
     renderPhotoScoreReviewGrid();
+    renderPhotoScoreDebugList();
     updatePhotoScoreReviewVisibility();
     if (photoScoreState.context === 'round') {
       showInlinePhotoReview();
@@ -8182,7 +8245,7 @@ function preprocessWarpedScorecard(warpedCanvas, template) {
   return outputCanvas;
 }
 
-function drawPhotoScoreTemplateOverlay(warpedCanvas, template) {
+function drawPhotoScoreTemplateOverlay(warpedCanvas, template, cellResults = null, mode = 'bullseye') {
   const canvas = document.createElement('canvas');
   canvas.width = warpedCanvas.width;
   canvas.height = warpedCanvas.height;
@@ -8199,15 +8262,31 @@ function drawPhotoScoreTemplateOverlay(warpedCanvas, template) {
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
   });
-  const options = getPhotoScoreOptionLayout(template, 'bullseye');
+  const options = getPhotoScoreOptionLayout(template, mode);
   const sampleWidth = template.markSampleWidthRatio * canvas.width * template.scoreStripRegion.width;
-  template.cells.flat().forEach(cell => {
-    const y = (cell.y + cell.height / 2) * canvas.height;
+  const flattenedResults = Array.isArray(cellResults) && cellResults.length ? cellResults : template.cells.flat().map(cell => ({
+    roundIndex: cell.rowIndex,
+    arrowIndex: cell.arrowIndex,
+    cell,
+    alignment: { dx: 0, dy: 0 },
+    bestOption: '',
+    valid: false
+  }));
+  flattenedResults.forEach(result => {
+    const cell = result.cell || template.cells[result.roundIndex]?.[result.arrowIndex];
+    if (!cell) return;
+    const y = (cell.y + cell.height / 2) * canvas.height + (result.alignment?.dy || 0);
     const stripX = cell.x * canvas.width;
     const stripWidth = cell.width * canvas.width;
     const sampleHeight = cell.height * canvas.height * template.markSampleHeightRatio;
+    const dx = result.alignment?.dx || 0;
     options.forEach(option => {
-      const centerX = stripX + option.center * stripWidth;
+      const centerX = stripX + option.center * stripWidth + dx;
+      const isBest = result.bestOption === option.label;
+      ctx.strokeStyle = isBest
+        ? (result.valid ? 'rgba(82,194,120,0.98)' : 'rgba(224,82,82,0.98)')
+        : 'rgba(232,197,71,0.75)';
+      ctx.lineWidth = isBest ? 2.6 : 1.4;
       ctx.strokeRect(centerX - sampleWidth / 2, y - sampleHeight / 2, sampleWidth, sampleHeight);
     });
   });
@@ -8237,7 +8316,7 @@ async function recognizePhotoScoreCells(processedCanvas, warpedCanvas, template,
   for (let roundIndex = 0; roundIndex < template.rows; roundIndex++) {
     for (let arrowIndex = 0; arrowIndex < template.cols; arrowIndex++) {
       const cell = template.cells[roundIndex][arrowIndex];
-      const markResult = detectPhotoScoreMark(processedCanvas, cell, template, mode);
+      const markResult = detectPhotoScoreMark(processedCanvas, warpedCanvas, cell, template, mode);
       let rawText = markResult.rawText;
       let normalizedValue = markResult.normalizedValue;
       let confidence = markResult.confidence;
@@ -8262,7 +8341,14 @@ async function recognizePhotoScoreCells(processedCanvas, warpedCanvas, template,
         confidence,
         normalizedValue,
         valid: !!normalizedValue,
-        cell
+        cell,
+        bestOption: markResult.bestOption || null,
+        runnerUpOption: markResult.runnerUpOption || null,
+        alignment: markResult.alignment || { dx: 0, dy: 0 },
+        ink: markResult.ink || 0,
+        contrast: markResult.contrast || 0,
+        ambiguity: markResult.ambiguity || 0,
+        offsetOptions: markResult.offsetOptions || []
       });
     }
   }
@@ -8276,53 +8362,96 @@ function getPhotoScoreOptionLayout(template, mode = 'bullseye') {
   return template.bullseyeOptions.map((label, index) => ({ label, center: template.bullseyeOptionCenters[index] }));
 }
 
-function detectPhotoScoreMark(processedCanvas, cell, template, mode = 'bullseye') {
+function detectPhotoScoreMark(processedCanvas, warpedCanvas, cell, template, mode = 'bullseye') {
   const options = getPhotoScoreOptionLayout(template, mode);
-  const ctx = processedCanvas.getContext('2d', { willReadFrequently: true });
+  const binaryCtx = processedCanvas.getContext('2d', { willReadFrequently: true });
+  const warpedCtx = warpedCanvas.getContext('2d', { willReadFrequently: true });
   const x = Math.round(cell.x * processedCanvas.width);
   const y = Math.round(cell.y * processedCanvas.height);
   const width = Math.max(1, Math.round(cell.width * processedCanvas.width));
   const height = Math.max(1, Math.round(cell.height * processedCanvas.height));
-  const imageData = ctx.getImageData(x, y, width, height).data;
-  const sampleWidth = Math.max(3, Math.round(width * template.markSampleWidthRatio));
-  const sampleHeight = Math.max(3, Math.round(height * template.markSampleHeightRatio));
+  const binaryData = binaryCtx.getImageData(x, y, width, height).data;
+  const warpedData = warpedCtx.getImageData(x, y, width, height).data;
+  const sampleWidth = Math.max(4, Math.round(width * (template.markSampleWidthRatio * 1.15)));
+  const sampleHeight = Math.max(4, Math.round(height * (template.markSampleHeightRatio * 0.9)));
   const centerY = Math.round(height / 2);
-  const scores = options.map(option => {
-    const centerX = Math.round(option.center * width);
-    const ink = samplePhotoScoreInk(imageData, width, height, centerX, centerY, sampleWidth, sampleHeight);
-    return { ...option, ink };
-  }).sort((a, b) => b.ink - a.ink);
-  const best = scores[0];
-  const runnerUp = scores[1] || { ink: 0 };
-  const medianInk = robustQuantile(scores.map(score => score.ink), 0.5) || 0;
-  const contrast = best.ink - Math.max(runnerUp.ink, medianInk);
+  const dxCandidates = [-0.02, -0.012, -0.006, 0, 0.006, 0.012, 0.02].map(ratio => Math.round(width * ratio));
+  const dyCandidates = [-0.18, -0.1, -0.05, 0, 0.05, 0.1, 0.18].map(ratio => Math.round(height * ratio));
+  let bestCandidate = null;
+
+  dyCandidates.forEach(dy => {
+    dxCandidates.forEach(dx => {
+      const scores = options.map(option => {
+        const centerX = Math.round(option.center * width) + dx;
+        const sample = samplePhotoScoreInk(binaryData, warpedData, width, height, centerX, centerY + dy, sampleWidth, sampleHeight);
+        return { ...option, ...sample };
+      }).sort((a, b) => b.score - a.score);
+      const best = scores[0];
+      const runnerUp = scores[1] || { score: 0 };
+      const medianScore = robustQuantile(scores.map(score => score.score), 0.5) || 0;
+      const contrast = best.score - Math.max(runnerUp.score, medianScore);
+      const ambiguity = Math.max(0, runnerUp.score - medianScore);
+      const candidateScore = best.score * 1.1 + contrast * 1.8 - ambiguity * 0.9;
+      if (!bestCandidate || candidateScore > bestCandidate.candidateScore) {
+        bestCandidate = {
+          dx,
+          dy,
+          scores,
+          best,
+          runnerUp,
+          contrast,
+          ambiguity,
+          candidateScore
+        };
+      }
+    });
+  });
+
+  const best = bestCandidate?.best || { label: '', score: 0, binaryInk: 0, grayscaleInk: 0 };
+  const runnerUp = bestCandidate?.runnerUp || { label: '', score: 0 };
+  const contrast = bestCandidate?.contrast || 0;
   const normalizedValue = normalizePhotoScoreLabel(best.label, mode);
-  const confidence = clamp(Math.round(20 + best.ink * 180 + contrast * 700), 0, 100);
-  const valid = !!normalizedValue && best.ink > 0.048 && contrast > 0.012;
+  const confidence = clamp(Math.round(14 + best.score * 115 + contrast * 540 - (bestCandidate?.ambiguity || 0) * 180), 0, 100);
+  const valid = !!normalizedValue && best.score > 0.22 && contrast > 0.035 && (bestCandidate?.ambiguity || 0) < 0.03;
   return {
     rawText: best.label,
     normalizedValue: valid ? normalizedValue : '',
     confidence: valid ? confidence : clamp(Math.round(confidence * 0.45), 0, 55),
-    scores
+    bestOption: best.label || '',
+    runnerUpOption: runnerUp.label || '',
+    alignment: { dx: bestCandidate?.dx || 0, dy: bestCandidate?.dy || 0 },
+    ink: best.score || 0,
+    contrast,
+    ambiguity: bestCandidate?.ambiguity || 0,
+    offsetOptions: bestCandidate?.scores || []
   };
 }
 
-function samplePhotoScoreInk(imageData, width, height, centerX, centerY, sampleWidth, sampleHeight) {
+function samplePhotoScoreInk(binaryData, warpedData, width, height, centerX, centerY, sampleWidth, sampleHeight) {
   const startX = clamp(Math.round(centerX - sampleWidth / 2), 0, width - 1);
   const startY = clamp(Math.round(centerY - sampleHeight / 2), 0, height - 1);
   const endX = clamp(startX + sampleWidth, 1, width);
   const endY = clamp(startY + sampleHeight, 1, height);
-  let totalInk = 0;
+  let totalBinaryInk = 0;
+  let totalGrayInk = 0;
   let count = 0;
   for (let py = startY; py < endY; py++) {
     for (let px = startX; px < endX; px++) {
       const idx = (py * width + px) * 4;
-      const shade = imageData[idx];
-      totalInk += 1 - shade / 255;
+      const binaryShade = binaryData[idx];
+      const grayShade = warpedData[idx];
+      totalBinaryInk += 1 - binaryShade / 255;
+      totalGrayInk += 1 - grayShade / 255;
       count++;
     }
   }
-  return count ? totalInk / count : 0;
+  const binaryInk = count ? totalBinaryInk / count : 0;
+  const grayscaleInk = count ? totalGrayInk / count : 0;
+  return {
+    binaryInk,
+    grayscaleInk,
+    score: binaryInk * 0.65 + grayscaleInk * 0.35
+  };
 }
 
 function cropPhotoScoreCell(processedCanvas, cell) {
@@ -8354,6 +8483,9 @@ function buildPhotoScoreValidationIssues(cellResults, reviewValues, sessionObj =
       issues.push({ tone: 'error', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the score mark was unclear. Retake or correct this ${mode === '3d' ? '3D' : 'bullseye'} arrow manually.` });
     } else if (cell.confidence < 82) {
       issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the detected mark is low-confidence (${cell.confidence}%). Double-check this row.` });
+    }
+    if ((cell.contrast || 0) < 0.055) {
+      issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the top two mark candidates were very close. This row may be ambiguous.` });
     }
   });
   if (reviewValues.some(round => round.some(value => !value))) {
@@ -8435,8 +8567,36 @@ function getPhotoScoreCellResult(roundIndex, arrowIndex) {
 function getPhotoReviewCellState(roundIndex, arrowIndex, value) {
   const cell = getPhotoScoreCellResult(roundIndex, arrowIndex);
   if (!value || !cell || !cell.valid) return 'invalid';
-  if ((cell.confidence || 0) < 82) return 'uncertain';
+  if ((cell.confidence || 0) < 82 || (cell.contrast || 0) < 0.055) return 'uncertain';
   return 'good';
+}
+
+function renderPhotoScoreDebugList() {
+  const debugList = document.getElementById('photoScoreDebugList');
+  if (!debugList) return;
+  if (!photoScoreState.cellResults.length) {
+    debugList.innerHTML = '';
+    return;
+  }
+  debugList.innerHTML = photoScoreState.cellResults.map(cell => {
+    const state = getPhotoReviewCellState(cell.roundIndex, cell.arrowIndex, cell.normalizedValue);
+    const topOptions = Array.isArray(cell.offsetOptions)
+      ? cell.offsetOptions.slice(0, 3).map(option => `${option.label}:${(option.score || 0).toFixed(2)}`).join(' · ')
+      : '';
+    const chosen = cell.normalizedValue || 'blank';
+    const runnerUp = cell.runnerUpOption || 'none';
+    return `
+      <div class="photo-score-debug-item ${state}">
+        <div class="photo-score-debug-head">
+          <span>Round ${cell.roundIndex + 1} · Arrow ${cell.arrowIndex + 1}</span>
+          <span>${cell.confidence || 0}%</span>
+        </div>
+        <div class="photo-score-debug-value">Chosen: <strong>${chosen}</strong> · Runner-up: <strong>${runnerUp}</strong> · Raw: <strong>${cell.rawText || '—'}</strong></div>
+        <div class="photo-score-debug-metrics">Ink ${(cell.ink || 0).toFixed(3)} · Contrast ${(cell.contrast || 0).toFixed(3)} · Ambiguity ${(cell.ambiguity || 0).toFixed(3)} · Offset ${cell.alignment?.dx || 0}px / ${cell.alignment?.dy || 0}px</div>
+        <div class="photo-score-debug-metrics">Top candidates: ${topOptions || 'No candidates captured'}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderPhotoScoreReviewGrid() {
@@ -8530,6 +8690,7 @@ function updatePhotoReviewScore(roundIndex, arrowIndex, value) {
   }
   photoScoreState.validationIssues = buildPhotoScoreValidationIssues(photoScoreState.cellResults, photoScoreState.reviewTournamentScores, session);
   renderPhotoScoreReviewGrid();
+  renderPhotoScoreDebugList();
 }
 
 function applyPhotoScoresToCurrentRound() {
