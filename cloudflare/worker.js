@@ -208,106 +208,6 @@ async function parseBase64ImageFromRequest(request, origin) {
   return match[1];
 }
 
-async function callRoboflowModel({ project, version, confidence, overlap, apiKey, base64Body }) {
-  const roboflowUrl = new URL(`https://serverless.roboflow.com/${encodeURIComponent(project)}/${encodeURIComponent(version)}`);
-  roboflowUrl.searchParams.set('api_key', apiKey);
-  roboflowUrl.searchParams.set('confidence', String(confidence));
-  roboflowUrl.searchParams.set('overlap', String(overlap));
-  roboflowUrl.searchParams.set('image_type', 'base64');
-
-  const roboflowResponse = await fetch(roboflowUrl.toString(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain'
-    },
-    body: base64Body
-  });
-
-  const responseText = await roboflowResponse.text();
-  let payload = null;
-  try {
-    payload = JSON.parse(responseText);
-  } catch {
-    payload = null;
-  }
-
-  if (!roboflowResponse.ok || !payload) {
-    throw new Error(`Roboflow did not return valid JSON: ${responseText.slice(0, 500)}`);
-  }
-
-  return payload;
-}
-
-async function handlePhotoScoreHealth(env, origin) {
-  return json(
-    {
-      ok: true,
-      roboflowConfigured: !!env.ROBOFLOW_API_KEY,
-      project: env.ROBOFLOW_PROJECT || 'scorecard-detector',
-      version: env.ROBOFLOW_MODEL_VERSION || '3',
-      markProject: env.ROBOFLOW_MARK_PROJECT || 'score-mark-reader',
-      markVersion: env.ROBOFLOW_MARK_MODEL_VERSION || '2'
-    },
-    200,
-    origin
-  );
-}
-
-async function handlePhotoScoreDetect(request, env, origin) {
-  if (!env.ROBOFLOW_API_KEY) return err('ROBOFLOW_API_KEY secret is missing in Cloudflare.', 500, origin);
-
-  const base64Body = await parseBase64ImageFromRequest(request, origin);
-  const payload = await callRoboflowModel({
-    project: env.ROBOFLOW_PROJECT || 'scorecard-detector',
-    version: env.ROBOFLOW_MODEL_VERSION || '3',
-    confidence: env.ROBOFLOW_CONFIDENCE || '0.4',
-    overlap: env.ROBOFLOW_OVERLAP || '0.3',
-    apiKey: env.ROBOFLOW_API_KEY,
-    base64Body
-  });
-
-  const predictions = Array.isArray(payload.predictions) ? payload.predictions : [];
-  const prediction =
-    predictions
-      .filter(item => item && typeof item === 'object')
-      .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))[0] || null;
-
-  return json(
-    {
-      ok: true,
-      image: payload.image || null,
-      prediction,
-      predictionsCount: predictions.length
-    },
-    200,
-    origin
-  );
-}
-
-async function handlePhotoScoreRead(request, env, origin) {
-  if (!env.ROBOFLOW_API_KEY) return err('ROBOFLOW_API_KEY secret is missing in Cloudflare.', 500, origin);
-
-  const base64Body = await parseBase64ImageFromRequest(request, origin);
-  const payload = await callRoboflowModel({
-    project: env.ROBOFLOW_MARK_PROJECT || 'score-mark-reader',
-    version: env.ROBOFLOW_MARK_MODEL_VERSION || '2',
-    confidence: env.ROBOFLOW_MARK_CONFIDENCE || '0.25',
-    overlap: env.ROBOFLOW_MARK_OVERLAP || '0.3',
-    apiKey: env.ROBOFLOW_API_KEY,
-    base64Body
-  });
-
-  return json(
-    {
-      ok: true,
-      image: payload.image || null,
-      predictions: Array.isArray(payload.predictions) ? payload.predictions : []
-    },
-    200,
-    origin
-  );
-}
-
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -323,18 +223,6 @@ export default {
       // --- Public & Health Routes ---
       if (path === '/ping' && request.method === 'GET') {
         return json({ ok: true }, 200, origin);
-      }
-
-      if (path === '/photo-score/health' && request.method === 'GET') {
-        return handlePhotoScoreHealth(env, origin);
-      }
-
-      if (path === '/photo-score/detect' && request.method === 'POST') {
-        return handlePhotoScoreDetect(request, env, origin);
-      }
-
-      if (path === '/photo-score/read' && request.method === 'POST') {
-        return handlePhotoScoreRead(request, env, origin);
       }
 
       if (!env.ARCHERY_KV) {

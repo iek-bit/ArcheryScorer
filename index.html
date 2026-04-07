@@ -12,6 +12,8 @@
 <link rel="manifest" href="data:application/json,{%22name%22:%22Achery%20Scorer%22,%22short_name%22:%22Achery%22,%22display%22:%22standalone%22,%22start_url%22:%22.%2F%22,%22scope%22:%22.%2F%22,%22background_color%22:%22%230a0f1a%22,%22theme_color%22:%22%230a0f1a%22,%22icons%22:[{%22src%22:%22favicon.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image%2Fpng%22},{%22src%22:%22favicon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image%2Fpng%22}]}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script async src="https://docs.opencv.org/4.10.0/opencv.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -2773,6 +2775,19 @@
     margin-bottom: 6px;
     text-align: center;
   }
+  .score-review-cell.good select {
+    border-color: rgba(82,194,120,.55);
+    box-shadow: 0 0 0 1px rgba(82,194,120,.16) inset;
+  }
+  .score-review-cell.uncertain select {
+    border-color: rgba(240,160,75,.5);
+    box-shadow: 0 0 0 1px rgba(240,160,75,.14) inset;
+  }
+  .score-review-cell.invalid select {
+    border-color: rgba(224,82,82,.55);
+    box-shadow: 0 0 0 1px rgba(224,82,82,.16) inset;
+    background: rgba(224,82,82,.08);
+  }
   .score-review-cell select {
     width: 100%;
     min-height: 44px;
@@ -2789,6 +2804,25 @@
     font-size: 12px;
     color: var(--muted);
     line-height: 1.5;
+  }
+  .photo-score-validation-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .photo-score-validation-item {
+    border: 1px solid rgba(240,160,75,.25);
+    border-radius: 12px;
+    background: rgba(240,160,75,.08);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 10px 12px;
+  }
+  .photo-score-validation-item.error {
+    border-color: rgba(224,82,82,.34);
+    background: rgba(224,82,82,.08);
   }
 
   /* score flash */
@@ -4035,8 +4069,8 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="photo-score-modal" onclick="event.stopPropagation()">
     <div class="photo-score-header">
       <div>
-        <h3>Photo Score Beta</h3>
-        <div class="photo-score-subtitle">This first pass detects the full paper scorecard and shows the crop we will use for the next parsing step.</div>
+        <h3>Photo Score</h3>
+        <div class="photo-score-subtitle">The browser will straighten the scorecard, preprocess the image, and read each score cell locally before you review the results.</div>
       </div>
       <button class="detail-close" onclick="closePhotoScoreOverlay()" aria-label="Close photo score">
         <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
@@ -4046,13 +4080,13 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="photo-score-panel">
       <label class="photo-score-upload">
         <strong>Choose Scorecard Photo</strong>
-        <span>Use a fresh camera shot or a saved image. Your Cloudflare Worker will forward it to Roboflow without exposing the API key in the browser.</span>
+        <span>Use a bright photo with the full paper visible. Once the libraries are ready, processing stays in the browser.</span>
         <input id="photoScoreInput" type="file" accept="image/*" capture="environment" onchange="handlePhotoScoreFileChange(event)">
       </label>
       <div class="photo-score-file" id="photoScoreFileName">No image selected yet.</div>
-      <div class="photo-score-status" id="photoScoreStatus">Start by choosing a scorecard photo.</div>
+      <div class="photo-score-status" id="photoScoreStatus">Loading the local photo-score engine…</div>
       <div class="photo-score-actions">
-        <button class="modal-btn primary" id="photoScoreDetectBtn" onclick="runPhotoScoreDetection()" disabled>Detect Scorecard</button>
+        <button class="modal-btn primary" id="photoScoreDetectBtn" onclick="runPhotoScoreDetection()" disabled>Process Scorecard</button>
         <button class="modal-btn" onclick="resetPhotoScoreState()">Clear</button>
       </div>
     </div>
@@ -4075,15 +4109,15 @@ const PRACTICE_TARGET_OPTIONS = [
           <img id="photoScoreOriginalPreview" alt="Uploaded scorecard preview">
         </div>
         <div class="photo-score-preview-card">
-          <h4>Cropped Card</h4>
+          <h4>Straightened Card</h4>
           <canvas id="photoScoreCropCanvas" width="320" height="480"></canvas>
         </div>
         <div class="photo-score-preview-card">
-          <h4>Normalized Card</h4>
+          <h4>Processed Card</h4>
           <canvas id="photoScoreNormalizedCanvas" width="900" height="1500"></canvas>
         </div>
         <div class="photo-score-preview-card">
-          <h4>Scoring Grid Focus</h4>
+          <h4>Cell Overlay</h4>
           <canvas id="photoScoreGridCanvas" width="720" height="1080"></canvas>
         </div>
       </div>
@@ -4096,6 +4130,7 @@ const PRACTICE_TARGET_OPTIONS = [
       <div class="photo-score-panel" id="photoScoreRoundReview" style="display:none">
         <div class="photo-score-metric-label">Detected Tournament Scores</div>
         <div class="score-review-grid" id="photoScoreReviewGrid"></div>
+        <div class="photo-score-validation-list" id="photoScoreValidationList" style="display:none"></div>
         <div class="photo-score-review-note" id="photoScoreReviewNote">Review the tournament values before applying them.</div>
         <div class="photo-score-actions">
           <button class="modal-btn primary" id="photoScoreApplyBtn" onclick="applyPhotoScoresToCurrentRound()">Apply Tournament</button>
@@ -4103,7 +4138,7 @@ const PRACTICE_TARGET_OPTIONS = [
       </div>
 
       <div class="photo-score-next">
-        The normalized and grid-focus outputs are the next training assets to pay attention to. If those look clean and centered, you are ready to start building the second Roboflow model that reads marked score cells.
+        If the straightened card and cell overlay look right, the OCR stage is reading the same structure you are about to review. If they look wrong, retake the photo with the full card flatter and better lit.
       </div>
     </div>
   </div>
@@ -4542,8 +4577,42 @@ const ACCOUNT_KEY   = 'achery_account'; // { username, password }
 const GUEST_MODE_KEY = 'achery_guest_mode';
 
 function getCfUrl()    { return 'https://archery-worker.isaacekern.workers.dev'; }
-function getPhotoScoreUrl() { return `${getCfUrl()}/photo-score/detect`; }
-function getPhotoScoreReadUrl() { return `${getCfUrl()}/photo-score/read`; }
+const PHOTO_SCORE_TEMPLATE = {
+  canonicalWidth: 900,
+  canonicalHeight: 1500,
+  expectedAspectRatio: 0.6,
+  scoreRegion: { x: 0.115, y: 0.06, width: 0.77, height: 0.76 },
+  rowGapRatio: 0.026,
+  colGapRatio: 0.022,
+  rows: 6,
+  cols: 5
+};
+const photoScoreEngine = {
+  opencvReady: false,
+  tesseractReady: false,
+  initializing: false,
+  error: '',
+  readinessPromise: null
+};
+let photoScoreScriptStatusApplied = false;
+
+function buildPhotoScoreTemplateCells(template = PHOTO_SCORE_TEMPLATE) {
+  const { rows, cols, scoreRegion, rowGapRatio, colGapRatio } = template;
+  const rowGap = scoreRegion.height * rowGapRatio;
+  const colGap = scoreRegion.width * colGapRatio;
+  const cellWidth = (scoreRegion.width - colGap * (cols - 1)) / cols;
+  const cellHeight = (scoreRegion.height - rowGap * (rows - 1)) / rows;
+  return Array.from({ length: rows }, (_, rowIndex) =>
+    Array.from({ length: cols }, (_, colIndex) => ({
+      x: scoreRegion.x + colIndex * (cellWidth + colGap),
+      y: scoreRegion.y + rowIndex * (cellHeight + rowGap),
+      width: cellWidth,
+      height: cellHeight
+    }))
+  );
+}
+PHOTO_SCORE_TEMPLATE.cells = buildPhotoScoreTemplateCells(PHOTO_SCORE_TEMPLATE);
+
 function getSyncedIds() {
   try { return new Set(JSON.parse(localStorage.getItem(SYNCED_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -5451,9 +5520,13 @@ function initializeApp() {
 
 // Run initialization when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
+  document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    initPhotoScoreLibraries();
+  });
 } else {
   initializeApp();
+  initPhotoScoreLibraries();
 }
 
 // Custom Dialog Utilities
@@ -5489,15 +5562,66 @@ let deviceNameOverlayContext = 'launch';
 let photoScoreState = {
   context: 'beta',
   file: null,
-  imageDataUrl: '',
-  prediction: null,
+  originalImageDataUrl: '',
+  warpedImageDataUrl: '',
+  processedImageDataUrl: '',
+  overlayImageDataUrl: '',
   imageMeta: null,
-  gridImageDataUrl: '',
-  markPredictions: [],
+  cellResults: [],
   reviewTournamentScores: [],
   predictionsCount: 0,
-  isLoading: false
+  validationIssues: [],
+  isLoading: false,
+  isReady: false
 };
+
+function waitForOpenCvReady() {
+  if (window.cv?.Mat) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timeoutAt = Date.now() + 15000;
+    const check = () => {
+      if (window.cv?.Mat) return resolve();
+      if (Date.now() > timeoutAt) return reject(new Error('OpenCV.js did not finish loading.'));
+      if (window.cv && typeof window.cv === 'object') {
+        window.cv.onRuntimeInitialized = () => resolve();
+      }
+      setTimeout(check, 120);
+    };
+    check();
+  });
+}
+
+function updatePhotoScoreEngineAvailability() {
+  const detectBtn = document.getElementById('photoScoreDetectBtn');
+  const ready = photoScoreEngine.opencvReady && photoScoreEngine.tesseractReady && !photoScoreEngine.error;
+  photoScoreState.isReady = ready;
+  if (detectBtn) detectBtn.disabled = !ready || !photoScoreState.originalImageDataUrl || photoScoreState.isLoading;
+  if (photoScoreScriptStatusApplied) return;
+  photoScoreScriptStatusApplied = true;
+  if (ready) setPhotoScoreStatus('Photo-score engine ready. Choose a scorecard photo.');
+  else if (photoScoreEngine.error) setPhotoScoreStatus(photoScoreEngine.error, 'error');
+  else setPhotoScoreStatus('Loading the local photo-score engine…');
+}
+
+async function initPhotoScoreLibraries() {
+  if (photoScoreEngine.initializing) return photoScoreEngine.readinessPromise;
+  photoScoreEngine.initializing = true;
+  photoScoreEngine.readinessPromise = (async () => {
+    try {
+      await waitForOpenCvReady();
+      photoScoreEngine.opencvReady = true;
+      if (!window.Tesseract?.recognize) throw new Error('Tesseract.js failed to load.');
+      photoScoreEngine.tesseractReady = true;
+      photoScoreEngine.error = '';
+    } catch (error) {
+      photoScoreEngine.error = error?.message || 'Could not load the local photo-score libraries.';
+    } finally {
+      updatePhotoScoreEngineAvailability();
+    }
+    return !photoScoreEngine.error;
+  })();
+  return photoScoreEngine.readinessPromise;
+}
 
 function isTournamentSession(sessionObj) { return sessionObj?.type === 'bullseye_tournament' || sessionObj?.type === '3d_tournament'; }
 function isThreeDSession(sessionObj) { return sessionObj?.type === '3d_tournament'; }
@@ -7655,6 +7779,8 @@ function sessionHasProgress() { return !!session && (session.rounds.length > 0 |
 
 function openPhotoScoreOverlay(context = 'beta') {
   photoScoreState.context = context === 'round' ? 'round' : 'beta';
+  initPhotoScoreLibraries();
+  updatePhotoScoreEngineAvailability();
   updatePhotoScoreReviewVisibility();
   document.getElementById('photoScoreOverlay').classList.add('open');
 }
@@ -7678,14 +7804,17 @@ function resetPhotoScoreState() {
   photoScoreState = {
     context: photoScoreState.context === 'round' ? 'round' : 'beta',
     file: null,
-    imageDataUrl: '',
-    prediction: null,
+    originalImageDataUrl: '',
+    warpedImageDataUrl: '',
+    processedImageDataUrl: '',
+    overlayImageDataUrl: '',
     imageMeta: null,
-    gridImageDataUrl: '',
-    markPredictions: [],
+    cellResults: [],
     reviewTournamentScores: [],
     predictionsCount: 0,
-    isLoading: false
+    validationIssues: [],
+    isLoading: false,
+    isReady: photoScoreEngine.opencvReady && photoScoreEngine.tesseractReady && !photoScoreEngine.error
   };
 
   const input = document.getElementById('photoScoreInput');
@@ -7693,7 +7822,7 @@ function resetPhotoScoreState() {
   const roundInput = document.getElementById('photoRoundInput');
   if (roundInput) roundInput.value = '';
   document.getElementById('photoScoreFileName').textContent = 'No image selected yet.';
-  document.getElementById('photoScoreDetectBtn').disabled = true;
+  updatePhotoScoreEngineAvailability();
   document.getElementById('photoScoreResults').style.display = 'none';
   document.getElementById('photoScoreOriginalPreview').removeAttribute('src');
   const cropCanvas = document.getElementById('photoScoreCropCanvas');
@@ -7705,12 +7834,18 @@ function resetPhotoScoreState() {
   gridCanvas.getContext('2d').clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   document.getElementById('photoScoreRoundReview').style.display = 'none';
   document.getElementById('photoScoreReviewGrid').innerHTML = '';
+  const validationList = document.getElementById('photoScoreValidationList');
+  if (validationList) {
+    validationList.innerHTML = '';
+    validationList.style.display = 'none';
+  }
   const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
   if (inlineGrid) inlineGrid.innerHTML = '';
   hideInlinePhotoReview();
   clearRoundPhotoScanState();
   updatePhotoScoreReviewVisibility();
-  setPhotoScoreStatus('Start by choosing a scorecard photo.');
+  photoScoreScriptStatusApplied = false;
+  updatePhotoScoreEngineAvailability();
 }
 
 async function handlePhotoScoreFileChange(event) {
@@ -7737,25 +7872,28 @@ async function preparePhotoScoreFile(file, context = 'beta', autoRun = false) {
   photoScoreState.context = context === 'round' ? 'round' : 'beta';
   const imageDataUrl = await fileToDataUrl(file);
   photoScoreState.file = file;
-  photoScoreState.imageDataUrl = imageDataUrl;
-  photoScoreState.prediction = null;
+  photoScoreState.originalImageDataUrl = imageDataUrl;
+  photoScoreState.warpedImageDataUrl = '';
+  photoScoreState.processedImageDataUrl = '';
+  photoScoreState.overlayImageDataUrl = '';
   photoScoreState.imageMeta = null;
-  photoScoreState.gridImageDataUrl = '';
-  photoScoreState.markPredictions = [];
+  photoScoreState.cellResults = [];
   photoScoreState.reviewTournamentScores = [];
   photoScoreState.predictionsCount = 0;
+  photoScoreState.validationIssues = [];
+  photoScoreState.isReady = photoScoreEngine.opencvReady && photoScoreEngine.tesseractReady && !photoScoreEngine.error;
 
   document.getElementById('photoScoreFileName').textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`;
   document.getElementById('photoScoreOriginalPreview').src = imageDataUrl;
-  document.getElementById('photoScoreDetectBtn').disabled = false;
+  updatePhotoScoreEngineAvailability();
   document.getElementById('photoScoreResults').style.display = 'none';
   if (context === 'round') {
     hideInlinePhotoReview();
-    setRoundPhotoScanState(file.name, imageDataUrl, `Processing ${file.name}...`, 'processing');
-    setPhotoRoundSubtitle(`Processing ${file.name}...`);
+    setRoundPhotoScanState(file.name, imageDataUrl, `Ready to process ${file.name}.`, 'processing');
+    setPhotoRoundSubtitle(`Ready to process ${file.name}.`);
     if (autoRun) await runPhotoScoreDetection();
   } else {
-    setPhotoScoreStatus('Image ready. Run detection to find the paper scorecard.');
+    setPhotoScoreStatus('Image ready. Process the scorecard to straighten and read it.');
   }
 }
 
@@ -7769,141 +7907,293 @@ function fileToDataUrl(file) {
 }
 
 async function runPhotoScoreDetection() {
-  if (!photoScoreState.imageDataUrl || photoScoreState.isLoading) return;
+  if (!photoScoreState.originalImageDataUrl || photoScoreState.isLoading) return;
+  const ready = await initPhotoScoreLibraries();
+  if (!ready) {
+    setPhotoScoreStatus(photoScoreEngine.error || 'The local photo-score engine could not be loaded.', 'error');
+    return;
+  }
 
   photoScoreState.isLoading = true;
-  document.getElementById('photoScoreDetectBtn').disabled = true;
+  updatePhotoScoreEngineAvailability();
   if (photoScoreState.context === 'round') {
-    setPhotoRoundSubtitle('Detecting scorecard...');
-    setRoundPhotoScanStatus('Detecting scorecard...', 'processing');
-  } else setPhotoScoreStatus('Sending image to your Cloudflare Worker...');
+    setPhotoRoundSubtitle('Finding scorecard...');
+    setRoundPhotoScanStatus('Finding scorecard...', 'processing');
+  } else setPhotoScoreStatus('Finding scorecard...');
 
   try {
-    const response = await fetch(getPhotoScoreUrl(), {
-      method: 'POST',
-      headers: cfHeaders(false),
-      body: JSON.stringify({
-        imageDataUrl: photoScoreState.imageDataUrl
-      })
-    });
+    const img = await loadPhotoScoreImage(photoScoreState.originalImageDataUrl);
+    photoScoreState.imageMeta = { width: img.naturalWidth, height: img.naturalHeight };
+    const sourceCanvas = imageToCanvas(img);
+    const warpedCanvas = detectAndWarpScorecard(sourceCanvas, PHOTO_SCORE_TEMPLATE);
+    photoScoreState.predictionsCount = 30;
+    photoScoreState.warpedImageDataUrl = warpedCanvas.toDataURL('image/png');
 
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error || 'The Cloudflare Worker returned an error.');
-    }
-    if (!payload.prediction) {
-      throw new Error('No scorecard was detected in this image. Try a clearer photo with the full paper visible.');
-    }
-
-    photoScoreState.prediction = payload.prediction;
-    photoScoreState.imageMeta = payload.image;
-    photoScoreState.predictionsCount = payload.predictionsCount || 0;
-    await renderPhotoScoreResult();
-    if (photoScoreState.context === 'round' && isPhotoTournamentSession(session)) {
-      await runPhotoScoreRead();
+    if (photoScoreState.context === 'round') {
+      setPhotoRoundSubtitle('Straightening image...');
+      setRoundPhotoScanStatus('Straightening image...', 'processing');
     } else {
-      setPhotoScoreStatus('Scorecard detected. The crop preview below is using the returned bounding box.', 'success');
+      setPhotoScoreStatus('Straightening image...');
+    }
+
+    const processedCanvas = preprocessWarpedScorecard(warpedCanvas, PHOTO_SCORE_TEMPLATE);
+    photoScoreState.processedImageDataUrl = processedCanvas.toDataURL('image/png');
+    const overlayCanvas = drawPhotoScoreTemplateOverlay(warpedCanvas, PHOTO_SCORE_TEMPLATE);
+    photoScoreState.overlayImageDataUrl = overlayCanvas.toDataURL('image/png');
+    renderPhotoScorePreviewCanvases(warpedCanvas, processedCanvas, overlayCanvas);
+
+    if (photoScoreState.context === 'round') {
+      setPhotoRoundSubtitle('Reading score cells...');
+      setRoundPhotoScanStatus('Reading score cells...', 'processing');
+    } else {
+      setPhotoScoreStatus('Reading score cells...');
+    }
+
+    const cellResults = await recognizePhotoScoreCells(processedCanvas, PHOTO_SCORE_TEMPLATE, session);
+    photoScoreState.cellResults = cellResults;
+    photoScoreState.reviewTournamentScores = buildPhotoScoreReviewValuesFromCells(cellResults, PHOTO_SCORE_TEMPLATE.rows, PHOTO_SCORE_TEMPLATE.cols);
+    photoScoreState.validationIssues = buildPhotoScoreValidationIssues(cellResults, photoScoreState.reviewTournamentScores, session);
+    renderPhotoScoreResult();
+    renderPhotoScoreReviewGrid();
+    updatePhotoScoreReviewVisibility();
+    if (photoScoreState.context === 'round') {
+      showInlinePhotoReview();
+      setPhotoRoundSubtitle('Review detected scores.');
+      setRoundPhotoScanStatus(photoScoreState.validationIssues.length ? 'Review the highlighted cells before applying.' : 'Review detected scores.');
+    } else {
+      setPhotoScoreStatus(photoScoreState.validationIssues.length ? 'Review detected scores and highlighted cells.' : 'Review detected scores.', photoScoreState.validationIssues.length ? '' : 'success');
     }
   } catch (error) {
     if (photoScoreState.context === 'round') {
-      setPhotoRoundSubtitle(error.message || 'Could not detect the scorecard.', true);
-      setRoundPhotoScanStatus(error.message || 'Could not detect the scorecard.', 'error');
-    } else setPhotoScoreStatus(error.message || 'Could not detect the scorecard.', 'error');
+      setPhotoRoundSubtitle(error.message || 'Could not process the scorecard.', true);
+      setRoundPhotoScanStatus(error.message || 'Could not process the scorecard.', 'error');
+    } else setPhotoScoreStatus(error.message || 'Could not process the scorecard.', 'error');
   } finally {
     photoScoreState.isLoading = false;
-    document.getElementById('photoScoreDetectBtn').disabled = !photoScoreState.imageDataUrl;
+    updatePhotoScoreEngineAvailability();
   }
 }
 
 function renderPhotoScoreResult() {
-  const { prediction, imageMeta, imageDataUrl, predictionsCount } = photoScoreState;
-  if (!prediction || !imageDataUrl) return Promise.resolve();
-
+  if (!photoScoreState.warpedImageDataUrl) return;
   document.getElementById('photoScoreResults').style.display = 'block';
-  document.getElementById('photoScoreConfidence').textContent = `${Math.round((prediction.confidence || 0) * 100)}%`;
-  document.getElementById('photoScoreDetections').textContent = String(predictionsCount || 1);
+  const confidence = photoScoreState.cellResults.length
+    ? Math.round(photoScoreState.cellResults.reduce((sum, cell) => sum + (cell.confidence || 0), 0) / photoScoreState.cellResults.length)
+    : 0;
+  document.getElementById('photoScoreConfidence').textContent = confidence ? `${confidence}%` : '--';
+  document.getElementById('photoScoreDetections').textContent = String(photoScoreState.cellResults.length || 0);
+}
 
+async function loadPhotoScoreImage(imageDataUrl) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => {
-      try {
-        const cropCanvas = document.getElementById('photoScoreCropCanvas');
-        const cropCtx = cropCanvas.getContext('2d');
-        const inferenceWidth = imageMeta?.width || img.naturalWidth;
-        const inferenceHeight = imageMeta?.height || img.naturalHeight;
-        const scaleX = img.naturalWidth / inferenceWidth;
-        const scaleY = img.naturalHeight / inferenceHeight;
-        const rawX = (prediction.x - prediction.width / 2) * scaleX;
-        const rawY = (prediction.y - prediction.height / 2) * scaleY;
-        const rawWidth = prediction.width * scaleX;
-        const rawHeight = prediction.height * scaleY;
-        const paddingX = rawWidth * 0.04;
-        const paddingY = rawHeight * 0.04;
-        const sx = Math.max(0, Math.floor(rawX - paddingX));
-        const sy = Math.max(0, Math.floor(rawY - paddingY));
-        const sw = Math.min(img.naturalWidth - sx, Math.ceil(rawWidth + paddingX * 2));
-        const sh = Math.min(img.naturalHeight - sy, Math.ceil(rawHeight + paddingY * 2));
-
-        cropCanvas.width = Math.max(1, sw);
-        cropCanvas.height = Math.max(1, sh);
-        cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-        cropCtx.drawImage(img, sx, sy, sw, sh, 0, 0, cropCanvas.width, cropCanvas.height);
-        buildPhotoScoreNormalizedViews(cropCanvas);
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    };
-    img.onerror = () => reject(new Error('Could not render the detected scorecard image.'));
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Could not open the selected image.'));
     img.src = imageDataUrl;
   });
 }
 
-function buildPhotoScoreNormalizedViews(cropCanvas) {
-  const normalizedCanvas = document.getElementById('photoScoreNormalizedCanvas');
-  const normalizedCtx = normalizedCanvas.getContext('2d');
-  const normalizedWidth = 900;
-  const normalizedHeight = 1500;
-  normalizedCanvas.width = normalizedWidth;
-  normalizedCanvas.height = normalizedHeight;
-  normalizedCtx.fillStyle = '#ffffff';
-  normalizedCtx.fillRect(0, 0, normalizedWidth, normalizedHeight);
-  const fit = fitRectWithin(cropCanvas.width, cropCanvas.height, normalizedWidth, normalizedHeight, 0.06);
-  normalizedCtx.drawImage(
-    cropCanvas,
-    0,
-    0,
-    cropCanvas.width,
-    cropCanvas.height,
-    fit.dx,
-    fit.dy,
-    fit.dw,
-    fit.dh
-  );
+function imageToCanvas(img) {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  canvas.getContext('2d').drawImage(img, 0, 0);
+  return canvas;
+}
 
-  const gridCanvas = document.getElementById('photoScoreGridCanvas');
-  const gridCtx = gridCanvas.getContext('2d');
-  const gridRegion = {
-    x: normalizedWidth * 0.115,
-    y: normalizedHeight * 0.06,
-    width: normalizedWidth * 0.77,
-    height: normalizedHeight * 0.76
-  };
-  gridCanvas.width = Math.round(gridRegion.width);
-  gridCanvas.height = Math.round(gridRegion.height);
-  gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-  gridCtx.drawImage(
-    normalizedCanvas,
-    gridRegion.x,
-    gridRegion.y,
-    gridRegion.width,
-    gridRegion.height,
-    0,
-    0,
-    gridCanvas.width,
-    gridCanvas.height
+function detectAndWarpScorecard(sourceCanvas, template) {
+  const cv = window.cv;
+  const src = cv.imread(sourceCanvas);
+  const maxDimension = 1400;
+  const scale = Math.min(1, maxDimension / Math.max(src.cols, src.rows));
+  const working = new cv.Mat();
+  const gray = new cv.Mat();
+  const blurred = new cv.Mat();
+  const edged = new cv.Mat();
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+  const resized = new cv.Size(Math.max(1, Math.round(src.cols * scale)), Math.max(1, Math.round(src.rows * scale)));
+  cv.resize(src, working, resized, 0, 0, cv.INTER_AREA);
+  cv.cvtColor(working, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+  cv.Canny(blurred, edged, 75, 200);
+  cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+  let bestContour = null;
+  let bestArea = 0;
+  for (let i = 0; i < contours.size(); i++) {
+    const contour = contours.get(i);
+    const perimeter = cv.arcLength(contour, true);
+    const approx = new cv.Mat();
+    cv.approxPolyDP(contour, approx, perimeter * 0.02, true);
+    if (approx.rows === 4) {
+      const area = Math.abs(cv.contourArea(approx));
+      if (area > bestArea) {
+        if (bestContour) bestContour.delete();
+        bestContour = approx;
+        bestArea = area;
+      } else {
+        approx.delete();
+      }
+    } else {
+      approx.delete();
+    }
+    contour.delete();
+  }
+
+  if (!bestContour) {
+    src.delete(); working.delete(); gray.delete(); blurred.delete(); edged.delete(); contours.delete(); hierarchy.delete();
+    throw new Error('Could not find the full scorecard. Retake the photo with all four corners visible.');
+  }
+
+  const points = [];
+  for (let i = 0; i < 4; i++) {
+    points.push({
+      x: bestContour.data32S[i * 2] / scale,
+      y: bestContour.data32S[i * 2 + 1] / scale
+    });
+  }
+  const ordered = orderQuadPoints(points);
+  const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, ordered.flatMap(point => [point.x, point.y]));
+  const dstTri = cv.matFromArray(
+    4,
+    1,
+    cv.CV_32FC2,
+    [0, 0, template.canonicalWidth - 1, 0, template.canonicalWidth - 1, template.canonicalHeight - 1, 0, template.canonicalHeight - 1]
   );
-  photoScoreState.gridImageDataUrl = gridCanvas.toDataURL('image/png');
+  const transform = cv.getPerspectiveTransform(srcTri, dstTri);
+  const warped = new cv.Mat();
+  cv.warpPerspective(src, warped, transform, new cv.Size(template.canonicalWidth, template.canonicalHeight), cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = template.canonicalWidth;
+  outputCanvas.height = template.canonicalHeight;
+  cv.imshow(outputCanvas, warped);
+
+  src.delete(); working.delete(); gray.delete(); blurred.delete(); edged.delete(); contours.delete(); hierarchy.delete(); bestContour.delete(); srcTri.delete(); dstTri.delete(); transform.delete(); warped.delete();
+  return outputCanvas;
+}
+
+function orderQuadPoints(points) {
+  const sumSorted = [...points].sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  const diffSorted = [...points].sort((a, b) => (a.y - a.x) - (b.y - b.x));
+  return [sumSorted[0], diffSorted[0], sumSorted[3], diffSorted[3]];
+}
+
+function preprocessWarpedScorecard(warpedCanvas, template) {
+  const cv = window.cv;
+  const src = cv.imread(warpedCanvas);
+  const gray = new cv.Mat();
+  const normalized = new cv.Mat();
+  const thresh = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.equalizeHist(gray, normalized);
+  cv.adaptiveThreshold(normalized, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 31, 12);
+  const outputCanvas = document.createElement('canvas');
+  outputCanvas.width = template.canonicalWidth;
+  outputCanvas.height = template.canonicalHeight;
+  cv.imshow(outputCanvas, thresh);
+  src.delete(); gray.delete(); normalized.delete(); thresh.delete();
+  return outputCanvas;
+}
+
+function drawPhotoScoreTemplateOverlay(warpedCanvas, template) {
+  const canvas = document.createElement('canvas');
+  canvas.width = warpedCanvas.width;
+  canvas.height = warpedCanvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(warpedCanvas, 0, 0);
+  ctx.strokeStyle = 'rgba(232,197,71,0.95)';
+  ctx.lineWidth = 3;
+  ctx.fillStyle = 'rgba(232,197,71,0.12)';
+  template.cells.flat().forEach(cell => {
+    const x = cell.x * canvas.width;
+    const y = cell.y * canvas.height;
+    const w = cell.width * canvas.width;
+    const h = cell.height * canvas.height;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+  });
+  return canvas;
+}
+
+function renderPhotoScorePreviewCanvases(warpedCanvas, processedCanvas, overlayCanvas) {
+  const cropCanvas = document.getElementById('photoScoreCropCanvas');
+  const normalizedCanvas = document.getElementById('photoScoreNormalizedCanvas');
+  const gridCanvas = document.getElementById('photoScoreGridCanvas');
+  drawCanvasIntoCanvas(warpedCanvas, cropCanvas);
+  drawCanvasIntoCanvas(processedCanvas, normalizedCanvas);
+  drawCanvasIntoCanvas(overlayCanvas, gridCanvas);
+}
+
+function drawCanvasIntoCanvas(sourceCanvas, targetCanvas) {
+  const ctx = targetCanvas.getContext('2d');
+  targetCanvas.width = sourceCanvas.width;
+  targetCanvas.height = sourceCanvas.height;
+  ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+  ctx.drawImage(sourceCanvas, 0, 0);
+}
+
+async function recognizePhotoScoreCells(processedCanvas, template, sessionObj = session) {
+  const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
+  const results = [];
+  for (let roundIndex = 0; roundIndex < template.rows; roundIndex++) {
+    for (let arrowIndex = 0; arrowIndex < template.cols; arrowIndex++) {
+      const cell = template.cells[roundIndex][arrowIndex];
+      const cropCanvas = cropPhotoScoreCell(processedCanvas, cell);
+      const raw = await window.Tesseract.recognize(cropCanvas, 'eng', { logger: () => {} });
+      const rawText = raw?.data?.text || '';
+      const confidence = clamp(Math.round(raw?.data?.confidence || 0), 0, 100);
+      const normalizedValue = normalizePhotoScoreLabel(rawText, mode);
+      results.push({
+        roundIndex,
+        arrowIndex,
+        rawText,
+        confidence,
+        normalizedValue,
+        valid: !!normalizedValue,
+        cell
+      });
+    }
+  }
+  return results;
+}
+
+function cropPhotoScoreCell(processedCanvas, cell) {
+  const canvas = document.createElement('canvas');
+  const x = Math.round(cell.x * processedCanvas.width);
+  const y = Math.round(cell.y * processedCanvas.height);
+  const width = Math.max(1, Math.round(cell.width * processedCanvas.width));
+  const height = Math.max(1, Math.round(cell.height * processedCanvas.height));
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(processedCanvas, x, y, width, height, 0, 0, width, height);
+  return canvas;
+}
+
+function buildPhotoScoreReviewValuesFromCells(cellResults, rows = 6, cols = 5) {
+  const values = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''));
+  cellResults.forEach(cell => {
+    values[cell.roundIndex][cell.arrowIndex] = cell.normalizedValue || '';
+  });
+  return values;
+}
+
+function buildPhotoScoreValidationIssues(cellResults, reviewValues, sessionObj = session) {
+  const issues = [];
+  const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
+  cellResults.forEach(cell => {
+    if (!cell.normalizedValue) {
+      issues.push({ tone: 'error', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: could not read a valid ${mode === '3d' ? '3D' : 'bullseye'} score.` });
+    } else if (cell.confidence < 55) {
+      issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: OCR confidence is low (${cell.confidence}%). Double-check this cell.` });
+    }
+  });
+  if (reviewValues.some(round => round.some(value => !value))) {
+    issues.push({ tone: 'error', roundIndex: null, arrowIndex: null, message: 'One or more score cells are blank or invalid. Review every arrow before applying the tournament.' });
+  }
+  return issues;
 }
 
 function fitRectWithin(sourceWidth, sourceHeight, targetWidth, targetHeight, insetRatio = 0) {
@@ -7937,92 +8227,8 @@ function updatePhotoScoreReviewVisibility() {
   reviewPanel.style.display = isRoundContext && photoScoreState.reviewTournamentScores.length ? 'block' : 'none';
 }
 
-async function runPhotoScoreRead() {
-  if (!photoScoreState.gridImageDataUrl) throw new Error('The score grid was not generated.');
-  if (photoScoreState.context === 'round') {
-    setPhotoRoundSubtitle('Reading the scoring marks for the tournament...');
-    setRoundPhotoScanStatus('Reading the scoring marks for the tournament...', 'processing');
-  } else setPhotoScoreStatus('Reading the scoring marks for the full tournament...');
-
-  const response = await fetch(getPhotoScoreReadUrl(), {
-    method: 'POST',
-    headers: cfHeaders(false),
-    body: JSON.stringify({
-      imageDataUrl: photoScoreState.gridImageDataUrl
-    })
-  });
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error || 'The mark-reader model returned an error.');
-  }
-
-  photoScoreState.markPredictions = Array.isArray(payload.predictions) ? payload.predictions : [];
-  photoScoreState.reviewTournamentScores = inferPhotoTournamentScores(photoScoreState.markPredictions, session);
-  renderPhotoScoreReviewGrid();
-  updatePhotoScoreReviewVisibility();
-  if (photoScoreState.context === 'round') {
-    showInlinePhotoReview();
-    setPhotoRoundSubtitle('Tournament scores detected. Review and correct them below if needed.');
-    setRoundPhotoScanStatus('Tournament scores detected. Review and correct them below if needed.');
-  } else {
-    setPhotoScoreStatus('Detected tournament scores loaded. Review them below before applying.', 'success');
-  }
-}
-
 function inferPhotoTournamentScores(predictions, sessionObj = session) {
-  const roundCount = isTournamentSession(sessionObj) ? 6 : 1;
-  const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
-  const valid = predictions
-    .filter(pred => pred && typeof pred.x === 'number' && typeof pred.y === 'number' && typeof pred.class === 'string' && normalizePhotoScoreLabel(pred.class, mode))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
-
-  if (!valid.length) return Array.from({ length: roundCount }, () => Array.from({ length: 5 }, () => ''));
-
-  const avgHeight = valid.reduce((sum, pred) => sum + (pred.height || 0), 0) / valid.length || 24;
-  const rowThreshold = Math.max(18, avgHeight * 1.35);
-  const groups = [];
-  valid.forEach(pred => {
-    const lastGroup = groups[groups.length - 1];
-    if (!lastGroup || Math.abs(pred.y - lastGroup.centerY) > rowThreshold) {
-      groups.push({ items: [pred], centerY: pred.y });
-    } else {
-      lastGroup.items.push(pred);
-      lastGroup.centerY = lastGroup.items.reduce((sum, item) => sum + item.y, 0) / lastGroup.items.length;
-    }
-  });
-
-  const candidateGroups = groups
-    .map(group => ({
-      ...group,
-      items: group.items.sort((a, b) => a.x - b.x)
-    }))
-    .filter(group => group.items.length >= 1)
-    .sort((a, b) => a.centerY - b.centerY);
-
-  const activeLeft = robustQuantile(valid.map(pred => pred.x - (pred.width || 0) / 2), 0.08);
-  const activeRight = robustQuantile(valid.map(pred => pred.x + (pred.width || 0) / 2), 0.92);
-  const fallbackLeft = Math.min(...valid.map(pred => pred.x - (pred.width || 0) / 2));
-  const fallbackRight = Math.max(...valid.map(pred => pred.x + (pred.width || 0) / 2));
-  const leftEdge = Number.isFinite(activeLeft) ? activeLeft : fallbackLeft;
-  const rightEdge = Number.isFinite(activeRight) ? activeRight : fallbackRight;
-  const usableWidth = Math.max(1, rightEdge - leftEdge);
-  const slotWidth = usableWidth / 5;
-
-  return Array.from({ length: roundCount }, (_, roundIndex) => {
-    const row = candidateGroups[roundIndex];
-    if (!row) return Array.from({ length: 5 }, () => '');
-
-    const bestPerArrow = Array.from({ length: 5 }, () => null);
-    row.items.forEach(pred => {
-      const slotIndex = clamp(Math.floor((pred.x - leftEdge) / slotWidth), 0, 4);
-      const existing = bestPerArrow[slotIndex];
-      if (!existing || (pred.confidence || 0) > (existing.confidence || 0)) {
-        bestPerArrow[slotIndex] = pred;
-      }
-    });
-
-    return bestPerArrow.map(pred => pred ? normalizePhotoScoreLabel(pred.class, mode) : '');
-  });
+  return buildPhotoScoreReviewValuesFromCells(predictions || [], PHOTO_SCORE_TEMPLATE.rows, PHOTO_SCORE_TEMPLATE.cols);
 }
 
 function robustQuantile(values, ratio = 0.5) {
@@ -8043,19 +8249,34 @@ function clamp(value, min, max) {
 }
 
 function normalizePhotoScoreLabel(rawLabel, mode = 'bullseye') {
-  const label = String(rawLabel).trim().toUpperCase();
-  if (label === 'X') return mode === '3d' ? '10' : 'X';
-  if (label === 'M') return 'M';
+  const label = String(rawLabel).trim().toUpperCase().replace(/\s+/g, '');
+  if (!label) return '';
+  if (['X', '×'].includes(label)) return mode === '3d' ? '10' : 'X';
+  if (['M', 'MISS', '0', 'O'].includes(label)) return 'M';
+  if (['I', 'L', '|'].includes(label)) return '1';
+  if (label === 'S') return '5';
   if (mode === '3d') {
     if (['10', '9', '8', '7'].includes(label)) return label;
-    if (!Number.isNaN(Number(label))) return '7';
+    if (['6', '5', '4', '3', '2', '1'].includes(label)) return '7';
   }
   return ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'].includes(label) ? label : '';
+}
+
+function getPhotoScoreCellResult(roundIndex, arrowIndex) {
+  return photoScoreState.cellResults.find(cell => cell.roundIndex === roundIndex && cell.arrowIndex === arrowIndex) || null;
+}
+
+function getPhotoReviewCellState(roundIndex, arrowIndex, value) {
+  const cell = getPhotoScoreCellResult(roundIndex, arrowIndex);
+  if (!value || !cell || !cell.valid) return 'invalid';
+  if ((cell.confidence || 0) < 55) return 'uncertain';
+  return 'good';
 }
 
 function renderPhotoScoreReviewGrid() {
   const modalGrid = document.getElementById('photoScoreReviewGrid');
   const inlineGrid = document.getElementById('photoRoundInlineReviewGrid');
+  const validationList = document.getElementById('photoScoreValidationList');
   const mode = session?.type === '3d_tournament' ? '3d' : 'bullseye';
   const values = photoScoreState.reviewTournamentScores.length
     ? photoScoreState.reviewTournamentScores
@@ -8064,7 +8285,7 @@ function renderPhotoScoreReviewGrid() {
     const roundInfo = getTournamentRoundConfigByIndex(session, roundIndex);
     const descriptor = roundDescriptor(roundInfo).shortLabel;
     const cells = roundValues.map((value, arrowIndex) => `
-      <div class="score-review-cell">
+      <div class="score-review-cell ${getPhotoReviewCellState(roundIndex, arrowIndex, value)}">
         <label>Arrow ${arrowIndex + 1}</label>
         <select data-round-index="${roundIndex}" data-arrow-index="${arrowIndex}" onchange="updatePhotoReviewScore(${roundIndex}, ${arrowIndex}, this.value)">
           ${getPhotoReviewOptions(mode, value)}
@@ -8080,9 +8301,20 @@ function renderPhotoScoreReviewGrid() {
   }).join('');
   if (modalGrid) modalGrid.innerHTML = markup;
   if (inlineGrid) inlineGrid.innerHTML = markup;
-  document.getElementById('photoScoreReviewNote').textContent = 'Review all six rounds below. Blank cells mean the model did not detect that arrow, and duplicates have already been collapsed to the highest-confidence score in that arrow slot.';
+  if (validationList) {
+    if (photoScoreState.validationIssues.length) {
+      validationList.innerHTML = photoScoreState.validationIssues.map(issue => `
+        <div class="photo-score-validation-item${issue.tone ? ` ${issue.tone}` : ''}">${issue.message}</div>
+      `).join('');
+      validationList.style.display = 'flex';
+    } else {
+      validationList.innerHTML = '';
+      validationList.style.display = 'none';
+    }
+  }
+  document.getElementById('photoScoreReviewNote').textContent = 'Green cells are solid reads. Amber cells are low-confidence. Red cells need manual correction before applying.';
   const inlineNote = document.getElementById('photoRoundInlineReviewNote');
-  if (inlineNote) inlineNote.textContent = 'Review all six rounds below. Blank cells mean the model did not detect that arrow, and duplicates have already been collapsed to the highest-confidence score in that arrow slot.';
+  if (inlineNote) inlineNote.textContent = 'Green cells are solid reads. Amber cells are low-confidence. Red cells need manual correction before applying.';
   document.getElementById('photoScoreApplyBtn').textContent = 'Apply Tournament';
 }
 
@@ -8100,6 +8332,14 @@ function updatePhotoReviewScore(roundIndex, arrowIndex, value) {
     photoScoreState.reviewTournamentScores[roundIndex] = Array.from({ length: 5 }, () => '');
   }
   photoScoreState.reviewTournamentScores[roundIndex][arrowIndex] = value;
+  const existing = getPhotoScoreCellResult(roundIndex, arrowIndex);
+  if (existing) {
+    existing.normalizedValue = value;
+    existing.valid = !!value;
+    existing.confidence = Math.max(existing.confidence || 0, value ? 100 : existing.confidence || 0);
+  }
+  photoScoreState.validationIssues = buildPhotoScoreValidationIssues(photoScoreState.cellResults, photoScoreState.reviewTournamentScores, session);
+  renderPhotoScoreReviewGrid();
 }
 
 function applyPhotoScoresToCurrentRound() {
