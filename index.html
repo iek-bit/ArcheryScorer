@@ -2478,14 +2478,15 @@
   .photo-score-modal {
     background: var(--bg2);
     border-radius: 22px;
-    width: min(520px, 100%);
-    max-height: 90vh;
-    max-height: 90dvh;
+    width: min(1120px, calc(100vw - 32px));
+    max-height: 88vh;
+    max-height: 88dvh;
     overflow-y: auto;
-    padding: 20px;
+    padding: 22px;
     border: 1px solid var(--border);
     transform: scale(.95);
     transition: transform .2s;
+    overscroll-behavior-y: contain;
   }
   .detail-overlay.open .photo-score-modal { transform: scale(1); }
   .photo-score-header {
@@ -2596,15 +2597,17 @@
   }
   .photo-score-preview-wrap {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
     margin-top: 12px;
+    align-items: start;
   }
   .photo-score-preview-card {
     border: 1px solid var(--border);
     border-radius: 16px;
     background: rgba(255,255,255,.03);
     padding: 12px;
+    min-width: 0;
   }
   .photo-score-preview-card h4 {
     font-family: 'DM Mono', monospace;
@@ -2617,10 +2620,14 @@
   .photo-score-preview-card img,
   .photo-score-preview-card canvas {
     width: 100%;
+    height: auto;
+    max-height: min(40vh, 420px);
+    aspect-ratio: 3 / 5;
     display: block;
     border-radius: 12px;
     background: #090d16;
     border: 1px solid rgba(255,255,255,.05);
+    object-fit: contain;
   }
   .photo-score-next {
     margin-top: 14px;
@@ -2823,6 +2830,37 @@
   .photo-score-validation-item.error {
     border-color: rgba(224,82,82,.34);
     background: rgba(224,82,82,.08);
+  }
+
+  @media (max-width: 960px) {
+    .photo-score-modal {
+      width: min(100%, calc(100vw - 24px));
+      max-height: 90vh;
+      max-height: 90dvh;
+      padding: 18px;
+    }
+    .photo-score-preview-wrap {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .score-review-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 640px) {
+    .photo-score-grid,
+    .photo-score-preview-wrap,
+    .score-review-grid {
+      grid-template-columns: 1fr;
+    }
+    .photo-score-preview-card img,
+    .photo-score-preview-card canvas {
+      max-height: 48vh;
+    }
+    .photo-score-actions .modal-btn,
+    .photo-score-downloads .modal-btn {
+      flex-basis: 100%;
+    }
   }
 
   /* score flash */
@@ -4581,11 +4619,16 @@ const PHOTO_SCORE_TEMPLATE = {
   canonicalWidth: 900,
   canonicalHeight: 1500,
   expectedAspectRatio: 0.6,
-  scoreRegion: { x: 0.115, y: 0.06, width: 0.77, height: 0.76 },
-  rowGapRatio: 0.026,
-  colGapRatio: 0.022,
   rows: 6,
-  cols: 5
+  cols: 5,
+  scoreStripRegion: { x: 0.148, y: 0.131, width: 0.648, height: 0.713 },
+  rowGapRatio: 0.0065,
+  markSampleWidthRatio: 0.052,
+  markSampleHeightRatio: 0.54,
+  bullseyeOptions: ['M', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+  bullseyeOptionCenters: [0.02, 0.12, 0.215, 0.308, 0.4, 0.492, 0.585, 0.677, 0.77, 0.862, 0.956],
+  threeDOptions: ['M', '7', '8', '9', '10'],
+  threeDOptionCenters: [0.05, 0.39, 0.58, 0.77, 0.95]
 };
 const photoScoreEngine = {
   opencvReady: false,
@@ -4597,17 +4640,18 @@ const photoScoreEngine = {
 let photoScoreScriptStatusApplied = false;
 
 function buildPhotoScoreTemplateCells(template = PHOTO_SCORE_TEMPLATE) {
-  const { rows, cols, scoreRegion, rowGapRatio, colGapRatio } = template;
-  const rowGap = scoreRegion.height * rowGapRatio;
-  const colGap = scoreRegion.width * colGapRatio;
-  const cellWidth = (scoreRegion.width - colGap * (cols - 1)) / cols;
-  const cellHeight = (scoreRegion.height - rowGap * (rows - 1)) / rows;
+  const { rows, cols, scoreStripRegion, rowGapRatio } = template;
+  const totalRows = rows * cols;
+  const rowGap = scoreStripRegion.height * rowGapRatio;
+  const cellHeight = (scoreStripRegion.height - rowGap * (totalRows - 1)) / totalRows;
   return Array.from({ length: rows }, (_, rowIndex) =>
     Array.from({ length: cols }, (_, colIndex) => ({
-      x: scoreRegion.x + colIndex * (cellWidth + colGap),
-      y: scoreRegion.y + rowIndex * (cellHeight + rowGap),
-      width: cellWidth,
-      height: cellHeight
+      x: scoreStripRegion.x,
+      y: scoreStripRegion.y + (rowIndex * cols + colIndex) * (cellHeight + rowGap),
+      width: scoreStripRegion.width,
+      height: cellHeight,
+      rowIndex,
+      arrowIndex: colIndex
     }))
   );
 }
@@ -7943,13 +7987,13 @@ async function runPhotoScoreDetection() {
     renderPhotoScorePreviewCanvases(warpedCanvas, processedCanvas, overlayCanvas);
 
     if (photoScoreState.context === 'round') {
-      setPhotoRoundSubtitle('Reading score cells...');
-      setRoundPhotoScanStatus('Reading score cells...', 'processing');
+      setPhotoRoundSubtitle('Reading score marks...');
+      setRoundPhotoScanStatus('Reading score marks...', 'processing');
     } else {
-      setPhotoScoreStatus('Reading score cells...');
+      setPhotoScoreStatus('Reading score marks...');
     }
 
-    const cellResults = await recognizePhotoScoreCells(processedCanvas, PHOTO_SCORE_TEMPLATE, session);
+    const cellResults = await recognizePhotoScoreCells(processedCanvas, warpedCanvas, PHOTO_SCORE_TEMPLATE, session);
     photoScoreState.cellResults = cellResults;
     photoScoreState.reviewTournamentScores = buildPhotoScoreReviewValuesFromCells(cellResults, PHOTO_SCORE_TEMPLATE.rows, PHOTO_SCORE_TEMPLATE.cols);
     photoScoreState.validationIssues = buildPhotoScoreValidationIssues(cellResults, photoScoreState.reviewTournamentScores, session);
@@ -8104,7 +8148,7 @@ function drawPhotoScoreTemplateOverlay(warpedCanvas, template) {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(warpedCanvas, 0, 0);
   ctx.strokeStyle = 'rgba(232,197,71,0.95)';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2;
   ctx.fillStyle = 'rgba(232,197,71,0.12)';
   template.cells.flat().forEach(cell => {
     const x = cell.x * canvas.width;
@@ -8113,6 +8157,18 @@ function drawPhotoScoreTemplateOverlay(warpedCanvas, template) {
     const h = cell.height * canvas.height;
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
+  });
+  const options = getPhotoScoreOptionLayout(template, 'bullseye');
+  const sampleWidth = template.markSampleWidthRatio * canvas.width * template.scoreStripRegion.width;
+  template.cells.flat().forEach(cell => {
+    const y = (cell.y + cell.height / 2) * canvas.height;
+    const stripX = cell.x * canvas.width;
+    const stripWidth = cell.width * canvas.width;
+    const sampleHeight = cell.height * canvas.height * template.markSampleHeightRatio;
+    options.forEach(option => {
+      const centerX = stripX + option.center * stripWidth;
+      ctx.strokeRect(centerX - sampleWidth / 2, y - sampleHeight / 2, sampleWidth, sampleHeight);
+    });
   });
   return canvas;
 }
@@ -8134,17 +8190,30 @@ function drawCanvasIntoCanvas(sourceCanvas, targetCanvas) {
   ctx.drawImage(sourceCanvas, 0, 0);
 }
 
-async function recognizePhotoScoreCells(processedCanvas, template, sessionObj = session) {
+async function recognizePhotoScoreCells(processedCanvas, warpedCanvas, template, sessionObj = session) {
   const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
   const results = [];
   for (let roundIndex = 0; roundIndex < template.rows; roundIndex++) {
     for (let arrowIndex = 0; arrowIndex < template.cols; arrowIndex++) {
       const cell = template.cells[roundIndex][arrowIndex];
-      const cropCanvas = cropPhotoScoreCell(processedCanvas, cell);
-      const raw = await window.Tesseract.recognize(cropCanvas, 'eng', { logger: () => {} });
-      const rawText = raw?.data?.text || '';
-      const confidence = clamp(Math.round(raw?.data?.confidence || 0), 0, 100);
-      const normalizedValue = normalizePhotoScoreLabel(rawText, mode);
+      const markResult = detectPhotoScoreMark(processedCanvas, cell, template, mode);
+      let rawText = markResult.rawText;
+      let normalizedValue = markResult.normalizedValue;
+      let confidence = markResult.confidence;
+      if (!normalizedValue || confidence < 52) {
+        const cropCanvas = cropPhotoScoreCell(warpedCanvas, cell);
+        const raw = await window.Tesseract.recognize(cropCanvas, 'eng', { logger: () => {} });
+        const ocrText = raw?.data?.text || '';
+        const ocrConfidence = clamp(Math.round(raw?.data?.confidence || 0), 0, 100);
+        const normalizedFromOcr = normalizePhotoScoreLabel(ocrText, mode);
+        if (normalizedFromOcr && (!normalizedValue || ocrConfidence >= confidence)) {
+          rawText = ocrText;
+          normalizedValue = normalizedFromOcr;
+          confidence = ocrConfidence;
+        } else if (ocrText && !rawText) {
+          rawText = ocrText;
+        }
+      }
       results.push({
         roundIndex,
         arrowIndex,
@@ -8157,6 +8226,62 @@ async function recognizePhotoScoreCells(processedCanvas, template, sessionObj = 
     }
   }
   return results;
+}
+
+function getPhotoScoreOptionLayout(template, mode = 'bullseye') {
+  if (mode === '3d') {
+    return template.threeDOptions.map((label, index) => ({ label, center: template.threeDOptionCenters[index] }));
+  }
+  return template.bullseyeOptions.map((label, index) => ({ label, center: template.bullseyeOptionCenters[index] }));
+}
+
+function detectPhotoScoreMark(processedCanvas, cell, template, mode = 'bullseye') {
+  const options = getPhotoScoreOptionLayout(template, mode);
+  const ctx = processedCanvas.getContext('2d', { willReadFrequently: true });
+  const x = Math.round(cell.x * processedCanvas.width);
+  const y = Math.round(cell.y * processedCanvas.height);
+  const width = Math.max(1, Math.round(cell.width * processedCanvas.width));
+  const height = Math.max(1, Math.round(cell.height * processedCanvas.height));
+  const imageData = ctx.getImageData(x, y, width, height).data;
+  const sampleWidth = Math.max(3, Math.round(width * template.markSampleWidthRatio));
+  const sampleHeight = Math.max(3, Math.round(height * template.markSampleHeightRatio));
+  const centerY = Math.round(height / 2);
+  const scores = options.map(option => {
+    const centerX = Math.round(option.center * width);
+    const ink = samplePhotoScoreInk(imageData, width, height, centerX, centerY, sampleWidth, sampleHeight);
+    return { ...option, ink };
+  }).sort((a, b) => b.ink - a.ink);
+  const best = scores[0];
+  const runnerUp = scores[1] || { ink: 0 };
+  const medianInk = robustQuantile(scores.map(score => score.ink), 0.5) || 0;
+  const contrast = best.ink - Math.max(runnerUp.ink, medianInk);
+  const normalizedValue = normalizePhotoScoreLabel(best.label, mode);
+  const confidence = clamp(Math.round(35 + best.ink * 220 + contrast * 420), 0, 100);
+  const valid = !!normalizedValue && best.ink > 0.035;
+  return {
+    rawText: best.label,
+    normalizedValue: valid ? normalizedValue : '',
+    confidence: valid ? confidence : clamp(Math.round(confidence * 0.6), 0, 55),
+    scores
+  };
+}
+
+function samplePhotoScoreInk(imageData, width, height, centerX, centerY, sampleWidth, sampleHeight) {
+  const startX = clamp(Math.round(centerX - sampleWidth / 2), 0, width - 1);
+  const startY = clamp(Math.round(centerY - sampleHeight / 2), 0, height - 1);
+  const endX = clamp(startX + sampleWidth, 1, width);
+  const endY = clamp(startY + sampleHeight, 1, height);
+  let totalInk = 0;
+  let count = 0;
+  for (let py = startY; py < endY; py++) {
+    for (let px = startX; px < endX; px++) {
+      const idx = (py * width + px) * 4;
+      const shade = imageData[idx];
+      totalInk += 1 - shade / 255;
+      count++;
+    }
+  }
+  return count ? totalInk / count : 0;
 }
 
 function cropPhotoScoreCell(processedCanvas, cell) {
@@ -8185,9 +8310,9 @@ function buildPhotoScoreValidationIssues(cellResults, reviewValues, sessionObj =
   const mode = sessionObj?.type === '3d_tournament' ? '3d' : 'bullseye';
   cellResults.forEach(cell => {
     if (!cell.normalizedValue) {
-      issues.push({ tone: 'error', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: could not read a valid ${mode === '3d' ? '3D' : 'bullseye'} score.` });
-    } else if (cell.confidence < 55) {
-      issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: OCR confidence is low (${cell.confidence}%). Double-check this cell.` });
+      issues.push({ tone: 'error', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the score mark was unclear. Retake or correct this ${mode === '3d' ? '3D' : 'bullseye'} arrow manually.` });
+    } else if (cell.confidence < 60) {
+      issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the detected mark is low-confidence (${cell.confidence}%). Double-check this row.` });
     }
   });
   if (reviewValues.some(round => round.some(value => !value))) {
