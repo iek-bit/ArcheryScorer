@@ -136,7 +136,17 @@
     min-height: unset;
     max-height: 100vh; max-height: 100dvh;
     padding-bottom: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  #scoreActive {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
   #scorePicker {
     display: flex;
@@ -2708,7 +2718,7 @@
   }
   .photo-inline-arrow-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
   .photo-inline-arrow-grid .score-review-cell label {
@@ -2946,7 +2956,7 @@
       flex-basis: 100%;
     }
     .photo-inline-arrow-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: 1fr;
     }
   }
 
@@ -7439,9 +7449,11 @@ function updateScoreScrollLock() {
   const scoreActive = document.getElementById('scoreActive');
   const scorePageActive = scorePage?.classList.contains('active');
   const scoringLive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none' && !isPhotoTournamentSession(session);
+  const scoringActive = !!session && scorePageActive && scoreActive && scoreActive.style.display !== 'none';
   document.body.classList.toggle('score-scroll-locked', scoringLive);
   if (scorePage) scorePage.classList.toggle('score-scroll-locked', scoringLive);
   if (scoreActive) scoreActive.classList.toggle('score-session-live', scoringLive);
+  if (scoreActive) scoreActive.classList.toggle('score-session-active', scoringActive);
 }
 
 function openCompletedRoundsOverlay() {
