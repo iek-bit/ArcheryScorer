@@ -3176,7 +3176,14 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Weekly Summary Detail Overlay -->
 <div class="overlay centered" id="weeklySummaryOverlay">
   <div class="modal" style="max-width:500px;border-radius:22px;padding:24px;max-height:80vh;max-height:80dvh;overflow-y:auto;">
-    <h3 style="margin-bottom:6px;">Weekly Summary</h3>
+    <div class="detail-modal-header" style="margin-bottom:10px;">
+      <div>
+        <h3 style="margin-bottom:6px;">Weekly Summary</h3>
+      </div>
+      <button class="detail-close" onclick="closeOverlay('weeklySummaryOverlay')" aria-label="Close weekly summary">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </button>
+    </div>
     <p style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:20px;" id="weeklySummaryDateRange">Past 7 days</p>
     
     <!-- Summary Stats Grid -->
@@ -3210,8 +3217,6 @@ const PRACTICE_TARGET_OPTIONS = [
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">By Session Type</div>
       <div id="weeklyTypeBreakdown" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
-
-    <button class="modal-btn" onclick="closeOverlay('weeklySummaryOverlay')">Close</button>
   </div>
 </div>
 
