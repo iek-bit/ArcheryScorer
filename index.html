@@ -652,8 +652,9 @@
     flex: 1;
     min-height: 0;
     max-height: calc(100dvh - calc(64px + env(safe-area-inset-bottom)));
-    overflow: hidden;
-    overscroll-behavior: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
   }
   .arrow-dot {
     width: 44px; height: 44px; border-radius: 50%;
@@ -2597,7 +2598,7 @@
   }
   .photo-score-preview-wrap {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: 1fr;
     gap: 12px;
     margin-top: 12px;
     align-items: start;
@@ -2656,6 +2657,7 @@
     border-radius: 16px;
     border: 1px solid rgba(240,160,75,.25);
     background: rgba(240,160,75,.08);
+    overflow: visible;
   }
   .photo-round-controls.open { display: block; }
   .photo-round-title {
@@ -2879,9 +2881,6 @@
       max-height: 90dvh;
       padding: 18px;
     }
-    .photo-score-preview-wrap {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
     .score-review-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -2889,7 +2888,6 @@
 
   @media (max-width: 640px) {
     .photo-score-grid,
-    .photo-score-preview-wrap,
     .score-review-grid {
       grid-template-columns: 1fr;
     }
@@ -8299,12 +8297,12 @@ function detectPhotoScoreMark(processedCanvas, cell, template, mode = 'bullseye'
   const medianInk = robustQuantile(scores.map(score => score.ink), 0.5) || 0;
   const contrast = best.ink - Math.max(runnerUp.ink, medianInk);
   const normalizedValue = normalizePhotoScoreLabel(best.label, mode);
-  const confidence = clamp(Math.round(35 + best.ink * 220 + contrast * 420), 0, 100);
-  const valid = !!normalizedValue && best.ink > 0.035;
+  const confidence = clamp(Math.round(20 + best.ink * 180 + contrast * 700), 0, 100);
+  const valid = !!normalizedValue && best.ink > 0.048 && contrast > 0.012;
   return {
     rawText: best.label,
     normalizedValue: valid ? normalizedValue : '',
-    confidence: valid ? confidence : clamp(Math.round(confidence * 0.6), 0, 55),
+    confidence: valid ? confidence : clamp(Math.round(confidence * 0.45), 0, 55),
     scores
   };
 }
@@ -8354,7 +8352,7 @@ function buildPhotoScoreValidationIssues(cellResults, reviewValues, sessionObj =
   cellResults.forEach(cell => {
     if (!cell.normalizedValue) {
       issues.push({ tone: 'error', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the score mark was unclear. Retake or correct this ${mode === '3d' ? '3D' : 'bullseye'} arrow manually.` });
-    } else if (cell.confidence < 60) {
+    } else if (cell.confidence < 82) {
       issues.push({ tone: '', roundIndex: cell.roundIndex, arrowIndex: cell.arrowIndex, message: `Round ${cell.roundIndex + 1}, Arrow ${cell.arrowIndex + 1}: the detected mark is low-confidence (${cell.confidence}%). Double-check this row.` });
     }
   });
@@ -8437,7 +8435,7 @@ function getPhotoScoreCellResult(roundIndex, arrowIndex) {
 function getPhotoReviewCellState(roundIndex, arrowIndex, value) {
   const cell = getPhotoScoreCellResult(roundIndex, arrowIndex);
   if (!value || !cell || !cell.valid) return 'invalid';
-  if ((cell.confidence || 0) < 55) return 'uncertain';
+  if ((cell.confidence || 0) < 82) return 'uncertain';
   return 'good';
 }
 
