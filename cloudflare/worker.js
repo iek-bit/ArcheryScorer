@@ -134,6 +134,7 @@ function normalizePreferencesPayload(body = {}) {
   return {
     preferences: {
       pbCelebrationsEnabled: rawPreferences.pbCelebrationsEnabled !== false,
+      historyCardEnabled: rawPreferences.historyCardEnabled !== false,
       betaFeaturesEnabled: rawPreferences.betaFeaturesEnabled === true
     },
     goals

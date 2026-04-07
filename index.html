@@ -1132,6 +1132,15 @@
     max-height: calc(100dvh - 48px);
     min-height: 260px;
   }
+  @media (orientation: portrait) {
+    .card-fullscreen-inner.landscape {
+      width: min(94vw, 560px);
+      height: min(82dvh, 720px);
+      max-width: calc(100vw - 20px);
+      max-height: calc(100dvh - 20px);
+      min-height: 320px;
+    }
+  }
   .card-fullscreen-header {
     display: flex;
     align-items: center;
@@ -3015,7 +3024,7 @@ const PRACTICE_TARGET_OPTIONS = [
   <!-- idle: session picker -->
   <div id="scorePicker">
     <!-- Weekly Summary Card -->
-    <div class="weekly-summary-card" onclick="expandWeeklySummary()" role="button" tabindex="0" aria-label="View weekly summary details">
+    <div class="weekly-summary-card" id="weeklySummaryCard" onclick="expandWeeklySummary()" role="button" tabindex="0" aria-label="View weekly summary details">
       <div class="weekly-summary-header">
         <div class="weekly-summary-title">Past 7 Days</div>
         <div class="weekly-summary-expand">
@@ -3585,6 +3594,14 @@ const PRACTICE_TARGET_OPTIONS = [
             <div class="settings-row-sub">Show a celebration when you set a new target-specific personal best</div>
           </div>
           <div class="settings-switch" id="pbCelebrationsSwitch"></div>
+        </div>
+        <div class="settings-row" onclick="toggleHistoryCard()" style="margin-bottom:12px;">
+          <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg></div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">History Card</div>
+            <div class="settings-row-sub">Show the Past 7 Days card on the score page</div>
+          </div>
+          <div class="settings-switch" id="historyCardSwitch"></div>
         </div>
         <div class="goal-list" id="goalsListContainer"></div>
         <button class="modal-btn primary" id="addGoalBtn" onclick="openGoalOverlay()">Add Goal</button>
@@ -5090,6 +5107,7 @@ db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db
 function normalizePreferences(raw = {}) {
   return {
     pbCelebrationsEnabled: raw?.pbCelebrationsEnabled !== false,
+    historyCardEnabled: raw?.historyCardEnabled !== false,
     betaFeaturesEnabled: raw?.betaFeaturesEnabled === true
   };
 }
@@ -5405,6 +5423,10 @@ function getActiveGoals() {
   return normalizeGoals(db.goals).filter(goal => !goal.archived).slice(0, 3);
 }
 
+function historyCardEnabled() {
+  return db.preferences?.historyCardEnabled !== false;
+}
+
 function getGoalMetricLabel(metric) {
   return {
     sessions: 'Sessions',
@@ -5469,6 +5491,12 @@ function renderWeeklyGoals(weeklyData = computeWeeklySummaryData()) {
       <div class="weekly-goal-track"><div class="weekly-goal-fill" style="width:${Math.round(progress.ratio * 100)}%"></div></div>
     </div>`;
   }).join('');
+}
+
+function updateWeeklySummaryCardVisibility() {
+  const card = document.getElementById('weeklySummaryCard');
+  if (!card) return;
+  card.style.display = historyCardEnabled() ? '' : 'none';
 }
 
 function buildPreferencesPayload() {
@@ -6163,9 +6191,11 @@ function toggleGoalsAccordion() {
 
 function renderGoalsSettings() {
   const container = document.getElementById('goalsListContainer');
-  const switchEl = document.getElementById('pbCelebrationsSwitch');
+  const pbSwitchEl = document.getElementById('pbCelebrationsSwitch');
+  const historySwitchEl = document.getElementById('historyCardSwitch');
   const addBtn = document.getElementById('addGoalBtn');
-  if (switchEl) switchEl.classList.toggle('on', db.preferences?.pbCelebrationsEnabled !== false);
+  if (pbSwitchEl) pbSwitchEl.classList.toggle('on', db.preferences?.pbCelebrationsEnabled !== false);
+  if (historySwitchEl) historySwitchEl.classList.toggle('on', historyCardEnabled());
   if (!container) return;
   const goals = getActiveGoals();
   if (!goals.length) {
@@ -6191,6 +6221,14 @@ function renderGoalsSettings() {
 function togglePbCelebrations() {
   db.preferences = normalizePreferences({ ...db.preferences, pbCelebrationsEnabled: !(db.preferences?.pbCelebrationsEnabled !== false) });
   save();
+  renderGoalsSettings();
+  syncPreferencesToCloud();
+}
+
+function toggleHistoryCard() {
+  db.preferences = normalizePreferences({ ...db.preferences, historyCardEnabled: !historyCardEnabled() });
+  save();
+  updateWeeklySummaryCardVisibility();
   renderGoalsSettings();
   syncPreferencesToCloud();
 }
@@ -7010,6 +7048,7 @@ function openCompletedRoundsOverlay() {
 // ═══════════════════════════════════════════════
 function renderScorePickerSummaries() {
   const sessions = db.sessions;
+  updateWeeklySummaryCardVisibility();
 
   // Format a session date as "Mon, Jan 1"
   function fmtDate(dateStr) {
@@ -9959,26 +9998,6 @@ function renderStatsTilePreviews(allArrows, rounds) {
   window._lastStatsData = { allArrows, rounds };
 }
 
-// ── STATS CARD EXPAND / FULLSCREEN ──────────────────────────────────
-let _orientLock = null;
-
-function lockPortrait() {
-  try {
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('portrait').catch(() => {});
-      _orientLock = 'portrait';
-    }
-  } catch(e) {}
-}
-function unlockOrientation() {
-  try {
-    if (_orientLock && screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
-      _orientLock = null;
-    }
-  } catch(e) {}
-}
-
 // ── STAT DESCRIPTIONS ────────────────────────────────────────────────
 const STAT_INFO = {
   overall: {
@@ -10180,16 +10199,12 @@ function expandStatsCard(type) {
     // Two-step redraw: first after the overlay opens, second after full layout settles
     setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
     setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 240);
-    // Lock landscape on mobile
-    try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
   }
 
   else if (type === 'zones') {
     title.textContent = 'Score Distribution';
     inner.classList.add('landscape');
     body.style.padding = '10px 16px 14px';
-    // Lock landscape on mobile
-    try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
 
     // Score colours matching the target face
     const SCORE_COLORS = {
@@ -10244,8 +10259,6 @@ function closeStatsCardExpand(e) {
 
   // Move canvases back to their original tiles after transition
   setTimeout(() => {
-    // Always re-lock portrait when returning to stats page
-    try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     if (body._heatmapMoved) {
       const heatmapContainer = document.getElementById('heatmapContainer');
       const tilePrev = document.querySelector('.stats-section-tile:nth-child(2) .sst-preview');
@@ -10264,13 +10277,9 @@ function closeStatsCardExpand(e) {
       body._timelineMoved = false;
       const { rounds } = window._lastStatsData || { rounds: [] };
       setTimeout(() => { if (typeof drawTimeline === 'function') drawTimeline(rounds); }, 80);
-      // Restore portrait lock for stats page
-      try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     }
     if (body._zonesMoved) {
       body._zonesMoved = false;
-      // Restore portrait lock for stats page
-      try { if (screen.orientation?.lock) screen.orientation.lock('portrait').catch(()=>{}); } catch(e) {}
     }
     body.innerHTML = '';
     body.style.padding = '';
