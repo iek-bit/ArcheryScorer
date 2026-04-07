@@ -116,6 +116,29 @@ async function getAccount(env, username) {
   return value ? JSON.parse(value) : null;
 }
 
+function normalizePreferencesPayload(body = {}) {
+  const rawPreferences = body?.preferences && typeof body.preferences === 'object' ? body.preferences : {};
+  const rawGoals = Array.isArray(body?.goals) ? body.goals : [];
+  const goals = rawGoals
+    .filter(goal => goal && typeof goal === 'object')
+    .map(goal => ({
+      id: typeof goal.id === 'string' ? goal.id.slice(0, 80) : '',
+      metric: ['sessions', 'arrows', 'avg_score', 'best_round'].includes(goal.metric) ? goal.metric : '',
+      target: Number.isFinite(Number(goal.target)) ? Math.max(0, Number(goal.target)) : 0,
+      createdAt: typeof goal.createdAt === 'string' ? goal.createdAt : new Date().toISOString(),
+      archived: !!goal.archived
+    }))
+    .filter(goal => goal.id && goal.metric && goal.target > 0)
+    .slice(0, 12);
+
+  return {
+    preferences: {
+      pbCelebrationsEnabled: rawPreferences.pbCelebrationsEnabled !== false
+    },
+    goals
+  };
+}
+
 async function verifyAuth(request, env) {
   const creds = parseAuth(request);
   if (!creds) return null;
@@ -399,6 +422,50 @@ export default {
         );
 
         return json({ ok: true }, 200, origin);
+      }
+
+      if (path === '/account/preferences' && request.method === 'GET') {
+        const account = await verifyAuth(request, env);
+        if (!account) return err('Unauthorised', 401, origin);
+
+        const normalized = normalizePreferencesPayload(account);
+        return json(
+          {
+            ok: true,
+            preferences: normalized.preferences,
+            goals: normalized.goals
+          },
+          200,
+          origin
+        );
+      }
+
+      if (path === '/account/preferences' && request.method === 'PATCH') {
+        const account = await verifyAuth(request, env);
+        if (!account) return err('Unauthorised', 401, origin);
+
+        const body = await request.json().catch(() => null);
+        if (!body || typeof body !== 'object') return err('Invalid body', 400, origin);
+
+        const normalized = normalizePreferencesPayload(body);
+        await env.ARCHERY_KV.put(
+          `account:${account.username.toLowerCase()}`,
+          JSON.stringify({
+            ...account,
+            preferences: normalized.preferences,
+            goals: normalized.goals
+          })
+        );
+
+        return json(
+          {
+            ok: true,
+            preferences: normalized.preferences,
+            goals: normalized.goals
+          },
+          200,
+          origin
+        );
       }
 
       const accountDeleteMatch = path.match(/^\/account\/(.+)$/);

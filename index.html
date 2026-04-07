@@ -272,6 +272,70 @@
     letter-spacing: 0.5px;
     margin-top: 4px;
   }
+  .weekly-goals {
+    margin-top: 14px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding-top: 12px;
+  }
+  .weekly-goals-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .weekly-goals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .weekly-goal-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255,255,255,.025);
+  }
+  .weekly-goal-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .weekly-goal-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .weekly-goal-progress {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+  }
+  .weekly-goal-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    overflow: hidden;
+  }
+  .weekly-goal-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width .25s ease;
+  }
+  .weekly-goal-item.complete .weekly-goal-fill {
+    background: linear-gradient(90deg, var(--green), var(--accent));
+  }
+  .weekly-goals-empty {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 2px 0 0;
+  }
 
   .session-card-summary {
     font-family: 'DM Mono', monospace;
@@ -703,6 +767,41 @@
   .diag-header-flex {
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
   }
+  .diag-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .insights-entry-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(circle at 30% 30%, rgba(247,217,120,.24), transparent 45%),
+      linear-gradient(145deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .1s, border-color .15s, color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .insights-entry-btn:active {
+    transform: scale(.96);
+    border-color: var(--accent);
+    color: var(--accent3);
+  }
+  .insights-entry-btn svg {
+    width: 19px;
+    height: 19px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .smart-search-container {
     display: flex; align-items: center; justify-content: flex-start;
     background: var(--bg3); border: 1px solid var(--border);
@@ -949,6 +1048,19 @@
     justify-content: space-between;
     flex-shrink: 0;
     min-height: 20px;
+  }
+  .sst-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sst-meta-stat {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
   }
 
   /* ── CARD EXPAND BUTTON ── */
@@ -1723,6 +1835,35 @@
     align-items: center;
   }
   .settings-row-chevron .ui-icon { font-size: 16px; }
+  .settings-switch {
+    width: 50px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.06);
+    position: relative;
+    flex-shrink: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .settings-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform .15s, background .15s;
+  }
+  .settings-switch.on {
+    background: rgba(232,197,71,.15);
+    border-color: rgba(232,197,71,.35);
+  }
+  .settings-switch.on::after {
+    transform: translateX(20px);
+    background: var(--accent);
+  }
 
   .theme-card {
     background: var(--bg2);
@@ -1972,6 +2113,68 @@
   .bow-stat-row:last-child { border-bottom: none; }
   .bow-stat-label { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; }
   .bow-stat-value { font-weight: 500; }
+  .goal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .goal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .goal-chip {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: 1px solid rgba(232,197,71,.2);
+    background: rgba(232,197,71,.08);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .goal-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .goal-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .goal-sub {
+    margin-top: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .goal-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .goal-empty {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .goal-limit-note {
+    margin-top: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+  }
 
   /* ── EDIT CREDENTIALS OVERLAY ── */
   .edit-creds-modal {
@@ -2571,6 +2774,190 @@
   }
   .score-flash.show { transform: translate(-50%,-50%) scale(1); }
   .score-flash.hide { opacity: 0; }
+  .pb-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 305;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s ease;
+  }
+  .pb-celebration.show { opacity: 1; }
+  .pb-burst {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(247,217,120,.18), transparent 18%),
+      radial-gradient(circle at 50% 50%, rgba(232,197,71,.12), transparent 34%);
+  }
+  .pb-rays {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 220px;
+    height: 220px;
+    transform: translate(-50%, -50%) scale(.86);
+    opacity: 0;
+    transition: transform .5s ease, opacity .3s ease;
+  }
+  .pb-celebration.show .pb-rays {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  .pb-rays::before,
+  .pb-rays::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      conic-gradient(from 0deg, rgba(247,217,120,0) 0deg 18deg, rgba(247,217,120,.95) 18deg 30deg, rgba(247,217,120,0) 30deg 60deg, rgba(240,160,75,.75) 60deg 72deg, rgba(247,217,120,0) 72deg 120deg, rgba(232,197,71,.85) 120deg 132deg, rgba(247,217,120,0) 132deg 180deg, rgba(240,160,75,.75) 180deg 192deg, rgba(247,217,120,0) 192deg 240deg, rgba(232,197,71,.85) 240deg 252deg, rgba(247,217,120,0) 252deg 300deg, rgba(240,160,75,.75) 300deg 312deg, rgba(247,217,120,0) 312deg 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 0 52px, #000 52px 76px, transparent 76px);
+            mask: radial-gradient(circle, transparent 0 52px, #000 52px 76px, transparent 76px);
+  }
+  .pb-rays::after {
+    transform: rotate(20deg) scale(.82);
+    opacity: .72;
+  }
+  .pb-celebration-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(.92);
+    min-width: min(82vw, 320px);
+    max-width: min(86vw, 360px);
+    padding: 22px 24px;
+    border-radius: 24px;
+    border: 1px solid rgba(232,197,71,.28);
+    background: linear-gradient(165deg, rgba(17,24,39,.96), rgba(10,15,26,.92));
+    box-shadow: 0 24px 80px rgba(0,0,0,.38), 0 0 0 1px rgba(247,217,120,.06) inset;
+    text-align: center;
+    transition: transform .42s cubic-bezier(.22,.68,0,1.18);
+  }
+  .pb-celebration.show .pb-celebration-card { transform: translate(-50%, -50%) scale(1); }
+  .pb-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .pb-title {
+    margin-top: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    line-height: .95;
+    letter-spacing: 1.4px;
+    color: var(--accent);
+  }
+  .pb-sub {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .pb-value {
+    margin-top: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  #page-insights {
+    display: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  #page-insights.active {
+    display: block;
+  }
+  .insights-header {
+    padding: max(56px, calc(env(safe-area-inset-top) + 20px)) 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .insights-header h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .insights-sub {
+    margin: 6px 16px 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .insights-grid {
+    padding: 18px 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .insight-card {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: linear-gradient(160deg, var(--bg2), var(--bg3));
+    padding: 16px;
+  }
+  .insight-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .insight-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(232,197,71,.2);
+    background: rgba(232,197,71,.08);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .insight-card-icon .ui-icon { font-size: 18px; }
+  .insight-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .insight-card-meta {
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+  }
+  .insight-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    line-height: .95;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .insight-body,
+  .insight-tip {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .insight-tip {
+    margin-top: 10px;
+    color: var(--muted);
+  }
+  .insight-empty {
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    background: rgba(255,255,255,.02);
+  }
 
 </style>
 </head>
@@ -2644,12 +3031,16 @@ const PRACTICE_TARGET_OPTIONS = [
           <div class="weekly-stat-value" id="weeklyArrows">—</div>
           <div class="weekly-stat-label">Arrows</div>
         </div>
-        <div class="weekly-stat">
-          <div class="weekly-stat-value" id="weeklyAvg">—</div>
-          <div class="weekly-stat-label">Avg Score</div>
-        </div>
+      <div class="weekly-stat">
+        <div class="weekly-stat-value" id="weeklyAvg">—</div>
+        <div class="weekly-stat-label">Avg Score</div>
       </div>
     </div>
+    <div class="weekly-goals">
+      <div class="weekly-goals-label">Goals</div>
+      <div class="weekly-goals-list" id="weeklyGoalsList"></div>
+    </div>
+  </div>
 
     <div class="session-cards-grid" style="padding-top: 0;">
       <div class="session-card tournament" onclick="launchSession('bullseye_tournament')" role="button" tabindex="0" aria-label="Start Bullseye Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('bullseye_tournament')">
@@ -2942,6 +3333,11 @@ const PRACTICE_TARGET_OPTIONS = [
 <div id="page-diag" class="page">
   <div class="diag-header">
     <h2>STATS</h2>
+    <div class="diag-actions">
+      <button class="insights-entry-btn" onclick="openInsightsPage()" aria-label="Open insights">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 5.4L20 10l-5.4 2.6L12 18l-2.6-5.4L4 10l5.4-2.6L12 2z"></path><path d="M18.5 16.5l1.2 2.3 2.3 1.2-2.3 1.2-1.2 2.3-1.2-2.3-2.3-1.2 2.3-1.2 1.2-2.3z"></path></svg>
+      </button>
+    </div>
   </div>
   <div class="filter-bar" style="padding-top:8px;">
     <button id="filterBtnDiag" class="sort-btn" onclick="openFiltersOverlay('diag')" style="flex: 1; justify-content: center;">
@@ -2952,7 +3348,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
   <!-- Hidden stat value holders (written by renderDiag, read by tile previews) -->
   <div style="display:none">
-    <span id="dAvg"></span><span id="dArrows"></span><span id="dBest"></span><span id="dSessions"></span>
+    <span id="dAvg"></span><span id="dArrows"></span><span id="dBest"></span><span id="dSessions"></span><span id="dConsistency"></span>
   </div>
 
   <!-- Stats grid: 2 squares on top, 2 wide rectangles below -->
@@ -2971,9 +3367,12 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="stats-section-tile">
       <div class="sst-header">
         <div class="sst-label">Arrow Grouping</div>
-        <button class="sst-expand-btn" onclick="expandStatsCard('heatmap')" aria-label="Expand Arrow Grouping">
-          <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-        </button>
+        <div class="sst-meta">
+          <div class="sst-meta-stat" id="heatmapConsistencyLabel">Consistency —</div>
+          <button class="sst-expand-btn" onclick="expandStatsCard('heatmap')" aria-label="Expand Arrow Grouping">
+            <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </button>
+        </div>
       </div>
       <div class="sst-preview" style="align-items:stretch;padding:0;">
         <div class="interactive-canvas-container" id="heatmapContainer" style="touch-action:none;">
@@ -3165,6 +3564,35 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
 
+  <div class="settings-section">
+    <div class="settings-label">GOALS</div>
+    <div class="bow-inline-panel" id="goalsAccordion">
+      <div class="bow-inline-header" onclick="toggleGoalsAccordion()" aria-expanded="false" aria-controls="goalsAccordionBody">
+        <div class="bih-icon">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"></path></svg>
+        </div>
+        <div style="flex:1">
+          <div class="bow-inline-title">Goals & Celebrations</div>
+          <div class="bow-inline-sub" id="goalsAccordionSub">Track weekly goals and PB feedback</div>
+        </div>
+        <svg class="ui-icon bow-chevron" id="goalsAccordionChevron" viewBox="0 0 24 24" aria-hidden="true" style="transition:transform .2s;color:var(--muted)"><path d="M6 9l6 6 6-6"></path></svg>
+      </div>
+      <div class="bow-inline-body" id="goalsAccordionBody">
+        <div class="settings-row" onclick="togglePbCelebrations()" style="margin-bottom:12px;">
+          <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg></div>
+          <div class="settings-row-text">
+            <div class="settings-row-title">Personal Best Celebrations</div>
+            <div class="settings-row-sub">Show a celebration when you set a new target-specific personal best</div>
+          </div>
+          <div class="settings-switch" id="pbCelebrationsSwitch"></div>
+        </div>
+        <div class="goal-list" id="goalsListContainer"></div>
+        <button class="modal-btn primary" id="addGoalBtn" onclick="openGoalOverlay()">Add Goal</button>
+        <div class="goal-limit-note">Up to 3 active goals appear on the weekly summary card.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ABOUT -->
   <div class="settings-section">
     <div class="settings-label">ABOUT</div>
@@ -3178,6 +3606,20 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
   </div>
   </div><!-- end settings-scroll-area -->
+</div>
+
+<div id="page-insights" class="page">
+  <div class="insights-header">
+    <button class="icon-btn" onclick="closeInsightsPage()" aria-label="Back to stats">
+      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+    </button>
+    <div>
+      <h2>INSIGHTS</h2>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:1px;" id="insightsDataMeta">Current stats filters</div>
+    </div>
+  </div>
+  <div class="insights-sub" id="insightsSubtitle">Built from your current filtered rounds, grouping, and score stability.</div>
+  <div class="insights-grid" id="insightsGrid"></div>
 </div>
 
 <div class="detail-overlay" id="themeColorOverlay">
@@ -3800,6 +4242,38 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
+<div class="pb-celebration" id="pbCelebration">
+  <div class="pb-burst"></div>
+  <div class="pb-rays"></div>
+  <div class="pb-celebration-card">
+    <div class="pb-label">Personal Best</div>
+    <div class="pb-title" id="pbCelebrationTitle">New PB</div>
+    <div class="pb-sub" id="pbCelebrationSub">Target bucket</div>
+    <div class="pb-value" id="pbCelebrationValue">50 points</div>
+  </div>
+</div>
+
+<div class="overlay centered" id="goalOverlay">
+  <div class="modal" style="max-width:420px;">
+    <h3 id="goalOverlayTitle">Add Goal</h3>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">Goals track progress inside the same 7-day summary window on the score screen.</p>
+    <div class="inline-field">
+      <label for="goalMetricInput">Goal Type</label>
+      <select id="goalMetricInput" class="modal-input" style="appearance:auto;">
+        <option value="sessions">Sessions</option>
+        <option value="arrows">Arrows</option>
+        <option value="avg_score">Average Score</option>
+        <option value="best_round">Best Round</option>
+      </select>
+    </div>
+    <div class="inline-field">
+      <label for="goalTargetInput">Target</label>
+      <input id="goalTargetInput" class="modal-input" type="number" min="1" step="1" inputmode="numeric" placeholder="Enter target">
+    </div>
+    <button class="modal-btn primary" onclick="saveGoalFromOverlay()">Save Goal</button>
+    <button class="modal-btn" onclick="closeOverlay('goalOverlay')">Cancel</button>
+  </div>
+</div>
 
 <div class="timeline-tooltip" id="timelineTooltip" onclick="openTimelineRoundDetail()">
   <div class="tt-score" id="ttScore"></div>
@@ -4024,6 +4498,17 @@ async function cfLogin(username, password) {
 async function cfCheckUsername(username) {
   try { const r = await cfFetch(`/account/check?username=${encodeURIComponent(username)}`); return r.taken; } catch { return false; }
 }
+async function cfGetPreferences() {
+  if (!cfReady() || !hasGlobalAccount()) throw new Error('Not configured');
+  return cfFetch('/account/preferences');
+}
+async function cfPatchPreferences(payload) {
+  if (!cfReady() || !hasGlobalAccount()) return null;
+  return cfFetch('/account/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
 async function cfPushSession(sessionObj) {
   if (!cfReady() || !hasGlobalAccount()) { updateSyncStatus(); return; }
   try {
@@ -4184,6 +4669,7 @@ async function submitLogin() {
         pendingSessionType = null;
         startSession(nextType);
       }
+      await hydratePreferencesFromCloud({ preferServer: true });
       // Pull existing sessions from server, then push any local ones
       setTimeout(async () => {
         await pullSessionsForAccount(res.username);
@@ -4221,6 +4707,7 @@ async function submitRegister() {
         pendingSessionType = null;
         startSession(nextType);
       }
+      await hydratePreferencesFromCloud({ preferServer: false });
       setTimeout(() => autoSyncUnsyncedSessions(), 500);
     }
   } catch(e) {
@@ -4272,6 +4759,7 @@ async function submitPasswordSetup() {
         pendingSessionType = null;
         startSession(nextType);
       }
+      await hydratePreferencesFromCloud({ preferServer: false });
       setTimeout(async () => {
         await pullSessionsForAccount(res.username);
         await autoSyncUnsyncedSessions();
@@ -4571,6 +5059,23 @@ let db = JSON.parse(localStorage.getItem(DB_KEY) || '{"sessions":[],"savedLocati
 db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
 db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db.deviceProfile : {name: ''};
+function normalizePreferences(raw = {}) {
+  return {
+    pbCelebrationsEnabled: raw?.pbCelebrationsEnabled !== false
+  };
+}
+function normalizeGoals(rawGoals = []) {
+  return (Array.isArray(rawGoals) ? rawGoals : [])
+    .filter(goal => goal && typeof goal === 'object')
+    .map(goal => ({
+      id: typeof goal.id === 'string' ? goal.id : `goal-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      metric: ['sessions', 'arrows', 'avg_score', 'best_round'].includes(goal.metric) ? goal.metric : 'sessions',
+      target: Math.max(1, Number(goal.target) || 1),
+      createdAt: typeof goal.createdAt === 'string' ? goal.createdAt : new Date().toISOString(),
+      archived: !!goal.archived
+    }))
+    .slice(0, 12);
+}
 if (!db.deviceProfile.archers) {
   db.deviceProfile.archers = db.deviceProfile.name ? [db.deviceProfile.name] : [];
   db.deviceProfile.activeArcher = db.deviceProfile.name || '';
@@ -4578,6 +5083,8 @@ if (!db.deviceProfile.archers) {
 if (!db.deviceProfile.bows) {
   db.deviceProfile.bows = {};
 }
+db.preferences = normalizePreferences(db.preferences);
+db.goals = normalizeGoals(db.goals);
 const save = () => {
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
@@ -4845,6 +5352,290 @@ function roundDescriptor(round) {
   return {mode: 'bullseye', label: `${normalized.distance}m`, shortLabel: `${normalized.distance}m`};
 }
 
+function getActiveGoals() {
+  return normalizeGoals(db.goals).filter(goal => !goal.archived).slice(0, 3);
+}
+
+function getGoalMetricLabel(metric) {
+  return {
+    sessions: 'Sessions',
+    arrows: 'Arrows',
+    avg_score: 'Average Score',
+    best_round: 'Best Round'
+  }[metric] || 'Goal';
+}
+
+function computeWeeklySummaryData() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const weeklySessions = db.sessions.filter(s => {
+    const sessionDate = new Date(s.date);
+    return sessionDate >= sevenDaysAgo && sessionDate <= now;
+  });
+  const totalArrows = weeklySessions.reduce((sum, s) => sum + s.rounds.reduce((rSum, r) => rSum + r.arrows.length, 0), 0);
+  const roundScores = [];
+  weeklySessions.forEach(s => s.rounds.forEach(r => roundScores.push(r.arrows.reduce((sum, a) => sum + a.score, 0))));
+  const avgScore = roundScores.length ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length) : 0;
+  const bestRound = roundScores.length ? Math.max(...roundScores) : 0;
+  return { now, sevenDaysAgo, weeklySessions, sessionCount: weeklySessions.length, totalArrows, roundScores, avgScore, bestRound };
+}
+
+function getGoalCurrentValue(goal, weeklyData = computeWeeklySummaryData()) {
+  switch (goal.metric) {
+    case 'sessions': return weeklyData.sessionCount;
+    case 'arrows': return weeklyData.totalArrows;
+    case 'avg_score': return weeklyData.avgScore;
+    case 'best_round': return weeklyData.bestRound;
+    default: return 0;
+  }
+}
+
+function getGoalProgress(goal, weeklyData = computeWeeklySummaryData()) {
+  const current = getGoalCurrentValue(goal, weeklyData);
+  const target = Math.max(1, Number(goal.target) || 1);
+  const ratio = Math.min(current / target, 1);
+  return {
+    current,
+    target,
+    ratio,
+    complete: current >= target
+  };
+}
+
+function renderWeeklyGoals(weeklyData = computeWeeklySummaryData()) {
+  const list = document.getElementById('weeklyGoalsList');
+  if (!list) return;
+  const goals = getActiveGoals();
+  if (!goals.length) {
+    list.innerHTML = '<div class="weekly-goals-empty">Add up to 3 goals in Settings to track progress here.</div>';
+    return;
+  }
+  list.innerHTML = goals.map(goal => {
+    const progress = getGoalProgress(goal, weeklyData);
+    return `<div class="weekly-goal-item${progress.complete ? ' complete' : ''}">
+      <div class="weekly-goal-top">
+        <div class="weekly-goal-name">${getGoalMetricLabel(goal.metric)}</div>
+        <div class="weekly-goal-progress">${progress.complete ? 'Complete' : `${progress.current} / ${progress.target}`}</div>
+      </div>
+      <div class="weekly-goal-track"><div class="weekly-goal-fill" style="width:${Math.round(progress.ratio * 100)}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function buildPreferencesPayload() {
+  return {
+    preferences: normalizePreferences(db.preferences),
+    goals: normalizeGoals(db.goals)
+  };
+}
+
+async function syncPreferencesToCloud() {
+  if (!hasGlobalAccount() || !cfReady()) return;
+  try {
+    const response = await cfPatchPreferences(buildPreferencesPayload());
+    if (response?.preferences) db.preferences = normalizePreferences(response.preferences);
+    if (response?.goals) db.goals = normalizeGoals(response.goals);
+    save();
+    renderHome();
+    if (document.getElementById('page-settings')?.classList.contains('active')) renderGoalsSettings();
+  } catch (e) {
+    console.warn('Preference sync failed:', e.message);
+    if (e.message.includes('401')) handleServerAuthInvalid();
+  }
+}
+
+async function hydratePreferencesFromCloud({ preferServer = true } = {}) {
+  if (!hasGlobalAccount() || !cfReady()) return;
+  try {
+    const response = await cfGetPreferences();
+    const serverGoals = normalizeGoals(response?.goals);
+    const serverPreferences = normalizePreferences(response?.preferences);
+    const hasServerValues = !!serverGoals.length || response?.preferences;
+    if (preferServer && hasServerValues) {
+      db.goals = serverGoals;
+      db.preferences = serverPreferences;
+      save();
+      renderHome();
+      renderDiag();
+      if (document.getElementById('page-settings')?.classList.contains('active')) renderGoalsSettings();
+    } else if (!hasServerValues) {
+      await syncPreferencesToCloud();
+    }
+  } catch (e) {
+    console.warn('Preference hydrate failed:', e.message);
+    if (e.message.includes('401')) handleServerAuthInvalid();
+  }
+}
+
+function getRoundMaxScore(round) {
+  return normalizeRound(round).mode === '3d' ? 55 : 50;
+}
+
+function computeConsistencyPercent(rounds = []) {
+  if (!Array.isArray(rounds) || rounds.length < 2) return null;
+  const normalizedScores = rounds.map(round => {
+    const total = round.arrows.reduce((sum, arrow) => sum + arrow.score, 0);
+    return total / getRoundMaxScore(round);
+  });
+  const mean = normalizedScores.reduce((a, b) => a + b, 0) / normalizedScores.length;
+  const sd = Math.sqrt(normalizedScores.reduce((sum, value) => sum + (value - mean) ** 2, 0) / normalizedScores.length);
+  return Math.round(clamp(100 - (sd / 0.20) * 100, 0, 100));
+}
+
+function getPbBucketKey(round) {
+  const info = roundDescriptor(round);
+  return `${info.mode}:${info.shortLabel}`;
+}
+
+function getBestSavedRoundScoreForBucket(bucketKey) {
+  let best = null;
+  db.sessions.forEach(savedSession => {
+    savedSession.rounds.forEach(savedRound => {
+      if (getPbBucketKey(savedRound) !== bucketKey) return;
+      const total = savedRound.arrows.reduce((sum, arrow) => sum + arrow.score, 0);
+      best = best === null ? total : Math.max(best, total);
+    });
+  });
+  return best;
+}
+
+let pbCelebrationTimer = null;
+function showPersonalBestCelebration(round) {
+  if (db.preferences?.pbCelebrationsEnabled === false) return;
+  if (!round || round.arrows.length < 5) return;
+  const overlay = document.getElementById('pbCelebration');
+  if (!overlay) return;
+  const descriptor = roundDescriptor(round).shortLabel;
+  const score = round.arrows.reduce((sum, arrow) => sum + arrow.score, 0);
+  document.getElementById('pbCelebrationTitle').textContent = `New ${descriptor} PB`;
+  document.getElementById('pbCelebrationSub').textContent = `Best completed ${descriptor} round so far`;
+  document.getElementById('pbCelebrationValue').textContent = `${score} points`;
+  overlay.classList.add('show');
+  clearTimeout(pbCelebrationTimer);
+  pbCelebrationTimer = setTimeout(() => overlay.classList.remove('show'), 1900);
+}
+
+function maybeCelebrateRoundPB(round, options = {}) {
+  if (!round || !Array.isArray(round.arrows) || round.arrows.length < 5) return;
+  if (db.preferences?.pbCelebrationsEnabled === false) return;
+  if (session?.ephemeral || options.ephemeral) return;
+  const bucketKey = getPbBucketKey(round);
+  const total = round.arrows.reduce((sum, arrow) => sum + arrow.score, 0);
+  const existingBest = getBestSavedRoundScoreForBucket(bucketKey);
+  if (existingBest === null || total > existingBest) showPersonalBestCelebration(round);
+}
+
+function buildInsights(rounds = [], allArrows = []) {
+  const consistency = computeConsistencyPercent(rounds);
+  const grouped = { bullseye10: [], bullseye15: [], animals: {} };
+  rounds.forEach(round => {
+    const total = round.arrows.reduce((sum, arrow) => sum + arrow.score, 0) / getRoundMaxScore(round);
+    if (round.mode === 'bullseye' && round.distance === 10) grouped.bullseye10.push(total);
+    else if (round.mode === 'bullseye' && round.distance === 15) grouped.bullseye15.push(total);
+    else if (round.mode === '3d') {
+      grouped.animals[round.animal] = grouped.animals[round.animal] || [];
+      grouped.animals[round.animal].push(total);
+    }
+  });
+  let avgX = 0, avgY = 0;
+  const plottedArrows = allArrows.filter(arrow => typeof arrow.nx === 'number' && typeof arrow.ny === 'number');
+  if (plottedArrows.length) {
+    avgX = plottedArrows.reduce((sum, arrow) => sum + arrow.nx, 0) / plottedArrows.length;
+    avgY = plottedArrows.reduce((sum, arrow) => sum + arrow.ny, 0) / plottedArrows.length;
+  }
+  const averageSpread = plottedArrows.length
+    ? plottedArrows.reduce((sum, arrow) => sum + Math.hypot((arrow.nx || 0) - avgX, (arrow.ny || 0) - avgY), 0) / plottedArrows.length
+    : null;
+  const biasX = avgX > 0.08 ? 'right' : avgX < -0.08 ? 'left' : 'centered';
+  const biasY = avgY > 0.08 ? 'low' : avgY < -0.08 ? 'high' : 'centered';
+  const groupingHeadline = averageSpread === null
+    ? 'Need more arrow data'
+    : averageSpread < 0.18 ? 'Tight grouping'
+    : averageSpread < 0.32 ? 'Solid grouping'
+    : 'Loose grouping';
+  const groupingBody = averageSpread === null
+    ? 'Shoot more completed rounds to unlock grouping insights.'
+    : biasX === 'centered' && biasY === 'centered'
+      ? 'Your average impact point is staying close to center with the current filtered data.'
+      : `Your average impact point trends ${biasY !== 'centered' ? `${biasY}${biasX !== 'centered' ? '-' : ''}` : ''}${biasX !== 'centered' ? biasX : ''}.`;
+  const groupingTip = averageSpread === null
+    ? 'Complete a couple more rounds to compare your impact pattern.'
+    : averageSpread < 0.18
+      ? 'Keep your current shot routine consistent and protect this grouping quality.'
+      : 'Focus on repeatable anchor and release timing to shrink the spread.';
+  const consistencyHeadline = consistency === null
+    ? 'Need 2+ rounds'
+    : consistency >= 85 ? 'Very steady scoring'
+    : consistency >= 65 ? 'Moderately steady'
+    : 'Scores swing a bit';
+  const consistencyBody = consistency === null
+    ? 'Finish at least two rounds inside the current filters to measure score stability.'
+    : `Your current consistency is ${consistency}%, based on how tightly your normalized round scores cluster together.`;
+  const consistencyTip = consistency === null
+    ? 'Use the same filters and shoot another round for a real comparison.'
+    : consistency >= 85
+      ? 'You are repeating performance well. Push for small accuracy gains without changing too much.'
+      : 'Try reducing rushed shots and keep your pre-shot routine identical from arrow to arrow.';
+  const distanceEntries = [];
+  if (grouped.bullseye10.length) distanceEntries.push({ label: '10m', value: Math.round((grouped.bullseye10.reduce((a, b) => a + b, 0) / grouped.bullseye10.length) * 100) });
+  if (grouped.bullseye15.length) distanceEntries.push({ label: '15m', value: Math.round((grouped.bullseye15.reduce((a, b) => a + b, 0) / grouped.bullseye15.length) * 100) });
+  Object.entries(grouped.animals).forEach(([animal, values]) => {
+    distanceEntries.push({ label: THREE_D_TARGET_LOOKUP[animal] || animal, value: Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 100) });
+  });
+  distanceEntries.sort((a, b) => b.value - a.value);
+  return {
+    overview: {
+      headline: rounds.length ? `${rounds.length} filtered round${rounds.length === 1 ? '' : 's'}` : 'No filtered rounds yet',
+      body: rounds.length ? `${allArrows.length} arrows are included in the current stats view.` : 'Adjust your filters or finish a saved round to generate insights.',
+      tip: rounds.length ? `Consistency is ${consistency === null ? 'not ready yet' : `${consistency}%`}.` : 'Insights always follow the same filters as the Stats page.'
+    },
+    grouping: { headline: groupingHeadline, body: groupingBody, tip: groupingTip },
+    consistency: { headline: consistencyHeadline, body: consistencyBody, tip: consistencyTip, value: consistency },
+    performance: distanceEntries
+  };
+}
+
+function renderInsightsPage() {
+  const rounds = getFilteredRounds();
+  const allArrows = rounds.flatMap(round => round.arrows);
+  const insights = buildInsights(rounds, allArrows);
+  const grid = document.getElementById('insightsGrid');
+  const meta = document.getElementById('insightsDataMeta');
+  const subtitle = document.getElementById('insightsSubtitle');
+  if (meta) meta.textContent = 'Current stats filters';
+  if (subtitle) subtitle.textContent = rounds.length ? 'Every card below uses the same rounds you are viewing on the Stats page.' : 'Finish a few rounds or widen your filters to unlock insight cards.';
+  if (!grid) return;
+  const performanceMarkup = insights.performance.length >= 1
+    ? `<div class="insight-headline">${insights.performance[0].label} leads</div>
+       <div class="insight-body">${insights.performance.map(item => `${item.label} ${item.value}%`).join(' · ')}</div>
+       <div class="insight-tip">Tip: Compare your highest and lowest normalized buckets to see where your setup feels most repeatable.</div>`
+    : `<div class="insight-empty">Need more saved rounds across distances or 3D animals before the app can compare target-specific performance.</div>`;
+  grid.innerHTML = `
+    <div class="insight-card">
+      <div class="insight-card-head"><div class="insight-card-icon">${icon('pulse')}</div><div><div class="insight-card-title">Overview</div><div class="insight-card-meta">Current filter set</div></div></div>
+      <div class="insight-headline">${insights.overview.headline}</div>
+      <div class="insight-body">${insights.overview.body}</div>
+      <div class="insight-tip">${insights.overview.tip}</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-card-head"><div class="insight-card-icon">${icon('target')}</div><div><div class="insight-card-title">Grouping</div><div class="insight-card-meta">Arrow placement</div></div></div>
+      <div class="insight-headline">${insights.grouping.headline}</div>
+      <div class="insight-body">${insights.grouping.body}</div>
+      <div class="insight-tip">${insights.grouping.tip}</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-card-head"><div class="insight-card-icon">${icon('trophy')}</div><div><div class="insight-card-title">Consistency</div><div class="insight-card-meta">Score stability</div></div></div>
+      <div class="insight-headline">${insights.consistency.value === null ? '—' : `${insights.consistency.value}%`}</div>
+      <div class="insight-body">${insights.consistency.body}</div>
+      <div class="insight-tip">${insights.consistency.tip}</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-card-head"><div class="insight-card-icon">${icon('bow')}</div><div><div class="insight-card-title">Distance / Target Performance</div><div class="insight-card-meta">Normalized round strength</div></div></div>
+      ${performanceMarkup}
+    </div>
+  `;
+}
+
 function sessionTypeLabel(sessionObj) {
   if (sessionObj?.type === 'bullseye_tournament') return 'Bullseye Tournament';
   if (sessionObj?.type === '3d_tournament') return '3D Tournament';
@@ -5104,7 +5895,7 @@ function confirmDeleteAccount() {
     }
     clearLoggedInAccount();
     try { localStorage.removeItem(SYNCED_KEY); } catch {}
-    db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' } };
+    db = { sessions: [], savedLocations: [], deviceProfile: { name: '', archers: [], activeArcher: '' }, preferences: normalizePreferences(), goals: [] };
     session = null; finishingSession = null; activeSessionIdx = null;
     save(); resetActiveSessionUI();
     document.querySelectorAll('.overlay, .detail-overlay').forEach(el => el.classList.remove('open'));
@@ -5285,6 +6076,85 @@ function toggleLocationsAccordion() {
   if (isOpen) renderLocationsList();
 }
 
+function toggleGoalsAccordion() {
+  const body = document.getElementById('goalsAccordionBody');
+  const chevron = document.getElementById('goalsAccordionChevron');
+  if (!body) return;
+  const isOpen = body.classList.toggle('open');
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+  if (isOpen) renderGoalsSettings();
+}
+
+function renderGoalsSettings() {
+  const container = document.getElementById('goalsListContainer');
+  const switchEl = document.getElementById('pbCelebrationsSwitch');
+  const addBtn = document.getElementById('addGoalBtn');
+  if (switchEl) switchEl.classList.toggle('on', db.preferences?.pbCelebrationsEnabled !== false);
+  if (!container) return;
+  const goals = getActiveGoals();
+  if (!goals.length) {
+    container.innerHTML = '<div class="goal-empty">No active goals yet. Add one to show progress on the weekly summary card.</div>';
+  } else {
+    container.innerHTML = goals.map(goal => {
+      const progress = getGoalProgress(goal);
+      return `<div class="goal-row">
+        <div class="goal-chip">${icon('target')}</div>
+        <div class="goal-main">
+          <div class="goal-title">${getGoalMetricLabel(goal.metric)}</div>
+          <div class="goal-sub">${progress.complete ? 'Complete this week' : `${progress.current} of ${progress.target} this week`}</div>
+        </div>
+        <div class="goal-actions">
+          <button class="icon-btn danger" onclick="deleteGoal('${goal.id}')" aria-label="Delete goal" style="width:36px;height:36px;">${icon('trash')}</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  if (addBtn) addBtn.disabled = goals.length >= 3;
+}
+
+function togglePbCelebrations() {
+  db.preferences = normalizePreferences({ ...db.preferences, pbCelebrationsEnabled: !(db.preferences?.pbCelebrationsEnabled !== false) });
+  save();
+  renderGoalsSettings();
+  syncPreferencesToCloud();
+}
+
+function openGoalOverlay() {
+  if (getActiveGoals().length >= 3) {
+    appAlert('You can have up to 3 active goals at a time.');
+    return;
+  }
+  document.getElementById('goalMetricInput').value = 'sessions';
+  document.getElementById('goalTargetInput').value = '';
+  document.getElementById('goalOverlay').classList.add('open');
+}
+
+function saveGoalFromOverlay() {
+  const metric = document.getElementById('goalMetricInput').value;
+  const target = Math.max(1, Number(document.getElementById('goalTargetInput').value) || 0);
+  if (!target) {
+    appAlert('Enter a target greater than zero.');
+    return;
+  }
+  db.goals = normalizeGoals([
+    ...normalizeGoals(db.goals).filter(goal => !goal.archived),
+    { id: `goal-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`, metric, target, createdAt: new Date().toISOString(), archived: false }
+  ]);
+  save();
+  closeOverlay('goalOverlay');
+  renderGoalsSettings();
+  renderHome();
+  syncPreferencesToCloud();
+}
+
+function deleteGoal(goalId) {
+  db.goals = normalizeGoals(db.goals).map(goal => goal.id === goalId ? { ...goal, archived: true } : goal);
+  save();
+  renderGoalsSettings();
+  renderHome();
+  syncPreferencesToCloud();
+}
+
 function renderLocationsList() {
   const container = document.getElementById('locationsListContainer');
   if (!container) return;
@@ -5367,6 +6237,7 @@ function initSettingsPage() {
     sub.textContent = bow ? ([bow.name, bow.type].filter(Boolean).join(' · ') || 'Active bow') + countStr : 'No bow profile saved';
   }
   renderBowInline();
+  renderGoalsSettings();
 }
 
 function openAboutOverlay() {
@@ -5960,6 +6831,7 @@ function handleTargetClick(e) {
   const score = normalizeRoundScore(cr.mode, getScoreAt(cr.mode, nx, ny));
   cr.arrows.push({nx, ny, score});
   haptic(score >= 9 ? 'gold' : 'score');
+  if (cr.arrows.length === 5) maybeCelebrateRoundPB(cr);
   flashScore(score); renderScorePage();
   if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
     const sessionId = session.id; cr.locked = true; renderScorePage();
@@ -5974,6 +6846,7 @@ function scoreMiss() {
   if (cr.locked || cr.arrows.length >= 5) return;
   cr.arrows.push({nx: 1.5, ny: 1.5, score: 0});
   haptic('miss');
+  if (cr.arrows.length === 5) maybeCelebrateRoundPB(cr);
   flashScore(0); renderScorePage();
   if (isTournamentSession(session) && sessionRoundNumber() === 6 && cr.arrows.length === 5) {
     const sessionId = session.id; cr.locked = true; renderScorePage();
@@ -6072,69 +6945,21 @@ function renderScorePickerSummaries() {
 }
 
 function updateWeeklySummary() {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  
-  const weeklySessions = db.sessions.filter(s => {
-    const sessionDate = new Date(s.date);
-    return sessionDate >= sevenDaysAgo && sessionDate <= now;
-  });
-  
-  const sessionCount = weeklySessions.length;
-  const totalArrows = weeklySessions.reduce((sum, s) => {
-    return sum + s.rounds.reduce((rSum, r) => rSum + r.arrows.length, 0);
-  }, 0);
-  
-  const roundScores = [];
-  weeklySessions.forEach(s => {
-    s.rounds.forEach(r => {
-      const score = r.arrows.reduce((sum, a) => sum + a.score, 0);
-      roundScores.push(score);
-    });
-  });
-  
-  const avgScore = roundScores.length > 0 
-    ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)
-    : 0;
-  
+  const weeklyData = computeWeeklySummaryData();
   // Update the compact card
   const sessionsEl = document.getElementById('weeklySessions');
   const arrowsEl = document.getElementById('weeklyArrows');
   const avgEl = document.getElementById('weeklyAvg');
   
-  if (sessionsEl) sessionsEl.textContent = sessionCount || '0';
-  if (arrowsEl) arrowsEl.textContent = totalArrows || '0';
-  if (avgEl) avgEl.textContent = avgScore > 0 ? avgScore : '—';
+  if (sessionsEl) sessionsEl.textContent = weeklyData.sessionCount || '0';
+  if (arrowsEl) arrowsEl.textContent = weeklyData.totalArrows || '0';
+  if (avgEl) avgEl.textContent = weeklyData.avgScore > 0 ? weeklyData.avgScore : '—';
+  renderWeeklyGoals(weeklyData);
 }
 
 function expandWeeklySummary() {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  
-  const weeklySessions = db.sessions.filter(s => {
-    const sessionDate = new Date(s.date);
-    return sessionDate >= sevenDaysAgo && sessionDate <= now;
-  });
-  
-  // Calculate stats
-  const sessionCount = weeklySessions.length;
-  const totalArrows = weeklySessions.reduce((sum, s) => {
-    return sum + s.rounds.reduce((rSum, r) => rSum + r.arrows.length, 0);
-  }, 0);
-  
-  const roundScores = [];
-  weeklySessions.forEach(s => {
-    s.rounds.forEach(r => {
-      const score = r.arrows.reduce((sum, a) => sum + a.score, 0);
-      roundScores.push(score);
-    });
-  });
-  
-  const avgScore = roundScores.length > 0 
-    ? Math.round(roundScores.reduce((a, b) => a + b, 0) / roundScores.length)
-    : 0;
-  
-  const bestRound = roundScores.length > 0 ? Math.max(...roundScores) : 0;
+  const weeklyData = computeWeeklySummaryData();
+  const { now, sevenDaysAgo, weeklySessions, sessionCount, totalArrows, roundScores, avgScore, bestRound } = weeklyData;
   
   // Update detail overlay stats
   document.getElementById('weeklyDetailSessions').textContent = sessionCount;
@@ -7001,6 +7826,13 @@ function applyPhotoScoresToCurrentRound() {
       locked: true
     });
   });
+  const newPbRound = session.rounds.find(round => {
+    const bucketKey = getPbBucketKey(round);
+    const total = round.arrows.reduce((sum, arrow) => sum + arrow.score, 0);
+    const existingBest = getBestSavedRoundScoreForBucket(bucketKey);
+    return existingBest === null || total > existingBest;
+  });
+  if (newPbRound) showPersonalBestCelebration(newPbRound);
   session.currentRound = getTournamentRoundConfigByIndex(session, 0);
   session.currentRound.arrows = [];
   hideInlinePhotoReview();
@@ -8722,6 +9554,19 @@ function goPage(name, btn) {
   if (window.timelinePanZoom) window.timelinePanZoom.reset();
 }
 
+function openInsightsPage() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-insights').classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  unlockOrientation();
+  renderInsightsPage();
+  window.scrollTo(0, 0);
+}
+
+function closeInsightsPage() {
+  goPage('diag', document.getElementById('nav-diag'));
+}
+
 // ═══════════════════════════════════════════════
 //  PAN/ZOOM UTILITIES
 // ═══════════════════════════════════════════════
@@ -8924,6 +9769,10 @@ function renderDiag() {
 
   document.getElementById('dArrows').textContent = allArrows.length || '—';
   document.getElementById('dSessions').textContent = filteredSavedSessions.length + (currentSessionMatches ? 1 : 0) || '—';
+  const consistency = computeConsistencyPercent(rounds);
+  document.getElementById('dConsistency').textContent = consistency === null ? '—' : `${consistency}%`;
+  const heatmapConsistencyLabel = document.getElementById('heatmapConsistencyLabel');
+  if (heatmapConsistencyLabel) heatmapConsistencyLabel.textContent = `Consistency ${consistency === null ? '—' : `${consistency}%`}`;
   if(rounds.length) {
     const scores = rounds.map(r=>r.arrows.reduce((s,a)=>s+a.score,0));
     const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
@@ -8935,6 +9784,7 @@ function renderDiag() {
   drawTimeline(rounds);
   drawZoneBars(allArrows);
   renderStatsTilePreviews(allArrows, rounds);
+  if (document.getElementById('page-insights')?.classList.contains('active')) renderInsightsPage();
 }
 
 function buildOverallStats(allArrows, rounds) {
@@ -8950,11 +9800,8 @@ function buildOverallStats(allArrows, rounds) {
     worst = Math.min(...scores);
     tenXCount = allArrows.filter(a => a.score === 10).length;
     if (allArrows.length) avgArrowScore = (allArrows.reduce((s, a) => s + a.score, 0) / allArrows.length).toFixed(2);
-    if (scores.length > 1) {
-      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const sd = Math.sqrt(scores.reduce((s, v) => s + (v - mean) ** 2, 0) / scores.length);
-      consistency = sd.toFixed(1);
-    }
+    const pct = computeConsistencyPercent(rounds);
+    if (pct !== null) consistency = `${pct}%`;
   }
 
   return [
@@ -8965,7 +9812,7 @@ function buildOverallStats(allArrows, rounds) {
     { label: 'Sessions',      val: sess },
     { label: 'Tens (X)',      val: tenXCount },
     { label: 'Avg / Arrow',   val: avgArrowScore },
-    { label: 'Std Dev',       val: consistency },
+    { label: 'Consistency',   val: consistency },
   ];
 }
 
@@ -9088,21 +9935,21 @@ const STAT_INFO = {
       ],
     }
   },
-  'Std Dev': {
-    title: 'Standard Deviation',
-    desc: 'The standard deviation of your round scores. A lower value means scores are clustered closely around the average; a higher value means greater variation between rounds.',
+  'Consistency': {
+    title: 'Consistency',
+    desc: 'A percentage based on score stability across your filtered rounds. Higher values mean your normalized round scores stay more consistent from round to round.',
     range: {
       segments: [
-        { color: '#52c278', width: 20 },
-        { color: '#e8c547', width: 25 },
-        { color: '#f0a04b', width: 30 },
-        { color: '#e05252', width: 25 },
+        { color: '#e05252', width: 22 },
+        { color: '#f0a04b', width: 24 },
+        { color: '#e8c547', width: 24 },
+        { color: '#52c278', width: 30 },
       ],
       ticks: [
-        { val: '0',   lbl: '' },
-        { val: '5',   lbl: '' },
-        { val: '15',  lbl: '' },
-        { val: '30+', lbl: '' },
+        { val: '0%',   lbl: 'Loose' },
+        { val: '50%',  lbl: '' },
+        { val: '75%',  lbl: '' },
+        { val: '100%', lbl: 'Steady' },
       ],
     }
   },
@@ -9189,7 +10036,8 @@ function expandStatsCard(type) {
   }
 
   else if (type === 'heatmap') {
-    title.textContent = 'Arrow Grouping';
+    const consistency = computeConsistencyPercent(rounds);
+    title.textContent = `Arrow Grouping${consistency === null ? '' : ` · ${consistency}% Consistency`}`;
     const heatmapContainer = document.getElementById('heatmapContainer');
     const wrap = document.createElement('div');
     wrap.style.cssText = 'flex:1;min-height:0;display:flex;align-items:center;justify-content:center;';
@@ -9718,6 +10566,7 @@ renderScorePickerSummaries();
 
 // On open: push any unsynced local sessions to the club server
 setTimeout(async () => {
+  await hydratePreferencesFromCloud({ preferServer: true });
   await autoSyncUnsyncedSessions();
 }, 2000);
 
