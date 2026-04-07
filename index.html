@@ -6602,6 +6602,11 @@ function launchSession(type) {
   if (!ensureDeviceNameForScoring(type)) return;
   const normalizedType = normalizeSessionType(type);
   if (normalizedType === 'bullseye_tournament' || normalizedType === '3d_tournament') {
+    if (!betaFeaturesEnabled()) {
+      pendingTournamentModeType = null;
+      startSession(normalizedType, { scoringMode: 'manual' });
+      return;
+    }
     pendingTournamentModeType = normalizedType;
     syncTournamentScoringModeOptions();
     document.getElementById('tournamentScoreModeOverlay').classList.add('open');
