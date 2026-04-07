@@ -438,6 +438,24 @@
   }
   .sor-pip.lt { color: #bbb; }
   .sor-score { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); width: 32px; text-align: right; flex-shrink:0; }
+  .sor-pb-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(82,194,120,.14);
+    border: 1px solid rgba(82,194,120,.34);
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
   .sor-del {
     background: none;
     border: none;
@@ -2785,89 +2803,156 @@
   .score-flash.hide { opacity: 0; }
   .pb-celebration {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: max(10px, env(safe-area-inset-top)) 12px 0;
     z-index: 305;
     pointer-events: none;
     opacity: 0;
-    transition: opacity .18s ease;
+    transition: opacity .18s ease, transform .22s ease;
+    transform: translateY(-10px);
+    display: flex;
+    justify-content: center;
   }
-  .pb-celebration.show { opacity: 1; }
-  .pb-burst {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(circle at 50% 50%, rgba(247,217,120,.18), transparent 18%),
-      radial-gradient(circle at 50% 50%, rgba(232,197,71,.12), transparent 34%);
-  }
-  .pb-rays {
-    position: absolute;
-    inset: 50% auto auto 50%;
-    width: 220px;
-    height: 220px;
-    transform: translate(-50%, -50%) scale(.86);
-    opacity: 0;
-    transition: transform .5s ease, opacity .3s ease;
-  }
-  .pb-celebration.show .pb-rays {
-    transform: translate(-50%, -50%) scale(1);
+  .pb-celebration.show {
     opacity: 1;
+    transform: translateY(0);
   }
-  .pb-rays::before,
-  .pb-rays::after {
-    content: '';
+  .pb-confetti {
     position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background:
-      conic-gradient(from 0deg, rgba(247,217,120,0) 0deg 18deg, rgba(247,217,120,.95) 18deg 30deg, rgba(247,217,120,0) 30deg 60deg, rgba(240,160,75,.75) 60deg 72deg, rgba(247,217,120,0) 72deg 120deg, rgba(232,197,71,.85) 120deg 132deg, rgba(247,217,120,0) 132deg 180deg, rgba(240,160,75,.75) 180deg 192deg, rgba(247,217,120,0) 192deg 240deg, rgba(232,197,71,.85) 240deg 252deg, rgba(247,217,120,0) 252deg 300deg, rgba(240,160,75,.75) 300deg 312deg, rgba(247,217,120,0) 312deg 360deg);
-    -webkit-mask: radial-gradient(circle, transparent 0 52px, #000 52px 76px, transparent 76px);
-            mask: radial-gradient(circle, transparent 0 52px, #000 52px 76px, transparent 76px);
+    inset: 0 0 auto 0;
+    height: 150px;
+    overflow: hidden;
   }
-  .pb-rays::after {
-    transform: rotate(20deg) scale(.82);
-    opacity: .72;
+  .pb-confetti-piece {
+    position: absolute;
+    top: -16px;
+    width: 10px;
+    height: 16px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: pb-confetti-fall 1350ms ease-out forwards;
+    will-change: transform, opacity;
+  }
+  .pb-confetti-piece.ribbon {
+    width: 6px;
+    height: 22px;
+    border-radius: 999px;
   }
   .pb-celebration-card {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%) scale(.92);
-    min-width: min(82vw, 320px);
-    max-width: min(86vw, 360px);
-    padding: 22px 24px;
-    border-radius: 24px;
+    position: relative;
+    width: min(100%, 520px);
+    padding: 14px 16px;
+    border-radius: 18px;
     border: 1px solid rgba(232,197,71,.28);
-    background: linear-gradient(165deg, rgba(17,24,39,.96), rgba(10,15,26,.92));
-    box-shadow: 0 24px 80px rgba(0,0,0,.38), 0 0 0 1px rgba(247,217,120,.06) inset;
-    text-align: center;
-    transition: transform .42s cubic-bezier(.22,.68,0,1.18);
+    background:
+      radial-gradient(circle at top right, rgba(247,217,120,.18), transparent 30%),
+      linear-gradient(160deg, rgba(17,24,39,.97), rgba(10,15,26,.94));
+    box-shadow: 0 14px 36px rgba(0,0,0,.32), 0 0 0 1px rgba(247,217,120,.06) inset;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    transition: transform .22s ease;
   }
-  .pb-celebration.show .pb-celebration-card { transform: translate(-50%, -50%) scale(1); }
+  .pb-celebration.show .pb-celebration-card { transform: translateY(0); }
+  .pb-celebration-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: rgba(232,197,71,.12);
+    border: 1px solid rgba(232,197,71,.24);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .pb-celebration-badge .ui-icon {
+    font-size: 20px;
+  }
+  .pb-copy {
+    min-width: 0;
+  }
   .pb-label {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--accent3);
     text-transform: uppercase;
-    letter-spacing: 1.2px;
+    letter-spacing: 1px;
   }
   .pb-title {
-    margin-top: 10px;
+    margin-top: 4px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 42px;
+    font-size: 30px;
     line-height: .95;
-    letter-spacing: 1.4px;
+    letter-spacing: 1px;
     color: var(--accent);
   }
   .pb-sub {
-    margin-top: 8px;
-    font-size: 14px;
+    margin-top: 4px;
+    font-size: 12px;
     color: var(--text);
+    line-height: 1.4;
   }
   .pb-value {
-    margin-top: 10px;
     font-family: 'DM Mono', monospace;
     font-size: 12px;
-    color: var(--muted);
+    color: var(--accent3);
+    white-space: nowrap;
+    align-self: center;
+  }
+  @keyframes pb-confetti-fall {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) rotate(0deg) scale(.9);
+    }
+    12% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--pb-dx), 132px, 0) rotate(var(--pb-rot)) scale(1);
+    }
+  }
+  @media (max-width: 430px) {
+    .pb-celebration {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    .pb-celebration-card {
+      grid-template-columns: 38px 1fr;
+      gap: 10px;
+      padding: 12px 13px;
+    }
+    .pb-celebration-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+    }
+    .pb-title {
+      font-size: 26px;
+    }
+    .pb-sub {
+      font-size: 11px;
+    }
+    .pb-value {
+      grid-column: 2;
+      justify-self: start;
+      margin-top: 2px;
+    }
+    .pb-confetti {
+      height: 132px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pb-celebration,
+    .pb-celebration-card,
+    .pb-confetti-piece {
+      transition: none;
+      animation: none;
+    }
   }
   #page-insights {
     display: none;
@@ -4294,12 +4379,14 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
 <div class="pb-celebration" id="pbCelebration">
-  <div class="pb-burst"></div>
-  <div class="pb-rays"></div>
+  <div class="pb-confetti" id="pbCelebrationConfetti" aria-hidden="true"></div>
   <div class="pb-celebration-card">
-    <div class="pb-label">Personal Best</div>
-    <div class="pb-title" id="pbCelebrationTitle">New PB</div>
-    <div class="pb-sub" id="pbCelebrationSub">Target bucket</div>
+    <div class="pb-celebration-badge"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg></div>
+    <div class="pb-copy">
+      <div class="pb-label">Personal Best</div>
+      <div class="pb-title" id="pbCelebrationTitle">New PB</div>
+      <div class="pb-sub" id="pbCelebrationSub">Target bucket</div>
+    </div>
     <div class="pb-value" id="pbCelebrationValue">50 points</div>
   </div>
 </div>
@@ -5069,6 +5156,9 @@ function openGlobalSessionOverlay(id) {
   container.innerHTML = (s.rounds || []).map((r, ri) => {
     const rs = r.arrows.reduce((x, a) => x + a.score, 0);
     const info = roundDescriptor(r);
+    const pbBadge = isTournamentRoundPersonalBest(s, r, clubSessions)
+      ? '<div class="sor-pb-badge">PB</div>'
+      : '';
     const pips = r.arrows.map(a => {
       const bg = pipColor(a.score);
       const lt = pipLightText(a.score);
@@ -5078,6 +5168,7 @@ function openGlobalSessionOverlay(id) {
       <div style="display:flex;width:100%;align-items:center;gap:10px;">
         <div class="sor-label">R${ri+1} · ${info.shortLabel}</div>
         <div class="sor-pips">${pips}</div>
+        ${pbBadge}
         <div class="sor-score">${rs}</div>
         <button class="icon-btn" onclick="printGlobalSessionRound('${String(s.id)}', ${ri})" title="Print round" aria-label="Print round" style="margin-left:auto">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V4h12v5"></path><rect x="6" y="14" width="12" height="6"></rect><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path></svg>
@@ -5602,7 +5693,50 @@ function getBestSavedRoundScoreForBucket(bucketKey) {
   return best;
 }
 
+function getTournamentRoundPersonalBestScore(sessionType, sessionsSource = db.sessions) {
+  if (sessionType !== 'bullseye_tournament' && sessionType !== '3d_tournament') return null;
+  let best = null;
+  (Array.isArray(sessionsSource) ? sessionsSource : []).forEach(savedSession => {
+    if (savedSession?.type !== sessionType) return;
+    (savedSession.rounds || []).forEach(savedRound => {
+      const total = (savedRound.arrows || []).reduce((sum, arrow) => sum + (arrow.score || 0), 0);
+      best = best === null ? total : Math.max(best, total);
+    });
+  });
+  return best;
+}
+
+function isTournamentRoundPersonalBest(sessionObj, round, sessionsSource = db.sessions) {
+  if (!sessionObj || !round) return false;
+  if (sessionObj.type !== 'bullseye_tournament' && sessionObj.type !== '3d_tournament') return false;
+  const total = (round.arrows || []).reduce((sum, arrow) => sum + (arrow.score || 0), 0);
+  const best = getTournamentRoundPersonalBestScore(sessionObj.type, sessionsSource);
+  return best !== null && total === best;
+}
+
 let pbCelebrationTimer = null;
+let pbConfettiCleanupTimer = null;
+function launchPbConfetti() {
+  const container = document.getElementById('pbCelebrationConfetti');
+  if (!container) return;
+  const colors = ['var(--accent)', 'var(--accent2)', 'var(--accent3)', '#ffffff', '#52c278'];
+  container.innerHTML = '';
+  for (let i = 0; i < 24; i++) {
+    const piece = document.createElement('span');
+    piece.className = `pb-confetti-piece${i % 3 === 0 ? ' ribbon' : ''}`;
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = `${Math.random() * 180}ms`;
+    piece.style.setProperty('--pb-dx', `${(Math.random() - 0.5) * 120}px`);
+    piece.style.setProperty('--pb-rot', `${(Math.random() - 0.5) * 520}deg`);
+    container.appendChild(piece);
+  }
+  clearTimeout(pbConfettiCleanupTimer);
+  pbConfettiCleanupTimer = setTimeout(() => {
+    container.innerHTML = '';
+  }, 1600);
+}
+
 function showPersonalBestCelebration(round) {
   if (db.preferences?.pbCelebrationsEnabled === false) return;
   if (!round || round.arrows.length < 5) return;
@@ -5613,9 +5747,10 @@ function showPersonalBestCelebration(round) {
   document.getElementById('pbCelebrationTitle').textContent = `New ${descriptor} PB`;
   document.getElementById('pbCelebrationSub').textContent = `Best completed ${descriptor} round so far`;
   document.getElementById('pbCelebrationValue').textContent = `${score} points`;
+  launchPbConfetti();
   overlay.classList.add('show');
   clearTimeout(pbCelebrationTimer);
-  pbCelebrationTimer = setTimeout(() => overlay.classList.remove('show'), 1900);
+  pbCelebrationTimer = setTimeout(() => overlay.classList.remove('show'), 2200);
 }
 
 function maybeCelebrateRoundPB(round, options = {}) {
@@ -9271,13 +9406,16 @@ function openSessionOverlay(idx) {
   const container = document.getElementById('sessionOverlayRounds');
   container.innerHTML = s.rounds.map((r,ri) => {
     const rs = r.arrows.reduce((x,a)=>x+a.score,0); const info = roundDescriptor(r);
+    const pbBadge = isTournamentRoundPersonalBest(s, r)
+      ? '<div class="sor-pb-badge">PB</div>'
+      : '';
     const pips = r.arrows.map(a => { const bg = pipColor(a.score); const lt = pipLightText(a.score); return `<div class="sor-pip${lt?' lt':''}" style="background:${bg}">${a.score===0?'M':a.score}</div>`; }).join('');
     const notesHtml = r.notes ? `<div style="width:100%; font-size:12px; color:var(--muted); margin-top:6px; padding-left:66px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${r.notes}</div>` : '';
     // Hide delete button for rounds if not owner
     const deleteBtn = isOwner ? `<button class="sor-del" onclick="event.stopPropagation();deleteRound(${idx},${ri})" title="Delete round" aria-label="Delete round">${icon('trash')}</button>` : '';
     return `<div class="sor-row" onclick="openRoundDetail(${idx},${ri})" style="flex-wrap:wrap;">
       <div style="display:flex; width:100%; align-items:center; gap:10px;">
-        <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div><div class="sor-score">${rs}</div>
+        <div class="sor-label">R${ri+1} · ${info.shortLabel}</div><div class="sor-pips">${pips}</div>${pbBadge}<div class="sor-score">${rs}</div>
         ${deleteBtn}
       </div>
       ${notesHtml}
