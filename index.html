@@ -3855,6 +3855,10 @@ const PRACTICE_TARGET_OPTIONS = [
   <div class="account-popup">
     <div class="account-popup-name" id="accountPopupName">—</div>
     <div class="account-popup-sub">Signed in</div>
+    <button class="account-popup-btn" id="accountPopupBetaBtn" onclick="toggleBetaFeaturesFromPopup()">
+      <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"></path></svg>
+      <span id="accountPopupBetaLabel">Beta Features: Off</span>
+    </button>
     <button class="account-popup-btn" id="accountPopupEditUsernameBtn" onclick="closeAccountPopup();openEditUsernameOverlay()">
       <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
       Change Username
@@ -4007,11 +4011,12 @@ const PRACTICE_TARGET_OPTIONS = [
         <h4>Manual</h4>
         <p>Score each arrow on the target just like the current app flow.</p>
       </button>
-      <button class="score-mode-card" onclick="confirmTournamentScoringMode('photo')">
+      <button class="score-mode-card" id="photoTournamentModeBtn" onclick="confirmTournamentScoringMode('photo')">
         <h4>Photo <span class="beta-pill">Beta</span></h4>
         <p>Upload a scorecard photo, infer the five values, then correct anything that looks wrong.</p>
       </button>
     </div>
+    <p id="tournamentScoreBetaNote" style="display:none;color:var(--muted);font-size:12px;margin:12px 0 0;">Enable Beta Features from your account popup to use photo scoring.</p>
     <button class="modal-btn" onclick="closeOverlay('tournamentScoreModeOverlay')">Cancel</button>
   </div>
 </div>
@@ -4141,7 +4146,7 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
     
     <!-- Location Filter -->
-    <div style="margin-bottom: 16px;">
+    <div id="filtersOnlyLocationSection" style="margin-bottom: 16px;">
       <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Location</div>
       <select id="filtersOnlyLocationSelect" class="modal-input" onchange="setFiltersOnlyLocationFromDropdown(this.value)" style="appearance:auto;margin-bottom:0;">
         <option value="all">All Locations</option>
@@ -5000,7 +5005,6 @@ function renderClubHistory() {
     const hasActiveCriteria = !!homeSearchQuery ||
       clubFilters.size > 0 ||
       (activeArcherFilters.club && activeArcherFilters.club.size > 0) ||
-      (activeLocationFilters.club && activeLocationFilters.club.size > 0) ||
       !!activeDateFiltersClub.start ||
       !!activeDateFiltersClub.end;
     list.innerHTML = hasActiveCriteria
@@ -5085,7 +5089,8 @@ db.savedLocations = Array.isArray(db.savedLocations) ? db.savedLocations : [];
 db.deviceProfile = db.deviceProfile && typeof db.deviceProfile === 'object' ? db.deviceProfile : {name: ''};
 function normalizePreferences(raw = {}) {
   return {
-    pbCelebrationsEnabled: raw?.pbCelebrationsEnabled !== false
+    pbCelebrationsEnabled: raw?.pbCelebrationsEnabled !== false,
+    betaFeaturesEnabled: raw?.betaFeaturesEnabled === true
   };
 }
 function normalizeGoals(rawGoals = []) {
@@ -5100,6 +5105,25 @@ function normalizeGoals(rawGoals = []) {
     }))
     .slice(0, 12);
 }
+function normalizeSavedLocations(rawLocations = []) {
+  return (Array.isArray(rawLocations) ? rawLocations : [])
+    .filter(location => location && typeof location === 'object')
+    .map(location => ({
+      label: typeof location.label === 'string' ? location.label.trim() : '',
+      lat: Number.isFinite(Number(location.lat)) ? Number(location.lat) : undefined,
+      lng: Number.isFinite(Number(location.lng)) ? Number(location.lng) : undefined,
+      updatedAt: typeof location.updatedAt === 'string' ? location.updatedAt : new Date().toISOString()
+    }))
+    .filter(location => location.label)
+    .slice(0, 200);
+}
+function normalizeBowSyncData(rawDeviceProfile = {}) {
+  return {
+    bows: rawDeviceProfile?.bows && typeof rawDeviceProfile.bows === 'object' ? rawDeviceProfile.bows : {},
+    bowProfiles: rawDeviceProfile?.bowProfiles && typeof rawDeviceProfile.bowProfiles === 'object' ? rawDeviceProfile.bowProfiles : {},
+    activeBowId: rawDeviceProfile?.activeBowId && typeof rawDeviceProfile.activeBowId === 'object' ? rawDeviceProfile.activeBowId : {}
+  };
+}
 if (!db.deviceProfile.archers) {
   db.deviceProfile.archers = db.deviceProfile.name ? [db.deviceProfile.name] : [];
   db.deviceProfile.activeArcher = db.deviceProfile.name || '';
@@ -5109,6 +5133,7 @@ if (!db.deviceProfile.bows) {
 }
 db.preferences = normalizePreferences(db.preferences);
 db.goals = normalizeGoals(db.goals);
+db.savedLocations = normalizeSavedLocations(db.savedLocations);
 const save = () => {
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
@@ -5447,9 +5472,14 @@ function renderWeeklyGoals(weeklyData = computeWeeklySummaryData()) {
 }
 
 function buildPreferencesPayload() {
+  const bowData = normalizeBowSyncData(db.deviceProfile);
   return {
     preferences: normalizePreferences(db.preferences),
-    goals: normalizeGoals(db.goals)
+    goals: normalizeGoals(db.goals),
+    savedLocations: normalizeSavedLocations(db.savedLocations),
+    bowProfiles: bowData.bowProfiles,
+    activeBowId: bowData.activeBowId,
+    bows: bowData.bows
   };
 }
 
@@ -5459,6 +5489,10 @@ async function syncPreferencesToCloud() {
     const response = await cfPatchPreferences(buildPreferencesPayload());
     if (response?.preferences) db.preferences = normalizePreferences(response.preferences);
     if (response?.goals) db.goals = normalizeGoals(response.goals);
+    if (response?.savedLocations) db.savedLocations = normalizeSavedLocations(response.savedLocations);
+    if (response?.bowProfiles) db.deviceProfile.bowProfiles = response.bowProfiles;
+    if (response?.activeBowId) db.deviceProfile.activeBowId = response.activeBowId;
+    if (response?.bows) db.deviceProfile.bows = response.bows;
     save();
     renderHome();
     if (document.getElementById('page-settings')?.classList.contains('active')) renderGoalsSettings();
@@ -5474,13 +5508,25 @@ async function hydratePreferencesFromCloud({ preferServer = true } = {}) {
     const response = await cfGetPreferences();
     const serverGoals = normalizeGoals(response?.goals);
     const serverPreferences = normalizePreferences(response?.preferences);
-    const hasServerValues = !!serverGoals.length || response?.preferences;
+    const serverLocations = normalizeSavedLocations(response?.savedLocations);
+    const hasServerBowData = !!(
+      (response?.bowProfiles && Object.keys(response.bowProfiles).length) ||
+      (response?.activeBowId && Object.keys(response.activeBowId).length) ||
+      (response?.bows && Object.keys(response.bows).length)
+    );
+    const hasServerValues = response?.hasAccountSyncData === true || !!serverGoals.length || serverLocations.length > 0 || hasServerBowData;
     if (preferServer && hasServerValues) {
       db.goals = serverGoals;
       db.preferences = serverPreferences;
+      if (serverLocations.length) db.savedLocations = serverLocations;
+      if (response?.bowProfiles) db.deviceProfile.bowProfiles = response.bowProfiles;
+      if (response?.activeBowId) db.deviceProfile.activeBowId = response.activeBowId;
+      if (response?.bows) db.deviceProfile.bows = response.bows;
       save();
       renderHome();
       renderDiag();
+      if (document.getElementById('locationsAccordionBody')?.classList.contains('open')) renderLocationsList();
+      if (document.getElementById('bowInlineBody')?.classList.contains('open')) renderBowInline();
       if (document.getElementById('page-settings')?.classList.contains('active')) renderGoalsSettings();
     } else if (!hasServerValues) {
       await syncPreferencesToCloud();
@@ -5811,6 +5857,10 @@ function openAccountPopup() {
   const guestMode = !account && isGuestMode();
   document.getElementById('accountPopupName').textContent = account?.username || (guestMode ? (normalizePersonName(db.deviceProfile?.activeArcher) || 'Guest') : '—');
   document.querySelector('.account-popup-sub').textContent = guestMode ? 'Guest mode · local only' : 'Signed in';
+  const betaBtn = document.getElementById('accountPopupBetaBtn');
+  const betaLabel = document.getElementById('accountPopupBetaLabel');
+  if (betaBtn) betaBtn.style.display = account ? 'flex' : 'none';
+  if (betaLabel) betaLabel.textContent = `Beta Features: ${betaFeaturesEnabled() ? 'On' : 'Off'}`;
   document.getElementById('accountPopupEditUsernameBtn').style.display = account ? 'flex' : 'none';
   document.getElementById('accountPopupEditPasswordBtn').style.display = account ? 'flex' : 'none';
   document.getElementById('accountPopupDeleteBtn').style.display = account ? 'flex' : 'none';
@@ -5961,6 +6011,7 @@ function setActiveBow(archerName, bowId) {
   db.deviceProfile.activeBowId[archerName] = bowId;
   save();
   renderBowInline();
+  syncPreferencesToCloud();
 }
 
 // ── Bow inline panel ───────────────────────────────────────────────────────────
@@ -6068,6 +6119,7 @@ function deleteActiveBow() {
     }
     save();
     renderBowInline();
+    syncPreferencesToCloud();
   });
 }
 
@@ -6140,6 +6192,17 @@ function togglePbCelebrations() {
   db.preferences = normalizePreferences({ ...db.preferences, pbCelebrationsEnabled: !(db.preferences?.pbCelebrationsEnabled !== false) });
   save();
   renderGoalsSettings();
+  syncPreferencesToCloud();
+}
+
+function betaFeaturesEnabled() {
+  return db.preferences?.betaFeaturesEnabled === true;
+}
+
+function toggleBetaFeaturesFromPopup() {
+  db.preferences = normalizePreferences({ ...db.preferences, betaFeaturesEnabled: !betaFeaturesEnabled() });
+  save();
+  openAccountPopup();
   syncPreferencesToCloud();
 }
 
@@ -6221,6 +6284,7 @@ function editLocation(idx) {
   refreshSavedLocationOptions();
   renderHome();
   renderDiag();
+  syncPreferencesToCloud();
 }
 
 function deleteLocation(idx) {
@@ -6233,6 +6297,7 @@ function deleteLocation(idx) {
   save();
   renderLocationsList();
   refreshSavedLocationOptions();
+  syncPreferencesToCloud();
 }
 
 // ── Settings page init ─────────────────────────────────────────────────────────
@@ -6314,6 +6379,8 @@ function saveChosenLocation(location) {
   const next = { label, lat: typeof location.lat === 'number' ? location.lat : existing?.lat, lng: typeof location.lng === 'number' ? location.lng : existing?.lng, updatedAt: new Date().toISOString() };
   if (existing) Object.assign(existing, next);
   else db.savedLocations.push(next);
+  save();
+  syncPreferencesToCloud();
 }
 
 function assignLocationToSession(sessionId, location) {
@@ -6477,6 +6544,7 @@ function saveBowProfile() {
   save();
   closeOverlay('bowProfileOverlay');
   renderBowInline();
+  syncPreferencesToCloud();
 }
 
 function ensureDeviceNameForScoring(type) {
@@ -6492,6 +6560,7 @@ function launchSession(type) {
   const normalizedType = normalizeSessionType(type);
   if (normalizedType === 'bullseye_tournament' || normalizedType === '3d_tournament') {
     pendingTournamentModeType = normalizedType;
+    syncTournamentScoringModeOptions();
     document.getElementById('tournamentScoreModeOverlay').classList.add('open');
     return;
   }
@@ -6499,11 +6568,23 @@ function launchSession(type) {
 }
 function launchEphemeralSession() { startSession('practice', { ephemeral: true }); }
 
+function syncTournamentScoringModeOptions() {
+  const photoBtn = document.getElementById('photoTournamentModeBtn');
+  const note = document.getElementById('tournamentScoreBetaNote');
+  const enabled = betaFeaturesEnabled();
+  if (photoBtn) photoBtn.style.display = enabled ? '' : 'none';
+  if (note) note.style.display = enabled ? 'none' : 'block';
+}
+
 function confirmTournamentScoringMode(mode) {
   const type = pendingTournamentModeType;
   pendingTournamentModeType = null;
   closeOverlay('tournamentScoreModeOverlay');
   if (!type) return;
+  if (mode === 'photo' && !betaFeaturesEnabled()) {
+    appAlert('Enable Beta Features from your account popup to use photo scoring.');
+    return;
+  }
   startSession(type, { scoringMode: mode === 'photo' ? 'photo' : 'manual' });
 }
 
@@ -8257,7 +8338,7 @@ function countActiveFilters(context) {
   let n = 0;
   // Location
   const locSet = activeLocationFilters[context];
-  if (locSet && locSet.size > 0) n++;
+  if (context !== 'club' && locSet && locSet.size > 0) n++;
   // Round type
   if ((activeRoundTypeFilters[context] || 'all') !== 'all') n++;
   // Date
@@ -8433,8 +8514,12 @@ function openFiltersOnlyOverlay(context) {
   // Archer filter: only show for club
   const archerSection = document.getElementById('filtersOnlyArcherSection');
   if (archerSection) archerSection.style.display = context === 'club' ? 'block' : 'none';
+  const locationSection = document.getElementById('filtersOnlyLocationSection');
+  if (locationSection) locationSection.style.display = context === 'club' ? 'none' : 'block';
 
   if (context === 'club') {
+    const activeLocSet = activeLocationFilters.club || (activeLocationFilters.club = new Set());
+    activeLocSet.clear();
     const archerSelect = document.getElementById('filtersOnlyArcherSelect');
     if (archerSelect) {
       const uniqueArchers = [...new Set(sourceSessions.map(s => normalizePersonName(s.archerName)).filter(Boolean))].sort();
@@ -8447,7 +8532,7 @@ function openFiltersOnlyOverlay(context) {
 
   // Location filter dropdown
   const locationSelect = document.getElementById('filtersOnlyLocationSelect');
-  if (locationSelect) {
+  if (locationSelect && context !== 'club') {
     const uniqueLocations = [...new Set(sourceSessions.map(s => formatLocation(s.location)).filter(Boolean))].sort();
     const activeLocSet = activeLocationFilters[context] || (activeLocationFilters[context] = new Set());
     const currentLoc = activeLocSet.size === 1 ? [...activeLocSet][0] : 'all';
@@ -8477,6 +8562,7 @@ function setFiltersOnlyArcherFromDropdown(archLabel) {
 }
 
 function setFiltersOnlyLocationFromDropdown(locLabel) {
+  if (activeFiltersContext === 'club') return;
   const activeLocSet = activeLocationFilters[activeFiltersContext] || (activeLocationFilters[activeFiltersContext] = new Set());
   if (locLabel === 'all') activeLocSet.clear();
   else { activeLocSet.clear(); activeLocSet.add(locLabel); }
@@ -8497,6 +8583,7 @@ function setFiltersOnlyArcherFilter(archLabel) {
 }
 
 function setFiltersOnlyLocationFilter(locLabel) {
+  if (activeFiltersContext === 'club') return;
   const activeLocSet = activeLocationFilters[activeFiltersContext] || (activeLocationFilters[activeFiltersContext] = new Set());
   if (locLabel === 'all') activeLocSet.clear();
   else if (activeLocSet.has(locLabel)) activeLocSet.delete(locLabel);
@@ -8656,7 +8743,7 @@ function roundMatchesFilters(round, filters) {
 
 function sessionMatchesFilter(sessionObj, filters, context) {
   const activeLocSet = (activeLocationFilters[context] || new Set());
-  if (activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) return false;
+  if (context !== 'club' && activeLocSet.size > 0 && !activeLocSet.has(formatLocation(sessionObj.location))) return false;
 
   const activeArchSet = (activeArcherFilters[context] || new Set());
   if (activeArchSet.size > 0 && !activeArchSet.has(normalizePersonName(sessionObj.archerName))) return false;

@@ -133,9 +133,52 @@ function normalizePreferencesPayload(body = {}) {
 
   return {
     preferences: {
-      pbCelebrationsEnabled: rawPreferences.pbCelebrationsEnabled !== false
+      pbCelebrationsEnabled: rawPreferences.pbCelebrationsEnabled !== false,
+      betaFeaturesEnabled: rawPreferences.betaFeaturesEnabled === true
     },
     goals
+  };
+}
+
+function normalizeSavedLocationsPayload(rawLocations = []) {
+  return (Array.isArray(rawLocations) ? rawLocations : [])
+    .filter(location => location && typeof location === 'object')
+    .map(location => ({
+      label: typeof location.label === 'string' ? location.label.trim().slice(0, 80) : '',
+      lat: Number.isFinite(Number(location.lat)) ? Number(location.lat) : null,
+      lng: Number.isFinite(Number(location.lng)) ? Number(location.lng) : null,
+      updatedAt: typeof location.updatedAt === 'string' ? location.updatedAt : new Date().toISOString()
+    }))
+    .filter(location => location.label)
+    .slice(0, 200);
+}
+
+function normalizeBowDataPayload(body = {}) {
+  const rawBowProfiles = body?.bowProfiles && typeof body.bowProfiles === 'object' ? body.bowProfiles : {};
+  const rawActiveBowId = body?.activeBowId && typeof body.activeBowId === 'object' ? body.activeBowId : {};
+  const rawLegacyBows = body?.bows && typeof body.bows === 'object' ? body.bows : {};
+
+  const bowProfiles = Object.fromEntries(
+    Object.entries(rawBowProfiles).map(([archerName, bows]) => [
+      archerName,
+      (Array.isArray(bows) ? bows : [])
+        .filter(bow => bow && typeof bow === 'object')
+        .map(bow => ({
+          id: typeof bow.id === 'string' ? bow.id.slice(0, 80) : `bow-${Date.now()}`,
+          name: typeof bow.name === 'string' ? bow.name.trim().slice(0, 80) : '',
+          type: typeof bow.type === 'string' ? bow.type.trim().slice(0, 40) : '',
+          drawWeight: typeof bow.drawWeight === 'string' ? bow.drawWeight.trim().slice(0, 40) : '',
+          notes: typeof bow.notes === 'string' ? bow.notes.trim().slice(0, 2000) : '',
+          aimingPoints: bow.aimingPoints && typeof bow.aimingPoints === 'object' ? bow.aimingPoints : {}
+        }))
+        .slice(0, 20)
+    ])
+  );
+
+  return {
+    bowProfiles,
+    activeBowId: Object.fromEntries(Object.entries(rawActiveBowId).map(([archerName, bowId]) => [archerName, typeof bowId === 'string' ? bowId.slice(0, 80) : ''])),
+    bows: rawLegacyBows
   };
 }
 
@@ -429,11 +472,26 @@ export default {
         if (!account) return err('Unauthorised', 401, origin);
 
         const normalized = normalizePreferencesPayload(account);
+        const savedLocations = normalizeSavedLocationsPayload(account.savedLocations);
+        const bowData = normalizeBowDataPayload(account);
+        const hasAccountSyncData = !!(
+          account.preferences ||
+          account.goals ||
+          account.savedLocations ||
+          account.bowProfiles ||
+          account.activeBowId ||
+          account.bows
+        );
         return json(
           {
             ok: true,
             preferences: normalized.preferences,
-            goals: normalized.goals
+            goals: normalized.goals,
+            savedLocations,
+            bowProfiles: bowData.bowProfiles,
+            activeBowId: bowData.activeBowId,
+            bows: bowData.bows,
+            hasAccountSyncData
           },
           200,
           origin
@@ -448,12 +506,18 @@ export default {
         if (!body || typeof body !== 'object') return err('Invalid body', 400, origin);
 
         const normalized = normalizePreferencesPayload(body);
+        const savedLocations = normalizeSavedLocationsPayload(body.savedLocations);
+        const bowData = normalizeBowDataPayload(body);
         await env.ARCHERY_KV.put(
           `account:${account.username.toLowerCase()}`,
           JSON.stringify({
             ...account,
             preferences: normalized.preferences,
-            goals: normalized.goals
+            goals: normalized.goals,
+            savedLocations,
+            bowProfiles: bowData.bowProfiles,
+            activeBowId: bowData.activeBowId,
+            bows: bowData.bows
           })
         );
 
@@ -461,7 +525,11 @@ export default {
           {
             ok: true,
             preferences: normalized.preferences,
-            goals: normalized.goals
+            goals: normalized.goals,
+            savedLocations,
+            bowProfiles: bowData.bowProfiles,
+            activeBowId: bowData.activeBowId,
+            bows: bowData.bows
           },
           200,
           origin
