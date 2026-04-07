@@ -2673,6 +2673,46 @@
   .photo-round-controls .photo-score-actions {
     margin-top: 14px;
   }
+  .photo-score-inline-review {
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .photo-inline-rounds {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .photo-inline-round-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255,255,255,.03);
+    padding: 12px;
+  }
+  .photo-inline-round-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .photo-inline-round-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .photo-inline-arrow-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .photo-inline-arrow-grid .score-review-cell label {
+    margin-bottom: 4px;
+    font-size: 9px;
+  }
   .photo-round-scan-state {
     display: none;
     margin-top: 12px;
@@ -2860,6 +2900,9 @@
     .photo-score-actions .modal-btn,
     .photo-score-downloads .modal-btn {
       flex-basis: 100%;
+    }
+    .photo-inline-arrow-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
@@ -3283,9 +3326,9 @@ const PRACTICE_TARGET_OPTIONS = [
           <div class="photo-round-scan-status" id="photoRoundScanStatus">Choose a scorecard image to begin.</div>
         </div>
       </div>
-      <div class="photo-score-inline-review" id="photoRoundInlineReview" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div class="photo-score-inline-review" id="photoRoundInlineReview" style="display:none">
         <div class="photo-score-metric-label">Detected Tournament Scores</div>
-        <div class="score-review-grid" id="photoRoundInlineReviewGrid"></div>
+        <div id="photoRoundInlineReviewGrid"></div>
         <div class="photo-score-review-note" id="photoRoundInlineReviewNote">Review the tournament values before applying them.</div>
         <div class="photo-score-actions">
           <button class="modal-btn primary" onclick="applyPhotoScoresToCurrentRound()">Apply Tournament</button>
@@ -8406,7 +8449,7 @@ function renderPhotoScoreReviewGrid() {
   const values = photoScoreState.reviewTournamentScores.length
     ? photoScoreState.reviewTournamentScores
     : getExistingPhotoTournamentReviewValues();
-  const markup = values.map((roundValues, roundIndex) => {
+  const modalMarkup = values.map((roundValues, roundIndex) => {
     const roundInfo = getTournamentRoundConfigByIndex(session, roundIndex);
     const descriptor = roundDescriptor(roundInfo).shortLabel;
     const cells = roundValues.map((value, arrowIndex) => `
@@ -8424,8 +8467,32 @@ function renderPhotoScoreReviewGrid() {
       </div>
     `;
   }).join('');
-  if (modalGrid) modalGrid.innerHTML = markup;
-  if (inlineGrid) inlineGrid.innerHTML = markup;
+  const inlineMarkup = `
+    <div class="photo-inline-rounds">
+      ${values.map((roundValues, roundIndex) => {
+        const roundInfo = getTournamentRoundConfigByIndex(session, roundIndex);
+        const descriptor = roundDescriptor(roundInfo).shortLabel;
+        const cells = roundValues.map((value, arrowIndex) => `
+          <div class="score-review-cell ${getPhotoReviewCellState(roundIndex, arrowIndex, value)}">
+            <label>A${arrowIndex + 1}</label>
+            <select data-round-index="${roundIndex}" data-arrow-index="${arrowIndex}" onchange="updatePhotoReviewScore(${roundIndex}, ${arrowIndex}, this.value)">
+              ${getPhotoReviewOptions(mode, value)}
+            </select>
+          </div>
+        `).join('');
+        return `
+          <div class="photo-inline-round-card">
+            <div class="photo-inline-round-header">
+              <div class="photo-inline-round-title">Round ${roundIndex + 1} · ${descriptor}</div>
+            </div>
+            <div class="photo-inline-arrow-grid">${cells}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  if (modalGrid) modalGrid.innerHTML = modalMarkup;
+  if (inlineGrid) inlineGrid.innerHTML = inlineMarkup;
   if (validationList) {
     if (photoScoreState.validationIssues.length) {
       validationList.innerHTML = photoScoreState.validationIssues.map(issue => `
