@@ -57,16 +57,17 @@
     z-index: 100;
     padding-bottom: max(8px, env(safe-area-inset-bottom));
     min-height: calc(64px + env(safe-area-inset-bottom));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
   nav button {
-    flex: 1; min-width: 0; padding: 10px 0 6px;
+    flex: 1; min-width: 0; padding: 8px 0 4px;
     background: none; border: none; color: var(--muted);
     font-family: 'DM Mono', monospace; font-size: 10px; line-height: 1.1;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
     cursor: pointer; transition: color .2s;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
   }
   nav button:active { opacity: .7; }
   nav button span {
@@ -74,9 +75,24 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-align: center;
+    transition: color .2s;
+  }
+  nav button .nav-pill {
+    position: absolute;
+    top: 6px;
+    width: 40px;
+    height: 32px;
+    border-radius: 16px;
+    background: transparent;
+    transition: background .25s cubic-bezier(.4,0,.2,1);
+    z-index: -1;
+  }
+  nav button.active .nav-pill {
+    background: rgba(232,197,71,.13);
   }
   nav button.active { color: var(--accent); }
-  nav button svg { width: 22px; height: 22px; }
+  nav button svg { width: 22px; height: 22px; position: relative; z-index: 1; }
 
   .ui-icon {
     width: 1em;
@@ -153,7 +169,10 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     padding-bottom: calc(64px + env(safe-area-inset-bottom));
     box-sizing: border-box;
   }
@@ -187,31 +206,32 @@
 
   .session-cards { padding: 24px 16px; display: flex; flex-direction: column; gap: 14px; }
 
-  /* Vertical rectangles for the score picker home screen */
+  /* Score picker session cards grid — 2×2 on mobile */
   .session-cards-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 12px;
     padding: 0 16px 16px;
-    flex: 1;
-    min-height: 0;
     box-sizing: border-box;
   }
   .session-cards-grid .session-card {
     min-height: 0;
-    flex: 1;
+    flex: unset;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    text-align: center;
-    border-radius: 20px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 16px 16px 14px;
+    text-align: left;
+    border-radius: 18px;
+    aspect-ratio: unset;
   }
   .session-cards-grid .session-card h2 {
-    font-size: 28px;
-    line-height: 1.2;
+    font-size: 22px;
+    line-height: 1.1;
     letter-spacing: 1.5px;
+    margin-top: 8px;
   }
   .session-card-summary {
     font-family: 'DM Mono', monospace;
@@ -364,11 +384,20 @@
     border-radius: 16px;
     padding: 20px 22px;
     cursor: pointer;
-    transition: border-color .2s, transform .15s;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
     position: relative; overflow: hidden;
     min-height: 72px; display: flex; align-items: center;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
+  }
+  /* Inside the picker grid, cards are column-oriented */
+  .session-cards-grid .session-card {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 130px;
+    padding: 16px 16px 14px;
+    border-radius: 18px;
   }
   .session-card:active { transform: scale(.98); }
   .session-card.tournament { border-color: rgba(232,197,71,.3); }
@@ -389,12 +418,35 @@
   .recent-item {
     margin: 0 16px 10px;
     background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 16px;
+    border-radius: 12px; padding: 14px 16px 14px 20px;
     display: flex; justify-content: space-between; align-items: flex-start;
     gap: 10px;
     cursor: pointer; transition: border-color .15s, transform .1s;
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none; /* Prevents iOS browser menu on long press */
+    position: relative;
+    overflow: hidden;
+  }
+  .recent-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    border-radius: 12px 0 0 12px;
+    background: var(--muted);
+    opacity: 0.3;
+  }
+  .recent-item.type-practice::before {
+    background: var(--green);
+    opacity: 0.75;
+  }
+  .recent-item.type-tournament::before {
+    background: var(--gold);
+    opacity: 0.85;
+  }
+  .recent-item.type-3d::before {
+    background: var(--accent2);
+    opacity: 0.8;
   }
   .recent-item:active { transform: scale(.98); border-color: var(--accent); }
   .recent-item.selected {
@@ -2329,6 +2381,21 @@
   }
   .detail-overlay.open .club-pin-modal { transform: scale(1); }
 
+  @media (max-width: 360px) {
+    .session-cards-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 12px 12px;
+    }
+    .session-cards-grid .session-card {
+      min-height: 110px;
+      padding: 14px 12px 12px;
+    }
+    .session-cards-grid .session-card h2 { font-size: 19px; }
+    .sc-desc { font-size: 9px; }
+    .sc-icon { width: 36px; height: 36px; border-radius: 11px; margin-bottom: 8px; }
+  }
+
   @media (max-width: 430px) {
     .photo-score-grid,
     .photo-score-preview-wrap {
@@ -2349,14 +2416,6 @@
     .session-cards {
       padding: 20px 12px;
       gap: 12px;
-    }
-    .session-card {
-      padding: 18px;
-      min-height: 68px;
-    }
-    .session-card h2 {
-      font-size: 24px;
-      letter-spacing: 1.5px;
     }
     .scoring-header,
     .diag-header {
@@ -2960,6 +3019,206 @@
     }
   }
 
+  /* ── SCORE PICKER CARD ENHANCEMENTS ── */
+  .sc-icon {
+    width: 44px; height: 44px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px; flex-shrink: 0;
+  }
+  .sc-icon-tournament {
+    background: rgba(232,197,71,.13);
+    border: 1px solid rgba(232,197,71,.25);
+    color: var(--gold);
+  }
+  .sc-icon-practice {
+    background: rgba(82,194,120,.12);
+    border: 1px solid rgba(82,194,120,.25);
+    color: var(--green);
+  }
+  .sc-icon-quick {
+    background: rgba(107,122,153,.1);
+    border: 1px solid rgba(107,122,153,.2);
+    color: var(--muted);
+  }
+  .sc-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.8;
+    margin-top: 4px;
+    letter-spacing: 0.2px;
+    line-height: 1.4;
+  }
+  .session-card.sc-quick { border-color: rgba(107,122,153,.25); }
+  .session-card.sc-quick h2 { color: var(--muted); }
+  .session-card.tournament:active { border-color: rgba(232,197,71,.5); box-shadow: 0 0 0 3px rgba(232,197,71,.06); }
+  .session-card.practice:active   { border-color: rgba(82,194,120,.5);  box-shadow: 0 0 0 3px rgba(82,194,120,.06); }
+  .session-card.sc-quick:active   { border-color: rgba(107,122,153,.4); }
+
+  /* ── MODAL HEADER POLISH ── */
+  .modal h3 {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .modal-h-icon {
+    width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(232,197,71,.12); border: 1px solid rgba(232,197,71,.22);
+    color: var(--accent); display: inline-flex; align-items: center; justify-content: center;
+  }
+  .modal-h-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── DETAIL CLOSE BUTTON WITH BORDER ── */
+  .detail-close {
+    background: var(--bg3) !important;
+    border: 1px solid var(--border) !important;
+    transition: border-color .15s, color .15s !important;
+  }
+  .detail-close:active { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+  /* ── SECTION LABELS POLISH ── */
+  .settings-label {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+    padding: 0 4px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .settings-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    opacity: 0.6;
+  }
+
+  /* ── WEEKLY SUMMARY CARD HIGHLIGHT BEST STAT ── */
+  .weekly-stat.highlight .weekly-stat-value {
+    font-size: 34px;
+    color: var(--accent3);
+    text-shadow: 0 0 20px rgba(247,217,120,.3);
+  }
+  .weekly-stat.highlight .weekly-stat-label {
+    color: rgba(247,217,120,.7);
+  }
+
+  /* ── ARROW DOT ACTIVE PULSE ── */
+  @keyframes arrow-dot-pulse {
+    0%   { box-shadow: 0 0 0 0px rgba(232,197,71,.5),  0 0 0 3px rgba(232,197,71,.2); }
+    70%  { box-shadow: 0 0 0 6px rgba(232,197,71,.0),  0 0 0 3px rgba(232,197,71,.15); }
+    100% { box-shadow: 0 0 0 0px rgba(232,197,71,.0),  0 0 0 3px rgba(232,197,71,.2); }
+  }
+  .arrow-dot.current {
+    border-color: var(--accent);
+    animation: arrow-dot-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* ── FILTER BUTTON ACTIVE GLOW ── */
+  .filter-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,197,71,.15), 0 2px 8px rgba(232,197,71,.18);
+    font-weight: 600;
+  }
+  .sort-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,197,71,.07);
+    box-shadow: 0 0 0 2px rgba(232,197,71,.12);
+  }
+  .view-toggle-btn.active {
+    box-shadow: 0 0 0 2px rgba(232,197,71,.15), 0 2px 6px rgba(232,197,71,.15);
+  }
+
+  /* ── SCORE FLASH RIPPLE ── */
+  @keyframes score-ripple {
+    0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0.7; }
+    100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; }
+  }
+  .score-flash-ripple {
+    position: fixed; top: 50%; left: 50%;
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 3px solid var(--accent);
+    pointer-events: none; z-index: 299;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  .score-flash-ripple.animate {
+    animation: score-ripple 0.55s ease-out forwards;
+  }
+
+  .recent-item.stripes-hidden::before { display: none; }
+  .recent-item.stripes-hidden { padding-left: 16px; }
+  .compact-history .recent-item { padding-top: 10px; padding-bottom: 10px; min-height: 0; }
+
+  /* ── SUB-ACCORDION (nested inside bow-inline-body) ── */
+  .sub-accordion {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    background: rgba(255,255,255,.02);
+  }
+  .sub-accordion:last-child { margin-bottom: 0; }
+  .sub-accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background .15s;
+    min-height: 48px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sub-accordion-header:active { background: rgba(255,255,255,.03); }
+  .sub-accordion-icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: rgba(232,197,71,.08);
+    border: 1px solid rgba(232,197,71,.15);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sub-accordion-icon .ui-icon { font-size: 14px; }
+  .sub-accordion-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .sub-accordion-chevron {
+    color: var(--muted);
+    transition: transform .2s;
+    flex-shrink: 0;
+    width: 16px; height: 16px;
+  }
+  .sub-accordion.open .sub-accordion-chevron { transform: rotate(180deg); }
+  .sub-accordion.open .sub-accordion-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .sub-accordion-body {
+    display: none;
+    padding: 4px 14px 10px;
+  }
+  .sub-accordion.open .sub-accordion-body { display: block; }
+  /* First pref-toggle-row inside a sub-accordion gets less top padding */
+  .sub-accordion-body .pref-toggle-row:first-child { padding-top: 10px; }
+
+  /* ── DISPLAY PREFERENCES TOGGLE ROW ── */
+  .pref-toggle-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pref-toggle-row:last-child { border-bottom: none; }
+  .pref-toggle-label { flex: 1; }
+  .pref-toggle-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .pref-toggle-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; line-height: 1.4; }
+
   /* score flash */
   .score-flash {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0);
@@ -3307,20 +3566,35 @@ const PRACTICE_TARGET_OPTIONS = [
 
     <div class="session-cards-grid" style="padding-top: 0;">
       <div class="session-card tournament" onclick="launchSession('bullseye_tournament')" role="button" tabindex="0" aria-label="Start Bullseye Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('bullseye_tournament')">
-        <h2>Bullseye Tournament</h2>
+        <div class="sc-icon sc-icon-tournament">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" style="font-size:22px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
+        </div>
+        <h2>Bullseye</h2>
+        <div class="sc-desc">6-round tournament · 10m &amp; 15m</div>
         <div class="session-card-summary" id="summaryBullseye"></div>
       </div>
       <div class="session-card tournament" onclick="openThreeDTournamentSetup()" role="button" tabindex="0" aria-label="Start 3D Tournament" onkeydown="if(event.key==='Enter'||event.key===' ')openThreeDTournamentSetup()">
-        <h2>3D Tournament</h2>
+        <div class="sc-icon sc-icon-tournament">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" style="font-size:22px"><path d="M20 6L9 17l-5-5"/><path d="M22 12a10 10 0 1 1-5-8.7"/></svg>
+        </div>
+        <h2>3D</h2>
+        <div class="sc-desc">6-round · animal targets</div>
         <div class="session-card-summary" id="summary3d"></div>
       </div>
       <div class="session-card practice" onclick="launchSession('practice')" role="button" tabindex="0" aria-label="Start Practice session" onkeydown="if(event.key==='Enter'||event.key===' ')launchSession('practice')">
+        <div class="sc-icon sc-icon-practice">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" style="font-size:22px"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"/></svg>
+        </div>
         <h2>Practice</h2>
+        <div class="sc-desc">Freestyle · any distance</div>
         <div class="session-card-summary" id="summaryPractice"></div>
       </div>
-      <div class="session-card" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()" style="border-color:rgba(107,122,153,.3);">
-        <h2 style="color:var(--muted)">Quick Score</h2>
-        <div class="session-card-summary" style="color:var(--muted);opacity:.5">No save</div>
+      <div class="session-card sc-quick" onclick="launchEphemeralSession()" role="button" tabindex="0" aria-label="Start Quick Score session" onkeydown="if(event.key==='Enter'||event.key===' ')launchEphemeralSession()">
+        <div class="sc-icon sc-icon-quick">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" style="font-size:22px"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <h2>Quick</h2>
+        <div class="sc-desc">No save · instant start</div>
       </div>
     </div>
   </div>
@@ -3833,38 +4107,127 @@ const PRACTICE_TARGET_OPTIONS = [
   </div>
 
   <div class="settings-section">
-    <div class="settings-label">GOALS</div>
-    <div class="bow-inline-panel" id="goalsAccordion">
-      <div class="bow-inline-header" onclick="toggleGoalsAccordion()" aria-expanded="false" aria-controls="goalsAccordionBody">
+    <div class="settings-label">DISPLAY &amp; BEHAVIOUR</div>
+    <div class="bow-inline-panel" id="displayPrefsAccordion">
+      <div class="bow-inline-header" onclick="toggleDisplayPrefsAccordion()" aria-expanded="false" aria-controls="displayPrefsBody">
         <div class="bih-icon">
-          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"></path></svg>
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
         </div>
         <div style="flex:1">
-          <div class="bow-inline-title">Goals & Celebrations</div>
-          <div class="bow-inline-sub" id="goalsAccordionSub">Track weekly goals and PB feedback</div>
+          <div class="bow-inline-title">Display &amp; Behaviour</div>
+          <div class="bow-inline-sub" id="displayPrefsSub">Scoring, history, goals &amp; celebrations</div>
         </div>
-        <svg class="ui-icon bow-chevron" id="goalsAccordionChevron" viewBox="0 0 24 24" aria-hidden="true" style="transition:transform .2s;color:var(--muted)"><path d="M6 9l6 6 6-6"></path></svg>
+        <svg class="ui-icon bow-chevron" id="displayPrefsChevron" viewBox="0 0 24 24" aria-hidden="true" style="transition:transform .2s;color:var(--muted)"><path d="M6 9l6 6 6-6"></path></svg>
       </div>
-      <div class="bow-inline-body" id="goalsAccordionBody">
-        <div class="settings-row" onclick="togglePbCelebrations()" style="margin-bottom:12px;">
-          <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"></path><path d="M6 5H4a2 2 0 0 0 2 5"></path><path d="M18 5h2a2 2 0 0 1-2 5"></path><path d="M12 11v4"></path><path d="M9 19h6"></path><path d="M8 22h8"></path></svg></div>
-          <div class="settings-row-text">
-            <div class="settings-row-title">Personal Best Celebrations</div>
-            <div class="settings-row-sub">Show a celebration when you set a new target-specific personal best</div>
+      <div class="bow-inline-body" id="displayPrefsBody">
+
+        <!-- ── Sub-accordion: Scoring Screen ── -->
+        <div class="sub-accordion" id="subAccordion-scoring">
+          <div class="sub-accordion-header" onclick="toggleSubAccordion('scoring')">
+            <div class="sub-accordion-icon">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <div class="sub-accordion-title">Scoring Screen</div>
+            <svg class="ui-icon sub-accordion-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
           </div>
-          <div class="settings-switch" id="pbCelebrationsSwitch"></div>
-        </div>
-        <div class="settings-row" onclick="toggleHistoryCard()" style="margin-bottom:12px;">
-          <div class="settings-row-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg></div>
-          <div class="settings-row-text">
-            <div class="settings-row-title">History Card</div>
-            <div class="settings-row-sub">Show the Past 7 Days card on the score page</div>
+          <div class="sub-accordion-body" id="subBody-scoring">
+            <div class="pref-toggle-row" onclick="togglePref('showScoreFlash')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Score Flash</div>
+                <div class="pref-toggle-sub">Show big score number when an arrow lands</div>
+              </div>
+              <div class="settings-switch" id="pref-showScoreFlash"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('showArrowDots')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Arrow Dots</div>
+                <div class="pref-toggle-sub">Show scored arrow indicators below the target</div>
+              </div>
+              <div class="settings-switch" id="pref-showArrowDots"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('showMagnifier')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Magnifier Tool</div>
+                <div class="pref-toggle-sub">Hold target to activate precision magnifier</div>
+              </div>
+              <div class="settings-switch" id="pref-showMagnifier"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('showSessionAvg')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Avg / Round Stat</div>
+                <div class="pref-toggle-sub">Show average round score in the scoring header</div>
+              </div>
+              <div class="settings-switch" id="pref-showSessionAvg"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('showRoundComplete')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Round Complete Card</div>
+                <div class="pref-toggle-sub">Show summary popup after each round finishes</div>
+              </div>
+              <div class="settings-switch" id="pref-showRoundComplete"></div>
+            </div>
           </div>
-          <div class="settings-switch" id="historyCardSwitch"></div>
         </div>
-        <div class="goal-list" id="goalsListContainer"></div>
-        <button class="modal-btn primary" id="addGoalBtn" onclick="openGoalOverlay()">Add Goal</button>
-        <div class="goal-limit-note">Up to 3 active goals appear on the weekly summary card.</div>
+
+        <!-- ── Sub-accordion: History ── -->
+        <div class="sub-accordion" id="subAccordion-history">
+          <div class="sub-accordion-header" onclick="toggleSubAccordion('history')">
+            <div class="sub-accordion-icon">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div class="sub-accordion-title">History</div>
+            <svg class="ui-icon sub-accordion-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="sub-accordion-body" id="subBody-history">
+            <div class="pref-toggle-row" onclick="toggleHistoryCard()">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Weekly Summary Card</div>
+                <div class="pref-toggle-sub">Show the Past 7 Days card on the score page</div>
+              </div>
+              <div class="settings-switch" id="historyCardSwitch"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('showTypeStripes')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Session Type Stripes</div>
+                <div class="pref-toggle-sub">Colour-coded left stripe on each history row</div>
+              </div>
+              <div class="settings-switch" id="pref-showTypeStripes"></div>
+            </div>
+            <div class="pref-toggle-row" onclick="togglePref('compactHistory')">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Compact History</div>
+                <div class="pref-toggle-sub">Reduce padding in the session history list</div>
+              </div>
+              <div class="settings-switch" id="pref-compactHistory"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Sub-accordion: Goals & Celebrations ── -->
+        <div class="sub-accordion" id="subAccordion-goals">
+          <div class="sub-accordion-header" onclick="toggleSubAccordion('goals')">
+            <div class="sub-accordion-icon">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"/></svg>
+            </div>
+            <div class="sub-accordion-title">Goals &amp; Celebrations</div>
+            <svg class="ui-icon sub-accordion-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="sub-accordion-body" id="subBody-goals">
+            <div class="pref-toggle-row" onclick="togglePbCelebrations()">
+              <div class="pref-toggle-label">
+                <div class="pref-toggle-title">Personal Best Celebrations</div>
+                <div class="pref-toggle-sub">Show a celebration when you set a new personal best</div>
+              </div>
+              <div class="settings-switch" id="pbCelebrationsSwitch"></div>
+            </div>
+            <div style="margin-top:14px;">
+              <div class="goal-list" id="goalsListContainer"></div>
+              <button class="modal-btn primary" id="addGoalBtn" onclick="openGoalOverlay()" style="margin-top:10px;">Add Goal</button>
+              <div class="goal-limit-note">Up to 3 active goals appear on the weekly summary card.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -4305,20 +4668,24 @@ const PRACTICE_TARGET_OPTIONS = [
 </div>
 
 <!-- NAV -->
-<nav>
+<nav id="mainNav">
   <button class="active" onclick="goPage('score',this)" id="nav-score">
+    <div class="nav-pill"></div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
     <span>Score</span>
   </button>
   <button onclick="goPage('home',this)" id="nav-home">
+    <div class="nav-pill"></div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>
     <span>History</span>
   </button>
   <button onclick="goPage('diag',this)" id="nav-diag">
+    <div class="nav-pill"></div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-5 4 10 2.5-5H21"></path></svg>
     <span>Stats</span>
   </button>
   <button onclick="goPage('settings',this); handleSettingsTap()" id="nav-settings">
+    <div class="nav-pill"></div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     <span>Settings</span>
   </button>
@@ -4554,6 +4921,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <!-- Score flash -->
 <div class="score-flash" id="scoreFlash"></div>
+<div class="score-flash-ripple" id="scoreFlashRipple"></div>
 <div class="pb-celebration" id="pbCelebration">
   <div class="pb-confetti" id="pbCelebrationConfetti" aria-hidden="true"></div>
   <div class="pb-celebration-card">
@@ -4569,7 +4937,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <div class="overlay centered" id="goalOverlay">
   <div class="modal" style="max-width:420px;">
-    <h3 id="goalOverlayTitle">Add Goal</h3>
+    <h3 id="goalOverlayTitle"><span class="modal-h-icon"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 5 5.1 2.4-5.1 2.4L12 17l-2.4-5.2L4.5 9.4l5.1-2.4L12 2z"/></svg></span>Add Goal</h3>
     <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">Goals track progress inside the same 7-day summary window on the score screen.</p>
     <div class="inline-field">
       <label for="goalMetricInput">Goal Type</label>
@@ -4598,7 +4966,7 @@ const PRACTICE_TARGET_OPTIONS = [
 <!-- End session overlay -->
 <div class="overlay" id="endOverlay">
   <div class="modal">
-    <h3 id="endOverlayTitle">End Session?</h3>
+    <h3 id="endOverlayTitle"><span class="modal-h-icon"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>End Session?</h3>
     <p id="endOverlayMessage" style="color:var(--muted);font-size:14px;margin-bottom:20px">Choose whether to save your progress or discard this session entirely.</p>
     <button class="modal-btn primary" id="endOverlayPrimaryBtn" onclick="endSession()">SAVE & EXIT</button>
     <button class="modal-btn danger" id="endOverlayDangerBtn" onclick="openDiscardSessionConfirm()">DISCARD SESSION</button>
@@ -4608,7 +4976,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <div class="overlay centered" id="discardSessionOverlay">
   <div class="modal">
-    <h3>Discard Session?</h3>
+    <h3><span class="modal-h-icon" style="background:rgba(224,82,82,.12);border-color:rgba(224,82,82,.25);color:var(--red);"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M7 7l1 12h8l1-12"/></svg></span>Discard Session?</h3>
     <p style="color:var(--muted);font-size:14px;margin-bottom:20px">This will remove the current session and any unsaved rounds.</p>
     <button class="modal-btn danger" onclick="confirmDiscardSession()">DISCARD SESSION</button>
     <button class="modal-btn" onclick="closeOverlay('discardSessionOverlay')">KEEP SESSION</button>
@@ -4617,7 +4985,7 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <div class="overlay" id="finishOverlay">
   <div class="modal">
-    <h3>Finish Session</h3>
+    <h3><span class="modal-h-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>Finish Session</h3>
     <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Add a location for this session before saving. If a city is detected automatically, it will be suggested here.</p>
     <input
       id="finishLocationInput"
@@ -5343,7 +5711,8 @@ function renderClubHistory() {
     const archer  = s.archerName || 'Unknown';
     const dateStr = new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     const loc     = formatLocation(s.location);
-    return `<div class="recent-item" onclick="openGlobalSessionOverlay(${JSON.stringify(s.id)})" style="touch-action:pan-y;">
+    const typeClass2 = s.type === 'bullseye_tournament' ? 'type-tournament' : s.type === '3d_tournament' ? 'type-3d' : 'type-practice';
+    return `<div class="recent-item ${typeClass2}" onclick="openGlobalSessionOverlay(${JSON.stringify(s.id)})" style="touch-action:pan-y;">
       <div class="ri-left">
         <span style="font-size:13px;font-weight:500;">${archer}</span>
         <span class="session-type">${sessionTypeBadge(s)}</span>
@@ -5420,7 +5789,15 @@ function normalizePreferences(raw = {}) {
   return {
     pbCelebrationsEnabled: raw?.pbCelebrationsEnabled !== false,
     historyCardEnabled: raw?.historyCardEnabled !== false,
-    betaFeaturesEnabled: raw?.betaFeaturesEnabled === true
+    betaFeaturesEnabled: raw?.betaFeaturesEnabled === true,
+    // Display preferences
+    showScoreFlash: raw?.showScoreFlash !== false,
+    showRoundComplete: raw?.showRoundComplete !== false,
+    showArrowDots: raw?.showArrowDots !== false,
+    showSessionAvg: raw?.showSessionAvg !== false,
+    showMagnifier: raw?.showMagnifier !== false,
+    compactHistory: raw?.compactHistory === true,
+    showTypeStripes: raw?.showTypeStripes !== false,
   };
 }
 function normalizeGoals(rawGoals = []) {
@@ -6592,11 +6969,9 @@ function toggleLocationsAccordion() {
 }
 
 function toggleGoalsAccordion() {
-  const body = document.getElementById('goalsAccordionBody');
-  const chevron = document.getElementById('goalsAccordionChevron');
-  if (!body) return;
-  const isOpen = body.classList.toggle('open');
-  if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+  // Goals moved into Display & Behaviour sub-accordion
+  toggleSubAccordion('goals');
+  const isOpen = document.getElementById('subAccordion-goals')?.classList.contains('open');
   if (isOpen) renderGoalsSettings();
 }
 
@@ -6776,6 +7151,7 @@ function initSettingsPage() {
   }
   renderBowInline();
   renderGoalsSettings();
+  renderDisplayPrefSwitches();
 }
 
 function openAboutOverlay() {
@@ -7230,7 +7606,7 @@ function startTargetInteraction(x, y) {
 
   targetTouchState.timer = setTimeout(() => {
     if (session && !session.currentRound.locked && session.currentRound.arrows.length < 5) {
-      if (!targetTouchState.isScrolling) {
+      if (!targetTouchState.isScrolling && normalizePreferences(db.preferences || {}).showMagnifier !== false) {
         targetTouchState.magnifying = true;
         showMagnifier(targetTouchState.currentX, targetTouchState.currentY);
       }
@@ -7436,12 +7812,22 @@ function undoLastArrow() {
 }
 
 function flashScore(s) {
+  if (normalizePreferences(db.preferences || {}).showScoreFlash === false) return;
   const el = document.getElementById('scoreFlash');
   el.textContent = s === 0 ? 'M' : s;
   el.style.color = s >= 9 ? '#f7e900' : s >= 7 ? '#e8c547' : s >= 5 ? '#3b82f6' : s >= 3 ? '#888' : '#e05252';
   el.classList.remove('hide'); el.classList.add('show');
   setTimeout(() => { el.classList.add('hide'); }, 600);
   setTimeout(() => { el.classList.remove('show','hide'); }, 900);
+  // Ripple effect
+  const ripple = document.getElementById('scoreFlashRipple');
+  if (ripple) {
+    ripple.style.borderColor = s >= 9 ? '#f7e900' : s >= 7 ? '#e8c547' : s >= 5 ? '#3b82f6' : s >= 3 ? '#888' : '#e05252';
+    ripple.classList.remove('animate');
+    void ripple.offsetWidth; // force reflow to restart animation
+    ripple.classList.add('animate');
+    setTimeout(() => ripple.classList.remove('animate'), 600);
+  }
 }
 
 function updateScoreScrollLock() {
@@ -7513,14 +7899,24 @@ function renderScorePickerSummaries() {
 
 function updateWeeklySummary() {
   const weeklyData = computeWeeklySummaryData();
-  // Update the compact card
   const sessionsEl = document.getElementById('weeklySessions');
   const arrowsEl = document.getElementById('weeklyArrows');
   const avgEl = document.getElementById('weeklyAvg');
-  
+
   if (sessionsEl) sessionsEl.textContent = weeklyData.sessionCount || '0';
   if (arrowsEl) arrowsEl.textContent = weeklyData.totalArrows || '0';
   if (avgEl) avgEl.textContent = weeklyData.avgScore > 0 ? weeklyData.avgScore : '—';
+
+  // Highlight the "most impressive" stat
+  const statEls = [
+    { el: sessionsEl?.closest('.weekly-stat'), val: weeklyData.sessionCount },
+    { el: arrowsEl?.closest('.weekly-stat'),   val: weeklyData.totalArrows },
+    { el: avgEl?.closest('.weekly-stat'),       val: weeklyData.avgScore }
+  ];
+  statEls.forEach(s => s.el && s.el.classList.remove('highlight'));
+  const best = statEls.reduce((a, b) => (b.val > a.val ? b : a), statEls[0]);
+  if (best.val > 0 && best.el) best.el.classList.add('highlight');
+
   renderWeeklyGoals(weeklyData);
 }
 
@@ -7728,6 +8124,10 @@ function renderScorePage() {
     }
 
     overlay.classList.add('open');
+    // Skip the popup if the user has turned it off
+    if (normalizePreferences(db.preferences || {}).showRoundComplete === false) {
+      overlay.classList.remove('open');
+    }
   } else { overlay.classList.remove('open'); }
 
   const list = document.getElementById('completedRounds');
@@ -9955,7 +10355,8 @@ function renderHome() {
     const loc = formatLocation(s.location);
     const typeLabel = sessionTypeLabel(s);
     
-    return `<div class="recent-item ${isSel ? 'selected' : ''}" 
+    const typeClass = s.type === 'bullseye_tournament' ? 'type-tournament' : s.type === '3d_tournament' ? 'type-3d' : 'type-practice';
+    return `<div class="recent-item ${isSel ? 'selected' : ''} ${typeClass}" 
       onpointerdown="handleHomeItemPointerDown(event, ${realIdx})" 
       oncontextmenu="return false;"
       style="touch-action: pan-y;">
@@ -11316,6 +11717,100 @@ const tcContainer = document.getElementById('timelineContainer');
 let tooltipHideTimer;
 let activeTimelinePoint = null;
 
+// ── ORIENTATION STUBS (called by goPage but may not be defined in all builds) ──
+if (typeof unlockOrientation === 'undefined') {
+  window.unlockOrientation = function() {
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch(e) {}
+  };
+}
+if (typeof lockPortrait === 'undefined') {
+  window.lockPortrait = function() {
+    try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait'); } catch(e) {}
+  };
+}
+
+// ── SWIPE TO NAVIGATE ──
+// Swipe horizontally on any non-interactive area to move between tabs
+(function initSwipeNav() {
+  const PAGE_ORDER = ['score', 'home', 'diag', 'settings'];
+  let swipeStartX = null;
+  let swipeStartY = null;
+  let swipeStartTime = null;
+
+  function currentPageName() {
+    for (const name of PAGE_ORDER) {
+      const el = document.getElementById('page-' + name);
+      if (el && el.classList.contains('active')) return name;
+    }
+    return null;
+  }
+
+  function isInteractive(el) {
+    // Don't hijack swipes on canvases, scrollable areas, inputs, or overlays
+    while (el && el !== document.body) {
+      const tag = el.tagName;
+      if (tag === 'CANVAS' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (el.classList && (
+        el.classList.contains('overlay') ||
+        el.classList.contains('detail-overlay') ||
+        el.classList.contains('sort-overlay') ||
+        el.classList.contains('card-fullscreen-overlay') ||
+        el.classList.contains('round-complete-overlay')
+      )) return true;
+      // Scrollable containers
+      if (el.scrollWidth > el.clientWidth + 4) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    swipeStartX = t.clientX;
+    swipeStartY = t.clientY;
+    swipeStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (swipeStartX === null) return;
+    if (e.changedTouches.length !== 1) { swipeStartX = null; return; }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - swipeStartX;
+    const dy = t.clientY - swipeStartY;
+    const dt = Date.now() - swipeStartTime;
+    swipeStartX = null;
+
+    // Must be fast, mostly horizontal, and a meaningful distance
+    if (dt > 400) return;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+    if (isInteractive(e.target)) return;
+
+    // Don't swipe if any overlay is open
+    const anyOpen = document.querySelector('.overlay.open, .detail-overlay.open, .sort-overlay.open, .card-fullscreen-overlay.open, .round-complete-overlay.open');
+    if (anyOpen) return;
+
+    const current = currentPageName();
+    if (!current) return;
+    const idx = PAGE_ORDER.indexOf(current);
+    let nextIdx;
+    if (dx < 0) { nextIdx = idx + 1; } // swipe left = next tab
+    else         { nextIdx = idx - 1; } // swipe right = prev tab
+    if (nextIdx < 0 || nextIdx >= PAGE_ORDER.length) return;
+
+    const nextName = PAGE_ORDER[nextIdx];
+    const navBtn = document.getElementById('nav-' + nextName);
+    if (!navBtn) return;
+    if (nextName === 'settings') {
+      goPage(nextName, navBtn);
+      if (typeof handleSettingsTap === 'function') handleSettingsTap();
+    } else {
+      goPage(nextName, navBtn);
+    }
+  }, { passive: true });
+})();
+
 tcContainer.addEventListener('touchend', e => {
   if (e.changedTouches.length !== 1) return;
   const t = e.changedTouches[0];
@@ -11424,6 +11919,74 @@ function drawZoneBars(arrows) {
 }
 
 // ═══════════════════════════════════════════════
+//  DISPLAY PREFERENCES
+// ═══════════════════════════════════════════════
+function getPref(key) {
+  const prefs = normalizePreferences(db.preferences || {});
+  return prefs[key] !== false;
+}
+
+function togglePref(key) {
+  const prefs = normalizePreferences(db.preferences || {});
+  prefs[key] = !prefs[key];
+  db.preferences = prefs;
+  save();
+  syncThemeDropdown && syncThemeDropdown();
+  renderDisplayPrefSwitches();
+  applyDisplayPrefs();
+  syncPreferencesToCloud && syncPreferencesToCloud();
+}
+
+function renderDisplayPrefSwitches() {
+  const prefs = normalizePreferences(db.preferences || {});
+  const keys = ['showScoreFlash','showArrowDots','showMagnifier','showSessionAvg','showRoundComplete','showTypeStripes','compactHistory'];
+  keys.forEach(k => {
+    const el = document.getElementById('pref-' + k);
+    if (el) el.classList.toggle('on', prefs[k] !== false);
+  });
+  // Also sync goals/celebrations switches that live in the sub-accordion
+  renderGoalsSettings();
+}
+
+function applyDisplayPrefs() {
+  const prefs = normalizePreferences(db.preferences || {});
+
+  // Arrow dots visibility
+  const arrowsRow = document.querySelector('.arrows-row');
+  if (arrowsRow) arrowsRow.style.display = prefs.showArrowDots !== false ? '' : 'none';
+
+  // Magnifier: disable long-press if off
+  window._magnifierEnabled = prefs.showMagnifier !== false;
+
+  // Avg / round stat
+  const avgWrap = document.querySelector('.round-info > div:last-child');
+  if (avgWrap) avgWrap.style.display = prefs.showSessionAvg !== false ? '' : 'none';
+
+  // Compact history
+  const list = document.getElementById('sessionList');
+  if (list) list.classList.toggle('compact-history', prefs.compactHistory === true);
+
+  // Type stripes
+  document.querySelectorAll('.recent-item').forEach(el => {
+    el.classList.toggle('stripes-hidden', prefs.showTypeStripes === false);
+  });
+}
+
+function toggleSubAccordion(key) {
+  const el = document.getElementById('subAccordion-' + key);
+  if (!el) return;
+  el.classList.toggle('open');
+}
+
+function toggleDisplayPrefsAccordion() {
+  const body = document.getElementById('displayPrefsBody');
+  const chevron = document.getElementById('displayPrefsChevron');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+// ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
 applyTheme();
@@ -11439,6 +12002,7 @@ updateAllFilterBadges();
 drawTarget([]);
 resetPhotoScoreState();
 renderScorePickerSummaries();
+applyDisplayPrefs();
 
 // On open: push any unsynced local sessions to the club server
 setTimeout(async () => {
