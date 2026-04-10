@@ -1013,7 +1013,12 @@
     flex-direction: column;
     gap: 6px;
     min-height: 0;
+    overflow: visible; /* was hidden — caused expand btn to be clipped */
+  }
+  /* Clip only the canvas preview area, not the header */
+  .stats-section-tile .sst-preview {
     overflow: hidden;
+    border-radius: 0 0 8px 8px;
   }
   /* Remove interactive border/bg from canvas containers when nested inside a tile */
   .stats-section-tile .interactive-canvas-container {
@@ -1128,7 +1133,9 @@
   .sst-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 0;
   }
   .sst-meta-stat {
     font-family: 'DM Mono', monospace;
@@ -1137,6 +1144,11 @@
     text-transform: uppercase;
     letter-spacing: 0.8px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    /* Hide on very narrow tiles so button always shows */
+    max-width: 90px;
   }
 
   /* ── CARD EXPAND BUTTON ── */
@@ -3266,16 +3278,13 @@
     opacity: 0.7;
     flex-shrink: 0;
   }
-  /* Fix heatmap expand button always visible on mobile */
-  .stats-section-grid .stats-section-tile:nth-child(2) .sst-header {
-    position: relative;
-    z-index: 2;
-  }
+  /* Fix heatmap expand button always visible on mobile — handled by overflow:visible on tile */
   .sst-expand-btn {
     position: relative;
-    z-index: 3;
+    z-index: 1;
     min-width: 36px;
     min-height: 36px;
+    flex-shrink: 0;
   }
 
   /* ── 8. TOURNAMENT PROGRESS BAR ── */
