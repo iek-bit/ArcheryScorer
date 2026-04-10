@@ -549,21 +549,14 @@
   .scoring-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; flex: 1; }
   .scoring-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
 
-  .round-info {
-    background: var(--bg3);
-    margin: 10px 12px;
-    border-radius: 14px;
-    padding: 12px 16px;
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 12px;
-  }
+  /* .round-info — see new rule further down */
   .round-info > div { min-width: 0; }
-  .round-info .ri-label { font-size: 12px; color: var(--muted); }
-  .round-info .ri-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); }
+  .round-info .ri-label { font-size: 9px; color: var(--muted); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 1px; }
+  .round-info .ri-val { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text); line-height: 1; }
   .distance-toggle {
-    display: flex; gap: 8px;
+    display: flex; gap: 6px;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
   .dist-btn {
     padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border);
@@ -2428,18 +2421,10 @@
       letter-spacing: 1.5px;
     }
     .round-info {
-      margin: 10px 10px 8px;
-      padding: 12px;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      align-items: start;
+      margin: 8px 10px 6px;
+      padding: 10px 14px;
     }
-    .round-info > div:last-child {
-      grid-column: 1 / -1;
-    }
-    .distance-toggle {
-      justify-content: flex-start;
-    }
+    .ri-hero-val { font-size: 40px; }
     .dist-btn {
       min-height: 38px;
       padding: 8px 12px;
@@ -2518,8 +2503,9 @@
       max-width: min(300px, calc(100dvh - 80px));
     }
     .scoring-header { padding-top: 8px; padding-bottom: 8px; }
-    .round-info { margin: 6px 12px; padding: 8px 12px; }
-    .round-info .ri-val { font-size: 18px; }
+    .round-info { margin: 4px 12px; padding: 8px 12px; }
+    .ri-hero-val { font-size: 32px; }
+    .ri-secondary { padding-top: 6px; }
     .arrows-row { padding: 4px 12px; gap: 6px; }
     .arrow-dot { width: 36px; height: 36px; font-size: 16px; }
     .end-btn { padding: 10px; margin: 4px 12px; font-size: 17px; min-height: 44px; }
@@ -3019,7 +3005,349 @@
     }
   }
 
-  /* ── SCORE PICKER CARD ENHANCEMENTS ── */
+  /* ── 1. ROUND INFO BAR REDESIGN ── */
+  .round-info {
+    background: var(--bg3);
+    margin: 10px 12px 8px;
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--border);
+  }
+  .ri-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ri-hero-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .ri-hero-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(232,197,71,.25);
+  }
+  .ri-secondary {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding-top: 10px;
+  }
+  .ri-sec-item {
+    flex: 1;
+    min-width: 0;
+    padding-right: 12px;
+    border-right: 1px solid rgba(255,255,255,.06);
+    margin-right: 12px;
+  }
+  .ri-sec-item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+  .ri-sec-item .ri-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+  .ri-sec-item .ri-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .ri-sec-item .distance-toggle { justify-content: flex-start; }
+  .ri-sec-item .dist-btn { min-height: 28px; padding: 4px 10px; font-size: 11px; }
+
+  /* ── 2. PRIMARY END BTN — FULL-BLEED ── */
+  .end-btn {
+    margin: 6px 12px;
+    width: calc(100% - 24px);
+    padding: 16px;
+    border: none; border-radius: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 2px;
+    cursor: pointer; transition: all .2s;
+    background: var(--accent); color: #000;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    min-height: 56px;
+    box-shadow: 0 4px 16px rgba(232,197,71,.2);
+  }
+  .end-btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  .end-btn.secondary {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: none;
+    margin-top: 0;
+    font-size: 17px;
+    min-height: 48px;
+    padding: 12px;
+  }
+  .end-btn:active { opacity: .82; transform: scale(.98); }
+
+  /* ── 3. STATS TILE EMPTY STATE ── */
+  .sst-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .sst-empty-icon { font-size: 28px; }
+  .sst-empty-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── 4. PAGE TRANSITIONS ── */
+  .page {
+    display: none;
+    padding: 0 0 calc(84px + env(safe-area-inset-bottom));
+    min-height: 100vh; min-height: 100dvh;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .page.active {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .page.active.no-transition { transition: none; }
+
+  /* ── 5. ROUND COMPLETE TROPHY CARD ── */
+  .rc-trophy-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .rc-trophy-icon {
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    background: rgba(232,197,71,.12);
+    border: 1px solid rgba(232,197,71,.28);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    animation: rc-pop .35s cubic-bezier(.22,.68,0,1.4) forwards;
+  }
+  .rc-trophy-icon svg { width: 26px; height: 26px; }
+  @keyframes rc-pop {
+    0%   { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+  }
+  .rc-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .rc-big-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 88px;
+    color: var(--accent);
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 0 40px rgba(232,197,71,.3);
+    margin: 4px 0 8px;
+  }
+  .rc-message {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .rc-stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .rc-stat { text-align: center; flex: 1; }
+  .rc-stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .rc-stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .rc-stat-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .rc-trend {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+  }
+  .rc-primary-btn { margin-bottom: 0; }
+
+  /* ── 6. HISTORY HEADER ── */
+  .home-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: max(16px, env(safe-area-inset-top)) 16px 12px;
+  }
+  .home-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .home-header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  /* List fade at bottom */
+  #sessionList::after {
+    content: '';
+    display: block;
+    height: 24px;
+    background: linear-gradient(to bottom, transparent, var(--bg));
+    position: sticky;
+    bottom: 0;
+    pointer-events: none;
+  }
+
+  /* ── 7. STATS TILE LABEL ICONS ── */
+  .sst-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.3;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .sst-label-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--muted);
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  /* Fix heatmap expand button always visible on mobile */
+  .stats-section-grid .stats-section-tile:nth-child(2) .sst-header {
+    position: relative;
+    z-index: 2;
+  }
+  .sst-expand-btn {
+    position: relative;
+    z-index: 3;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* ── 8. TOURNAMENT PROGRESS BAR ── */
+  #tournamentProgressBar {
+    margin: 0 12px 8px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .tpb-track {
+    height: 4px;
+    background: rgba(255,255,255,.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .tpb-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width .4s ease;
+  }
+  .tpb-dots {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .tpb-dot {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.1);
+    transition: background .3s;
+  }
+  .tpb-dot.done { background: var(--accent); }
+  .tpb-dot.current {
+    background: rgba(232,197,71,.4);
+    box-shadow: 0 0 6px rgba(232,197,71,.3);
+  }
+
+  /* ── 9. SETTINGS ICON COLOUR VARIANTS ── */
+  .bih-icon {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: rgba(232,197,71,.1);
+    border: 1px solid rgba(232,197,71,.18);
+    color: var(--accent);
+  }
+  .bih-orange {
+    background: rgba(240,120,60,.12);
+    border-color: rgba(240,120,60,.22);
+    color: #f0783c;
+  }
+  .bih-purple {
+    background: rgba(160,100,240,.12);
+    border-color: rgba(160,100,240,.22);
+    color: #a064f0;
+  }
+  .bih-blue {
+    background: rgba(59,130,246,.12);
+    border-color: rgba(59,130,246,.22);
+    color: #3b82f6;
+  }
+  .bih-teal {
+    background: rgba(20,184,166,.12);
+    border-color: rgba(20,184,166,.22);
+    color: #14b8a6;
+  }
+
+  /* ── OLD ROUND INFO (kept for non-grid uses, overridden above) ── */
   .sc-icon {
     width: 44px; height: 44px; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
@@ -3618,22 +3946,32 @@ const PRACTICE_TARGET_OPTIONS = [
     </div>
 
     <div class="round-info">
-      <div>
-        <div class="ri-label">ROUND SCORE</div>
-        <div class="ri-val" id="roundScoreDisplay">—</div>
+      <div class="ri-hero">
+        <div class="ri-hero-label">ROUND SCORE</div>
+        <div class="ri-hero-val" id="roundScoreDisplay">—</div>
       </div>
-      <div>
-        <div class="ri-label" id="roundTargetLabel">TARGET</div>
-        <div class="distance-toggle" id="roundTargetOptions"></div>
+      <div class="ri-secondary">
+        <div class="ri-sec-item">
+          <div class="ri-label" id="roundTargetLabel">TARGET</div>
+          <div class="distance-toggle" id="roundTargetOptions"></div>
+        </div>
+        <div class="ri-sec-item">
+          <div class="ri-label">SESSION</div>
+          <div class="ri-val" id="sessionTotalDisplay">0</div>
+        </div>
+        <div class="ri-sec-item">
+          <div class="ri-label">AVG</div>
+          <div class="ri-val" id="sessionAvgDisplay">—</div>
+        </div>
       </div>
-      <div>
-        <div class="ri-label">SESSION</div>
-        <div class="ri-val" id="sessionTotalDisplay">0</div>
+    </div>
+
+    <!-- Tournament progress bar -->
+    <div id="tournamentProgressBar" style="display:none;">
+      <div class="tpb-track">
+        <div class="tpb-fill" id="tournamentProgressFill"></div>
       </div>
-      <div>
-        <div class="ri-label">AVG / ROUND</div>
-        <div class="ri-val" id="sessionAvgDisplay">—</div>
-      </div>
+      <div class="tpb-dots" id="tournamentProgressDots"></div>
     </div>
 
     <div class="photo-round-controls" id="photoRoundControls">
@@ -3775,36 +4113,41 @@ const PRACTICE_TARGET_OPTIONS = [
 
 <div class="round-complete-overlay" id="roundCompleteOverlay">
   <div class="round-complete-card">
-    <h3 id="roundCompleteTitle">Round Complete</h3>
-    <p id="roundCompleteMessage">Choose your next action.</p>
-    <div id="roundCompleteSummary" style="margin:0 0 16px;padding:14px;background:var(--bg3);border-radius:14px;border:1px solid var(--border);display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Round</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1.1;" id="rcRoundScore">—</div>
+    <div class="rc-trophy-row">
+      <div class="rc-trophy-icon" id="rcTrophyIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v3a4 4 0 0 1-8 0V4z"/><path d="M6 5H4a2 2 0 0 0 2 5"/><path d="M18 5h2a2 2 0 0 1-2 5"/><path d="M12 11v4"/><path d="M9 19h6"/><path d="M8 22h8"/></svg>
+      </div>
+      <div class="rc-label" id="roundCompleteTitle">Round Complete</div>
+    </div>
+    <div class="rc-big-score" id="rcRoundScore">—</div>
+    <p id="roundCompleteMessage" class="rc-message">Choose your next action.</p>
+    <div id="roundCompleteSummary" style="display:none;">
+      <div class="rc-stats-row">
+        <div class="rc-stat">
+          <div class="rc-stat-label">Best Arrow</div>
+          <div class="rc-stat-val" id="rcBestArrow">—</div>
         </div>
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Best</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent3);line-height:1.1;" id="rcBestArrow">—</div>
-        </div>
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Avg Arrow</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1.1;" id="rcAvgArrow">—</div>
+        <div class="rc-stat-divider"></div>
+        <div class="rc-stat">
+          <div class="rc-stat-label">Avg Arrow</div>
+          <div class="rc-stat-val" id="rcAvgArrow">—</div>
         </div>
       </div>
-      <div id="rcTrend" style="margin-top:10px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);text-align:center;"></div>
+      <div id="rcTrend" class="rc-trend"></div>
     </div>
-    <button class="end-btn" id="roundCompletePrimaryBtn" onclick="nextRound()">NEXT ROUND →</button>
+    <button class="end-btn rc-primary-btn" id="roundCompletePrimaryBtn" onclick="nextRound()">NEXT ROUND →</button>
     <button class="end-btn secondary" id="undoSecondaryBtn" onclick="undoLastArrow()">UNDO LAST ARROW</button>
   </div>
 </div>
 
 <div id="page-home" class="page">
-  <div class="diag-header diag-header-flex">
-    <h2>HISTORY</h2>
-    <div class="smart-search-container" id="homeSearchContainer" onclick="document.getElementById('homeSearchInput').focus()">
-      <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>
-      <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search">
+  <div class="home-header">
+    <div class="home-header-top">
+      <h2 class="home-header-title">HISTORY</h2>
+      <div class="smart-search-container" id="homeSearchContainer" onclick="document.getElementById('homeSearchInput').focus()">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+        <input type="text" id="homeSearchInput" placeholder="Search sessions..." oninput="handleHomeSearch(this.value)" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="search">
+      </div>
     </div>
   </div>
 
@@ -3898,7 +4241,11 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Square tile 1: Overall Statistics -->
     <div class="stats-section-tile">
       <div class="sst-header">
-        <div class="sst-label">Overall Stats</div>
+        <div class="sst-label">
+          <span class="sst-label-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="2" width="4" height="19"/></svg>
+          </span> Overall Stats
+        </div>
         <button class="sst-expand-btn" onclick="expandStatsCard('overall')" aria-label="Expand Overall Stats">
           <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
         </button>
@@ -3908,7 +4255,11 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Square tile 2: Heatmap (live, pan/zoom) -->
     <div class="stats-section-tile">
       <div class="sst-header">
-        <div class="sst-label">Arrow Grouping</div>
+        <div class="sst-label">
+          <span class="sst-label-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
+          </span> Grouping
+        </div>
         <div class="sst-meta">
           <div class="sst-meta-stat" id="heatmapConsistencyLabel">Consistency —</div>
           <button class="sst-expand-btn" onclick="expandStatsCard('heatmap')" aria-label="Expand Arrow Grouping">
@@ -3927,7 +4278,11 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Wide rectangle tile 3: Timeline (live, pan/zoom + tap points) -->
     <div class="stats-section-tile">
       <div class="sst-header">
-        <div class="sst-label">Score Over Time</div>
+        <div class="sst-label">
+          <span class="sst-label-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </span> Score Over Time
+        </div>
         <button class="sst-expand-btn" onclick="expandStatsCard('timeline')" aria-label="Expand Score Over Time">
           <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
         </button>
@@ -3946,7 +4301,11 @@ const PRACTICE_TARGET_OPTIONS = [
     <!-- Wide rectangle tile 4: Zone distribution (live) -->
     <div class="stats-section-tile">
       <div class="sst-header">
-        <div class="sst-label">Score Distribution</div>
+        <div class="sst-label">
+          <span class="sst-label-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+          </span> Score Distribution
+        </div>
         <button class="sst-expand-btn" onclick="expandStatsCard('zones')" aria-label="Expand Score Distribution">
           <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
         </button>
@@ -4020,7 +4379,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">BOW</div>
     <div class="bow-inline-panel">
       <div class="bow-inline-header" onclick="toggleBowInline(this)">
-        <div class="bih-icon">
+        <div class="bih-icon bih-orange">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4a10 10 0 0 0 0 16"></path><path d="M17 4a10 10 0 0 1 0 16"></path><path d="M7 12h10"></path><path d="M11 8l6 4-6 4"></path></svg>
         </div>
         <div style="flex:1">
@@ -4043,7 +4402,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">THEME</div>
     <div class="bow-inline-panel" id="themeAccordion">
       <div class="bow-inline-header" onclick="toggleThemeAccordion()" aria-expanded="false" aria-controls="themeAccordionBody">
-        <div class="bih-icon">
+        <div class="bih-icon bih-purple">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </div>
         <div style="flex:1">
@@ -4091,7 +4450,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">LOCATIONS</div>
     <div class="bow-inline-panel" id="locationsAccordion">
       <div class="bow-inline-header" onclick="toggleLocationsAccordion()" aria-expanded="false" aria-controls="locationsAccordionBody">
-        <div class="bih-icon">
+        <div class="bih-icon bih-blue">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </div>
         <div style="flex:1">
@@ -4110,7 +4469,7 @@ const PRACTICE_TARGET_OPTIONS = [
     <div class="settings-label">DISPLAY &amp; BEHAVIOUR</div>
     <div class="bow-inline-panel" id="displayPrefsAccordion">
       <div class="bow-inline-header" onclick="toggleDisplayPrefsAccordion()" aria-expanded="false" aria-controls="displayPrefsBody">
-        <div class="bih-icon">
+        <div class="bih-icon bih-teal">
           <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
         </div>
         <div style="flex:1">
@@ -8087,6 +8446,27 @@ function renderScorePage() {
   const overlayTitle = document.getElementById('roundCompleteTitle');
   const overlayMessage = document.getElementById('roundCompleteMessage');
   const overlayPrimaryBtn = document.getElementById('roundCompletePrimaryBtn');
+  const trophyIcon = document.getElementById('rcTrophyIcon');
+
+  // Update tournament progress bar
+  const tpb = document.getElementById('tournamentProgressBar');
+  const tpbFill = document.getElementById('tournamentProgressFill');
+  const tpbDots = document.getElementById('tournamentProgressDots');
+  if (isTournamentSession(session) && tpb) {
+    tpb.style.display = 'block';
+    const completedRounds = session.rounds.length;
+    const totalRounds = 6;
+    const pct = Math.min(100, (completedRounds / totalRounds) * 100);
+    if (tpbFill) tpbFill.style.width = pct + '%';
+    if (tpbDots) {
+      tpbDots.innerHTML = Array.from({length: totalRounds}, (_, i) =>
+        `<div class="tpb-dot ${i < completedRounds ? 'done' : i === completedRounds ? 'current' : ''}"></div>`
+      ).join('');
+    }
+  } else if (tpb) {
+    tpb.style.display = 'none';
+  }
+
   if (cr.locked && isTournamentSession(session) && rn === 6) {
     overlayTitle.textContent = session.type === '3d_tournament' ? '3D Tournament Complete' : 'Bullseye Tournament Complete';
     overlayMessage.textContent = 'Finalizing your tournament session...';
@@ -8099,14 +8479,16 @@ function renderScorePage() {
 
     // Populate round summary
     const summaryEl = document.getElementById('roundCompleteSummary');
-    if (summaryEl && cr.arrows.length) {
+    const bigScore = document.getElementById('rcRoundScore');
+    if (cr.arrows.length) {
       const scores = cr.arrows.map(a => a.score);
       const roundTotal = scores.reduce((a,b)=>a+b,0);
       const bestArrow = Math.max(...scores);
       const avgArrow = (roundTotal / scores.length).toFixed(1);
-      document.getElementById('rcRoundScore').textContent = roundTotal;
+      if (bigScore) bigScore.textContent = roundTotal;
       document.getElementById('rcBestArrow').textContent = bestArrow === 0 ? 'M' : bestArrow;
       document.getElementById('rcAvgArrow').textContent = avgArrow;
+      if (trophyIcon) trophyIcon.style.color = roundTotal >= 45 ? 'var(--accent3)' : roundTotal >= 35 ? 'var(--accent)' : 'var(--muted)';
       // Trend vs previous rounds
       const prevScores = session.rounds.map(r => r.arrows.reduce((s,a)=>s+a.score,0));
       const trendEl = document.getElementById('rcTrend');
@@ -8120,7 +8502,7 @@ function renderScorePage() {
         trendEl.textContent = 'First round of this session';
         trendEl.style.color = 'var(--muted)';
       }
-      summaryEl.style.display = 'block';
+      if (summaryEl) summaryEl.style.display = 'block';
     }
 
     overlay.classList.add('open');
@@ -10839,7 +11221,15 @@ function drawTargetOnCtx(c, size, arrows=[], mode='bullseye') {
 function goPage(name, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
+  const pageEl = document.getElementById('page-'+name);
+  pageEl.classList.add('active');
+  // Trigger transition: reset to invisible, then let CSS animate in on next frame
+  pageEl.style.opacity = '0';
+  pageEl.style.transform = 'translateY(6px)';
+  requestAnimationFrame(() => {
+    pageEl.style.opacity = '';
+    pageEl.style.transform = '';
+  });
   btn.classList.add('active');
 
   if (name !== 'home') {
